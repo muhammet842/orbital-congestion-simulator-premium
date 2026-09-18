@@ -160,21 +160,6 @@ Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 Built for the [Hack Club Stardance](https://stardance.hackclub.com/) competition in collaboration with NASA themes on space sustainability and orbital debris awareness.
 
-### AI assistance disclosure
-
-This project was built **with AI coding assistance**, not generated end-to-end as a black box.
-
-| Area | How AI was used | What stayed human-owned |
-|------|-----------------|-------------------------|
-| Code | [Cursor](https://cursor.com/) agent help for implementing features, refactors, tests, bug fixes, and docs | Product goals, architecture choices, reviewing diffs, running/verifying builds & demos, deciding what ships |
-| Design / UX | Occasional copy and layout suggestions | Visual direction, interaction design, and final UI decisions |
-| Demo video | CapCut text-to-speech for English narration; AI help drafting scripts | Screen recording, edit decisions, chapter structure |
-| Promo art | Optional AI image tools for YouTube / gallery thumbnails | Choosing what represents the real product (prefer live app screenshots when possible) |
-
-**Rough split:** AI accelerated a large share of the *typing and iteration*; the author remains responsible for the *idea, scope, correctness, and shipping*. There is **no ML model inside the simulator** — orbital positions use classical SGP4 (`satellite.js`) on CelesTrak TLEs.
-
-If a reviewer needs a one-liner for the submission form: *Used Cursor for coding assistance; owned the design and verified the running product.*
-
 ## License
 
 [MIT](LICENSE)
