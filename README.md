@@ -178,5 +178,4 @@ If a reviewer needs a one-liner for the submission form: *Used Cursor for coding
 ## License
 
 [MIT](LICENSE)
-#   o r b i t a l - c o n g e s t i o n - s i m u l a t o r - p r e m i u m  
- 
+#
