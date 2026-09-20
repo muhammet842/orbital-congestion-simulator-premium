@@ -1,13 +1,15 @@
 name: TLE Refresh
 
 # Keeps public/data/tle.json from going stale without anyone having to
-# remember to run `npm run fetch-tle` by hand. Runs every Monday and
-# Thursday at 03:00 UTC — twice a week keeps the data under the 3-day
-# "stale" warning threshold shown in the left panel (see LeftPanel.ts).
+# remember to run `npm run fetch-tle` by hand. Runs every day at 03:17 UTC.
+# A daily cadence leaves substantial room below the 3-day in-app staleness
+# warning even when a scheduled GitHub run is delayed or a single CelesTrak
+# refresh fails. The minute is deliberately off the hour to avoid the busiest
+# GitHub Actions schedule slot.
 # Can also be triggered manually from the Actions tab.
 on:
   schedule:
-    - cron: "0 3 * * 1,4"
+    - cron: "17 3 * * *"
   workflow_dispatch: {}
 
 jobs:
