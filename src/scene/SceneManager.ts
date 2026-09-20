@@ -145,7 +145,11 @@ export class SceneManager {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    // Keep short mouse/touch drags precise. OrbitControls' defaults make a
+    // small flick rotate the globe too far and let that motion coast for too
+    // long after release, especially on high-resolution touch screens.
+    this.controls.rotateSpeed = 0.55;
+    this.controls.dampingFactor = 0.12;
     this.controls.target.set(0, 0, 0);
     // Pinch-zoom must not pan the orbit target — phones default to
     // two-finger DOLLY_PAN, which drifts Earth off-center. Disabling pan
