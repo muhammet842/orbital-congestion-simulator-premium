@@ -11,7 +11,12 @@
  * to production; fail closed and leave the previous tle.json on disk.
  */
 import { applyFirstSeenAt } from './applyFirstSeenAt.mjs';
-import { applySatcatOwners, fetchSatcatOwnerMap } from './enrichFromSatcat.mjs';
+import {
+  applySatcatOwners,
+  fetchSatcatMetadataMap,
+  filterSatcatDecayedObjects,
+} from './enrichFromSatcat.mjs';
+import { filterKnownDeorbitedObjects } from './deorbitedObjects.mjs';
 
 const STATION_SOURCES = [
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', category: 'stations' },
@@ -507,13 +512,26 @@ async function main() {
   console.log('Enriching country/owner from SATCAT…');
   try {
     await sleep(FETCH_DELAY_MS);
-    const ownerByNorad = await fetchSatcatOwnerMap(fetch, { headers: REQUEST_HEADERS });
+    const satcatMetadata = await fetchSatcatMetadataMap(fetch, { headers: REQUEST_HEADERS });
+    const decayedFromSatcat = filterSatcatDecayedObjects(seen, satcatMetadata, new Date(fetchedAt));
+    const ownerByNorad = new Map(
+      Array.from(satcatMetadata, ([norad, metadata]) => [norad, metadata.owner])
+        .filter(([, owner]) => Boolean(owner)),
+    );
     const { matched, unmatched, withOwner } = applySatcatOwners(seen, ownerByNorad);
     console.log(
       `  satcat: ${ownerByNorad.size} catalog rows → ${matched} matched, ${unmatched} unmatched, ${withOwner} with org owner`,
     );
+    console.log(`  satcat: removed ${decayedFromSatcat} object(s) with a recorded decay date`);
   } catch (err) {
     console.warn(`  satcat enrichment failed — ${err.message} (heuristics will fill gaps)`);
+  }
+
+  // SATCAT can lag a confirmed re-entry. Keep this override after the remote
+  // join so it is also effective when SATCAT was temporarily unreachable.
+  const knownDeorbited = filterKnownDeorbitedObjects(seen, new Date(fetchedAt));
+  if (knownDeorbited > 0) {
+    console.log(`  overrides: removed ${knownDeorbited} confirmed de-orbited object(s)`);
   }
 
   const allObjects = Array.from(seen.values()).sort((a, b) => {

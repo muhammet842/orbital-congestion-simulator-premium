@@ -12,6 +12,31 @@ import { propagateObject } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
 import type { TleDataset, TrackedObject, ObjectCategory } from '../types';
 
+/**
+ * Emergency client-side guard for confirmed re-entries.
+ *
+ * The build-time SATCAT DECAY_DATE filter in scripts/fetch-tle.mjs is the
+ * normal path. This small date-based list deliberately duplicates only
+ * high-confidence, noteworthy cases so an already-published stale tle.json
+ * cannot render a vehicle after its confirmed atmospheric re-entry. Keep it
+ * in sync with scripts/deorbitedObjects.mjs.
+ */
+const KNOWN_DEORBITED_AT: ReadonlyMap<number, string> = new Map([
+  [68319, '2026-09-07T19:15:00Z'], // Progress MS-33 — controlled Pacific re-entry
+]);
+
+export function filterKnownDeorbitedRecords(
+  records: TleDataset['objects'],
+  asOf = new Date(),
+): TleDataset['objects'] {
+  return records.filter((record) => {
+    const deorbitedAt = KNOWN_DEORBITED_AT.get(record.noradId);
+    if (!deorbitedAt) return true;
+    const deorbitedMs = Date.parse(deorbitedAt);
+    return !Number.isFinite(deorbitedMs) || deorbitedMs > asOf.getTime();
+  });
+}
+
 export async function loadTleDataset(): Promise<TleDataset> {
   // Always revalidate with the server. tle.json is covered by a CDN
   // Cache-Control that can otherwise keep a stale catalog (and its
@@ -20,7 +45,15 @@ export async function loadTleDataset(): Promise<TleDataset> {
   if (!response.ok) {
     throw new Error('Orbital data not found. Run: npm run fetch-tle');
   }
-  return response.json() as Promise<TleDataset>;
+  const dataset = await response.json() as TleDataset;
+  const objects = filterKnownDeorbitedRecords(dataset.objects);
+  return {
+    ...dataset,
+    objects,
+    // `count` must describe the in-memory catalogue, otherwise Live Stats
+    // can disagree with the actual 3-D/side-panel population.
+    count: objects.length,
+  };
 }
 
 export function createTrackedObjects(dataset: TleDataset, date = new Date()): TrackedObject[] {

@@ -43,26 +43,62 @@ export function splitCsvLine(line) {
  * @returns {Map<number, string>}
  */
 export function parseSatcatOwnerByNorad(csvText) {
+  return new Map(
+    Array.from(parseSatcatMetadataByNorad(csvText), ([norad, metadata]) => [norad, metadata.owner])
+      .filter(([, owner]) => Boolean(owner)),
+  );
+}
+
+/**
+ * Build NORAD → owner/decay metadata from the official SATCAT CSV.
+ * DECAY_DATE is empty for objects that are still catalogued as on-orbit.
+ *
+ * @param {string} csvText
+ * @returns {Map<number, { owner?: string, decayDate?: string }>}
+ */
+export function parseSatcatMetadataByNorad(csvText) {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length < 2) return new Map();
 
   const header = splitCsvLine(lines[0]).map((h) => h.trim().toUpperCase());
   const noradIdx = header.indexOf('NORAD_CAT_ID');
   const ownerIdx = header.indexOf('OWNER');
-  if (noradIdx < 0 || ownerIdx < 0) {
-    throw new Error('satcat.csv missing NORAD_CAT_ID or OWNER column');
+  const decayIdx = header.indexOf('DECAY_DATE');
+  if (noradIdx < 0 || ownerIdx < 0 || decayIdx < 0) {
+    throw new Error('satcat.csv missing NORAD_CAT_ID, OWNER, or DECAY_DATE column');
   }
 
-  /** @type {Map<number, string>} */
+  /** @type {Map<number, { owner?: string, decayDate?: string }>} */
   const map = new Map();
   for (let i = 1; i < lines.length; i++) {
     const cols = splitCsvLine(lines[i]);
     const norad = Number.parseInt(cols[noradIdx], 10);
     const owner = (cols[ownerIdx] ?? '').trim();
-    if (!Number.isFinite(norad) || norad <= 0 || !owner) continue;
-    map.set(norad, owner);
+    const decayDate = (cols[decayIdx] ?? '').trim();
+    if (!Number.isFinite(norad) || norad <= 0) continue;
+    map.set(norad, {
+      ...(owner ? { owner } : {}),
+      ...(decayDate ? { decayDate } : {}),
+    });
   }
   return map;
+}
+
+/**
+ * Remove objects that SATCAT explicitly marks as decayed on or before `asOf`.
+ * A date-only value is interpreted as the start of that UTC day; this is safe
+ * for a catalogue generated after the reported decay day and intentionally
+ * avoids speculative removal based only on low altitude or a stale TLE epoch.
+ */
+export function filterSatcatDecayedObjects(seen, metadataByNorad, asOf = new Date()) {
+  let removed = 0;
+  for (const [noradId, metadata] of metadataByNorad) {
+    if (!metadata.decayDate) continue;
+    const decayMs = Date.parse(`${metadata.decayDate}T00:00:00Z`);
+    if (!Number.isFinite(decayMs) || decayMs > asOf.getTime()) continue;
+    if (seen.delete(noradId)) removed++;
+  }
+  return removed;
 }
 
 /**
@@ -112,6 +148,14 @@ export function applySatcatOwners(seen, ownerByNorad) {
  * @returns {Promise<Map<number, string>>}
  */
 export async function fetchSatcatOwnerMap(fetchImpl = fetch, opts = {}) {
+  const metadata = await fetchSatcatMetadataMap(fetchImpl, opts);
+  return new Map(
+    Array.from(metadata, ([norad, value]) => [norad, value.owner]).filter(([, owner]) => Boolean(owner)),
+  );
+}
+
+/** @returns {Promise<Map<number, { owner?: string, decayDate?: string }>>} */
+export async function fetchSatcatMetadataMap(fetchImpl = fetch, opts = {}) {
   const response = await fetchImpl(SATCAT_CSV_URL, {
     headers: {
       Accept: 'text/csv,*/*',
@@ -122,5 +166,5 @@ export async function fetchSatcatOwnerMap(fetchImpl = fetch, opts = {}) {
     throw new Error(`HTTP ${response.status} for ${SATCAT_CSV_URL}`);
   }
   const text = await response.text();
-  return parseSatcatOwnerByNorad(text);
+  return parseSatcatMetadataByNorad(text);
 }

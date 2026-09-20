@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   applySatcatOwners,
+  filterSatcatDecayedObjects,
+  parseSatcatMetadataByNorad,
   parseSatcatOwnerByNorad,
   splitCsvLine,
 } from './enrichFromSatcat.mjs';
@@ -18,10 +20,10 @@ describe('splitCsvLine', () => {
 
 describe('parseSatcatOwnerByNorad', () => {
   const csv = [
-    'OBJECT_NAME,OBJECT_ID,NORAD_CAT_ID,OBJECT_TYPE,OPS_STATUS_CODE,OWNER,LAUNCH_DATE',
-    'MARINA,2026-156BD,69920,PAY,+,SVK,2026-07-07',
-    'STARLINK-1000,2020-001A,45000,PAY,+,US,2020-01-01',
-    'ISS (ZARYA),1998-067A,25544,PAY,+,ISS,1998-11-20',
+    'OBJECT_NAME,OBJECT_ID,NORAD_CAT_ID,OBJECT_TYPE,OPS_STATUS_CODE,OWNER,LAUNCH_DATE,DECAY_DATE',
+    'MARINA,2026-156BD,69920,PAY,+,SVK,2026-07-07,',
+    'STARLINK-1000,2020-001A,45000,PAY,+,US,2020-01-01,',
+    'ISS (ZARYA),1998-067A,25544,PAY,+,ISS,1998-11-20,',
   ].join('\n');
 
   it('indexes OWNER by NORAD', () => {
@@ -29,6 +31,33 @@ describe('parseSatcatOwnerByNorad', () => {
     expect(map.get(69920)).toBe('SVK');
     expect(map.get(45000)).toBe('US');
     expect(map.get(25544)).toBe('ISS');
+  });
+
+  it('preserves the official decay date alongside the owner', () => {
+    const csv = [
+      'OBJECT_NAME,NORAD_CAT_ID,OWNER,DECAY_DATE',
+      'PROGRESS MS-33,68319,RKKE,2026-09-07',
+    ].join('\n');
+    expect(parseSatcatMetadataByNorad(csv).get(68319)).toEqual({
+      owner: 'RKKE', decayDate: '2026-09-07',
+    });
+  });
+});
+
+describe('filterSatcatDecayedObjects', () => {
+  it('removes only objects whose recorded decay date has passed', () => {
+    const seen = new Map([
+      [68319, { noradId: 68319, name: 'PROGRESS MS-33' }],
+      [25544, { noradId: 25544, name: 'ISS' }],
+    ]);
+    const metadata = new Map([
+      [68319, { decayDate: '2026-09-07' }],
+      [25544, {}],
+    ]);
+
+    expect(filterSatcatDecayedObjects(seen, metadata, new Date('2026-09-20T00:00:00Z'))).toBe(1);
+    expect(seen.has(68319)).toBe(false);
+    expect(seen.has(25544)).toBe(true);
   });
 });
 

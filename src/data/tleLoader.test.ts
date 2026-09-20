@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { computeStats, createTrackedObjects, loadTleDataset } from './tleLoader';
+import {
+  computeStats,
+  createTrackedObjects,
+  filterKnownDeorbitedRecords,
+  loadTleDataset,
+} from './tleLoader';
 import type { TleDataset } from '../types';
 
 const ISS_LINE1 = '1 25544U 98067A   19249.04864348  .00001909  00000-0  40858-4 0  9990';
@@ -33,6 +38,18 @@ describe('loadTleDataset', () => {
   it('throws a helpful error when the response is not ok', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
     await expect(loadTleDataset()).rejects.toThrow(/fetch-tle/i);
+  });
+});
+
+describe('filterKnownDeorbitedRecords', () => {
+  it('hides Progress MS-33 after its confirmed atmospheric re-entry', () => {
+    const records: TleDataset['objects'] = [
+      { noradId: 68319, name: 'PROGRESS MS-33', line1: '', line2: '', category: 'active' },
+      { noradId: 25544, name: 'ISS', line1: '', line2: '', category: 'stations' },
+    ];
+
+    expect(filterKnownDeorbitedRecords(records, new Date('2026-09-20T00:00:00Z')))
+      .toEqual([records[1]]);
   });
 });
 
