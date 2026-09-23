@@ -9,11 +9,11 @@ Vite + TypeScript + Three.js + satellite.js (SGP4). Live data is static `public/
 
 ## Entry & ownership
 
-- Boot: `src/main.ts` → TLE load → `appState` → Layout panels → `SceneManager` → deep link / admin / Kessler / how-to
+- Boot: `src/main.ts` → TLE load → `appState` → Layout panels → `SceneManager` → deep link / Kessler / how-to
 - State: `src/state/appState.ts` — single store; selections are mutually exclusive (object / event / conjunction)
 - Scene: `src/scene/SceneManager.ts` — rAF loop, propagation worker, VERIFY + historical replay overlays
 - UI: `LeftPanel` (filters, alerts, events), `RightPanel` (detail / Spotter), `TimeControls`, `KesslerPanel`, `HowToGuide`
-- Catalog refresh: `npm run fetch-tle` → `scripts/fetch-tle.mjs` → GitHub Action Mon/Thu
+- Catalog refresh: `npm run fetch-tle` → `scripts/fetch-tle.mjs` → daily GitHub Action
 
 ## Simulation clocks (do not mix)
 
@@ -24,7 +24,6 @@ Spotter always uses **wall-clock**, never sim speed. Event replay uses geo lerp 
 
 - Thin CelesTrak fetches must not ship: `fetch-tle.mjs` refuses write if total/stations/active/debris below mins; leave previous `tle.json` intact
 - Deep link clear: URL with no valid `?object=`/`?event=` must call `clearHistoricalEventSelection()` (not only `stopEventReplay`)
-- Firebase analytics: default URL if unset; set `VITE_FIREBASE_RTDB_URL=off` to disable
 - Globe pick: prefer higher orbit among near-stacked hits (`screenPick.ts`) — LEO must not steal GEO clicks
 - i18n: add keys to all of `en|tr|de|ru|zh`; `npm run check:i18n` fails CI on drift
 - “New to this catalog” = `firstSeenAt` in our TLE list (14d), not launch date — see `docs/NEW_OBJECTS.md`

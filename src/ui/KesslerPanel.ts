@@ -158,11 +158,11 @@ export function openKesslerPanel(): void {
 
   const backdrop = document.createElement('div');
   backdrop.id = 'kessler-panel-backdrop';
-  backdrop.className = 'admin-backdrop kessler-backdrop';
+  backdrop.className = 'modal-backdrop kessler-backdrop';
 
   const panel = document.createElement('div');
   panel.id = 'kessler-panel';
-  panel.className = 'admin-panel kessler-panel';
+  panel.className = 'modal-panel kessler-panel';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', t('kessler.title'));
 
@@ -207,18 +207,18 @@ function renderPanelContent(): void {
   }).join('');
 
   panelEl.innerHTML = `
-    <div class="ap-header">
-      <div class="ap-logo">${t('kessler.title')}</div>
-      <button class="ap-close" id="kp-close" aria-label="${t('kessler.close')}" title="${t('kessler.close')}">✕</button>
+    <div class="modal-header">
+      <div class="modal-title">${t('kessler.title')}</div>
+      <button class="modal-close" id="kp-close" aria-label="${t('kessler.close')}" title="${t('kessler.close')}">✕</button>
     </div>
-    <div class="ap-body">
+    <div class="modal-body">
       <p class="kp-subtitle">${t('kessler.subtitle')}</p>
 
-      <div class="ap-section">
-        <h3 class="ap-section-title">${t('kessler.presets_heading')}</h3>
+      <div class="modal-section">
+        <h3 class="modal-section-title">${t('kessler.presets_heading')}</h3>
         <div class="kp-presets" id="kp-presets">${presetButtons}</div>
 
-        <h3 class="ap-section-title kp-scenario-title">${t('kessler.scenario_heading')}</h3>
+        <h3 class="modal-section-title kp-scenario-title">${t('kessler.scenario_heading')}</h3>
 
         <div class="kp-slider-row">
           <div class="kp-slider-label-row">
@@ -258,14 +258,14 @@ function renderPanelContent(): void {
         </div>
       </div>
 
-      <div class="ap-section" id="kp-results-section" ${hasRun ? '' : 'hidden'}>
-        <h3 class="ap-section-title">${t('kessler.results_heading')}</h3>
+      <div class="modal-section" id="kp-results-section" ${hasRun ? '' : 'hidden'}>
+        <h3 class="modal-section-title">${t('kessler.results_heading')}</h3>
 
         <div class="kp-metrics">
-          <div class="ap-metric"><div class="ap-metric-val" id="kp-stat-total">—</div><div class="ap-metric-lbl">${t('kessler.stat.total_objects')}</div></div>
-          <div class="ap-metric"><div class="ap-metric-val" id="kp-stat-debris">—</div><div class="ap-metric-lbl">${t('kessler.stat.debris_objects')}</div></div>
-          <div class="ap-metric"><div class="ap-metric-val" id="kp-stat-collisions">—</div><div class="ap-metric-lbl">${t('kessler.stat.collisions')}</div></div>
-          <div class="ap-metric"><div class="ap-metric-val" id="kp-stat-risk">—</div><div class="ap-metric-lbl">${t('kessler.stat.risk_index')}</div></div>
+          <div class="modal-metric"><div class="modal-metric-value" id="kp-stat-total">—</div><div class="modal-metric-label">${t('kessler.stat.total_objects')}</div></div>
+          <div class="modal-metric"><div class="modal-metric-value" id="kp-stat-debris">—</div><div class="modal-metric-label">${t('kessler.stat.debris_objects')}</div></div>
+          <div class="modal-metric"><div class="modal-metric-value" id="kp-stat-collisions">—</div><div class="modal-metric-label">${t('kessler.stat.collisions')}</div></div>
+          <div class="modal-metric"><div class="modal-metric-value" id="kp-stat-risk">—</div><div class="modal-metric-label">${t('kessler.stat.risk_index')}</div></div>
         </div>
 
         <div class="kp-shell-grid">
@@ -287,7 +287,7 @@ function renderPanelContent(): void {
           </div>
         </div>
 
-        <h4 class="ap-section-title">${t('kessler.chart_heading')}</h4>
+        <h4 class="modal-section-title">${t('kessler.chart_heading')}</h4>
         <canvas id="kp-chart" class="kp-chart-canvas"></canvas>
         <div class="kp-chart-legend">
           <span><i class="kp-swatch kp-swatch--total"></i>${t('kessler.chart.total')}</span>
@@ -295,7 +295,7 @@ function renderPanelContent(): void {
           <span><i class="kp-swatch kp-swatch--baseline"></i>${t('kessler.chart.baseline')}</span>
         </div>
 
-        <h4 class="ap-section-title">${t('kessler.density_heading')}</h4>
+        <h4 class="modal-section-title">${t('kessler.density_heading')}</h4>
         <div class="kp-density-wrap">
           <canvas id="kp-density" class="kp-density-canvas"></canvas>
         </div>

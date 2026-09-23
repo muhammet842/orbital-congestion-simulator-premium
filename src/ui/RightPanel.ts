@@ -1,7 +1,7 @@
 /**
  * Right panel: empty state, selected satellite detail, VERIFY chrome, or
  * historical event detail + replay HUD. Opens Spotter via #btn-spotter.
- * Re-renders on subscribe(); keep photo/Spotter side effects idempotent.
+ * Re-renders on subscribe(); keep Spotter side effects idempotent.
  */
 import {
   getDistanceAtTime,
@@ -30,7 +30,6 @@ import {
 } from '../state/appState';
 import type { HistoricalEvent } from './EventCards';
 import { getHistoricalEvent } from './EventCards';
-import { loadObjectPhotoInto } from '../data/objectPhotos';
 import { isRecentlyLaunched } from '../data/newLaunches';
 import { t, onLangChange } from '../i18n/i18n';
 import { openSpotterPanel } from './SpotterPanel';
@@ -412,7 +411,6 @@ function render(container: HTMLElement): void {
       <div class="norad-id">NORAD ${snapshot.noradId}</div>
       <div class="object-name">${escapeHtml(snapshot.name)}${newBadge}</div>
     </div>
-    <div class="object-photo-wrap" data-object-photo hidden></div>
     <dl class="detail-list detail-list--meta">
       <div class="detail-row"><dt>${t('sat.country')}</dt><dd>${escapeHtml(snapshot.country)}</dd></div>
       <div class="detail-row"><dt>${t('sat.operator_owner')}</dt><dd>${escapeHtml(snapshot.owner)}</dd></div>
@@ -435,11 +433,6 @@ function render(container: HTMLElement): void {
       ${state.showGroundTrack ? t('sat.hide_ground') : t('sat.show_ground')}
     </button>
   `;
-
-  if (obj.category !== 'debris') {
-    const photoEl = detailEl.querySelector<HTMLElement>('[data-object-photo]');
-    if (photoEl) void loadObjectPhotoInto(photoEl, obj);
-  }
 }
 
 function renderConjunctionDetail(detailEl: Element, conjunction: ConjunctionEvent): void {

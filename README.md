@@ -18,7 +18,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Orbit layers & filters** — LEO / MEO / GEO / HEO; satellites / stations / debris; search; altitude & inclination ranges
 - **Color by Function** — Starlink, stations, active payloads, and debris at a glance
 - **New to this catalog** — filter objects first seen in this app’s TLE list within the last 14 days (`firstSeenAt`)
-- **Object details** — altitude, velocity, country/owner, curated photos, orbit trail, ground track, footprint
+- **Object details** — altitude, velocity, country/owner, orbit trail, ground track, footprint
 - **Close-approach alerts** — next-24h scanning with sortable cards and a VERIFY playback mode (T−60s → CPA → T+15s)
 - **Historical event replays** — seven landmark collisions, ASAT tests, and breakups
 - **Kessler “Future Projection”** — header 🌌 panel with live scenario sliders, charts, and narrative (no separate run button)
@@ -26,8 +26,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Interactive how-to tour** — language gate + spotlight walkthrough (header `?`)
 - **i18n** — English, Turkish, German, Russian, Chinese
 - **Deep links** — `?object=<NORAD>` / `?event=<id>`
-- **Admin analytics overlay** (optional Firebase RTDB) — local PIN, visitor metrics (`Ctrl+Shift+A`)
-- **Automated TLE refresh** — GitHub Actions twice weekly (TLE + SATCAT country join)
+- **Automated TLE refresh** — daily GitHub Actions update (TLE + SATCAT country join)
 
 ## Why it matters
 
@@ -49,15 +48,13 @@ Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm 
 **Requirements:** Node.js 20+, a WebGL-capable browser.
 
 ```bash
-git clone https://github.com/muhammet842/orbital-congestion-simulator.git
-cd orbital-congestion-simulator
+git clone https://github.com/muhammet842/orbital-congestion-simulator-premium.git
+cd orbital-congestion-simulator-premium
 npm install
 npm run dev
 ```
 
 Open `http://localhost:5173`. The repo already ships with `public/data/tle.json`; run `npm run fetch-tle` only when you want a fresh CelesTrak pull.
-
-Optional analytics: copy `.env.example` → `.env` and set `VITE_FIREBASE_RTDB_URL` (see [firebase/README.md](firebase/README.md)).
 
 ## Development & testing
 
@@ -86,7 +83,7 @@ Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.or
 
 Output: `public/data/tle.json` — up to **12,000 objects**, deduplicated by NORAD ID.
 
-A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` twice a week (Monday & Thursday), which refreshes TLEs **and** re-joins SATCAT, then commits `public/data/tle.json` so the deployed app stays under the in-app 3-day staleness warning. Manual refresh:
+A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT, and commits `public/data/tle.json` so the deployed app stays under the in-app 3-day staleness warning. Manual refresh:
 
 ```bash
 npm run fetch-tle
@@ -124,13 +121,9 @@ Orbit layers are classified by altitude and eccentricity:
 
 Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.gov/) (Blue Marble). Stored locally at `public/textures/earth.jpg` and `public/textures/earth-night.jpg` and blended in a custom shader for the terminator.
 
-## Ops & admin
+## Operations
 
-- Firebase rules and deploy notes: [firebase/README.md](firebase/README.md)
-- Feature / architecture notes: [docs/FEATURES.md](docs/FEATURES.md)
-- Operations checklist (TLE refresh, Firebase publish): [docs/OPERATIONS.md](docs/OPERATIONS.md)
-
-The admin overlay (Ctrl+Shift+A) is a **local debug panel**. The PIN is hashed on-device (SHA-256); it is not remote authentication.
+- Operations checklist: [docs/OPERATIONS.md](docs/OPERATIONS.md)
 
 ## Quick test guide (reviewers)
 

@@ -24,7 +24,7 @@ function mountAppShell(): void {
             <option value="tr">TR</option>
           </select>
         </div>
-        <a class="header-github" href="https://github.com/muhammet842/orbital-congestion-simulator">GitHub</a>
+        <a class="header-github" href="https://github.com/muhammet842/orbital-congestion-simulator-premium">GitHub</a>
       </div>
     </header>
     <aside id="left-panel" class="panel panel-left" style="overflow-y: auto; height: 200px;">

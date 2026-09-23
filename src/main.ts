@@ -5,7 +5,7 @@
  *   1. Fetch `public/data/tle.json` and build TrackedObject[] + stats
  *   2. initState → create Layout + left/right/time panels
  *   3. SceneManager (meshes + rAF) — must exist before deep links frame a sat
- *   4. Deep link, admin (Ctrl+Shift+A), Kessler panel, how-to tour
+ *   4. Deep link, Kessler panel, how-to tour
  *
  * There is no backend for orbital data; the catalog is the committed JSON
  * refreshed by `npm run fetch-tle` / GitHub Actions. See `.cursor/rules/project-map.mdc`.
@@ -19,7 +19,6 @@ import { initLeftPanel } from './ui/LeftPanel';
 import { initRightPanel } from './ui/RightPanel';
 import { initTimeControls } from './ui/TimeControls';
 import { initDeepLink } from './routing/deepLink';
-import { initAdminSystem } from './ui/AdminPanel';
 import { initKesslerPanel } from './ui/KesslerPanel';
 import { initHowToGuide } from './ui/HowToGuide';
 import { findConjunctions } from './orbital/conjunction';
@@ -66,9 +65,6 @@ async function main(): Promise<void> {
     // Must run after the scene is ready so a linked satellite gets framed
     // correctly on first load.
     initDeepLink(objects);
-
-    // Admin system: keyboard shortcut Ctrl+Shift+A, auto-auth on known devices.
-    initAdminSystem();
 
     // Future Projection: header button opening the Kessler-syndrome "what if" panel.
     initKesslerPanel();

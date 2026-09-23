@@ -38,7 +38,7 @@ export function createLayout(root: HTMLElement): {
           </label>
           <a
             class="header-github"
-            href="https://github.com/muhammet842/orbital-congestion-simulator"
+            href="https://github.com/muhammet842/orbital-congestion-simulator-premium"
             target="_blank"
             rel="noopener noreferrer"
             title="${t('layout.github_title')}"
