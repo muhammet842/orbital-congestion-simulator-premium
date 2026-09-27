@@ -438,9 +438,7 @@ function render(container: HTMLElement): void {
 }
 
 function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined): string {
-  if (!frequencies?.length) return '';
-
-  const rows = frequencies.map((frequency) => `
+  const rows = frequencies?.length ? frequencies.map((frequency) => `
     <tr>
       <td>${escapeHtml(frequency.service)}</td>
       <td>${escapeHtml(frequency.uplinkMHz ?? '—')}</td>
@@ -450,7 +448,11 @@ function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[]
     </tr>
     ${frequency.note ? `<tr class="radio-frequency-note"><td colspan="5">${escapeHtml(frequency.note)}</td></tr>` : ''}
     <tr class="radio-frequency-source"><td colspan="5"><a href="${escapeHtml(frequency.sourceUrl)}" target="_blank" rel="noopener noreferrer">${t('sat.radio_source')}</a></td></tr>
-  `).join('');
+  `).join('') : `
+    <tr class="radio-frequency-empty">
+      <td>${t('sat.radio_no_data')}</td><td>—</td><td>—</td><td>—</td><td>—</td>
+    </tr>
+  `;
 
   return `
     <section class="radio-frequency-section" aria-labelledby="radio-frequency-heading">

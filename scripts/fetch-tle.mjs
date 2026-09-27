@@ -18,8 +18,11 @@ import {
 } from './enrichFromSatcat.mjs';
 import { filterKnownDeorbitedObjects } from './deorbitedObjects.mjs';
 import {
+  applyKnownConstellationFrequencies,
   applyRadioFrequencies,
+  applySatnogsRadioFrequencies,
   fetchAmsatActiveFrequencies,
+  fetchSatnogsTransmitters,
 } from './enrichRadioFrequencies.mjs';
 
 const STATION_SOURCES = [
@@ -537,23 +540,14 @@ async function main() {
     console.warn(`  satcat enrichment failed — ${err.message} (heuristics will fill gaps)`);
   }
 
-  // SATCAT can lag a confirmed re-entry. Keep this override after the remote
-  // join so it is also effective when SATCAT was temporarily unreachable.
-  const knownDeorbited = filterKnownDeorbitedObjects(seen, new Date(fetchedAt));
-  if (knownDeorbited > 0) {
-    console.log(`  overrides: removed ${knownDeorbited} confirmed de-orbited object(s)`);
-  }
-
-  // Join the active amateur-satellite frequency catalog by stable NORAD ID.
-  // This is best-effort: a radio-data outage must not block fresh orbital data.
-  // Four manually verified satellites are intentionally left to the richer
-  // runtime overrides in src/data/radioFrequencies.ts.
-  console.log('Enriching amateur-radio frequencies from AMSAT/SatNOGS...');
+  // Start with the broad amateur summary. The structured SatNOGS rows below
+  // replace overlapping summaries, and official family plans replace both.
+  console.log('Enriching radio-frequency metadata...');
   try {
     const radioRows = await fetchAmsatActiveFrequencies(fetch, { headers: REQUEST_HEADERS });
     const { catalogSatellites, matched, channels } = applyRadioFrequencies(seen, radioRows);
     console.log(
-      `  radio: ${catalogSatellites} catalog satellites -> ${matched} matched, ${channels} channel entries`,
+      `  amsat: ${catalogSatellites} catalog satellites -> ${matched} matched, ${channels} channel entries`,
     );
   } catch (err) {
     let restored = 0;
@@ -564,8 +558,37 @@ async function main() {
       restored++;
     }
     console.warn(
-      `  radio enrichment failed - ${err.message} (${restored} previous entries restored; curated entries remain available)`,
+      `  AMSAT enrichment failed - ${err.message} (${restored} previous entries restored; curated entries remain available)`,
     );
+  }
+
+  try {
+    const transmitterRows = await fetchSatnogsTransmitters(fetch, { headers: REQUEST_HEADERS });
+    const { catalogSatellites, matched, channels } = applySatnogsRadioFrequencies(seen, transmitterRows);
+    console.log(
+      `  satnogs: ${catalogSatellites} catalog satellites -> ${matched} matched, ${channels} transmitter entries`,
+    );
+  } catch (err) {
+    let restored = 0;
+    for (const [noradId, frequencies] of previous.radioFrequencies) {
+      const object = seen.get(noradId);
+      if (!object || object.radioFrequencies) continue;
+      object.radioFrequencies = frequencies;
+      restored++;
+    }
+    console.warn(`  SatNOGS transmitter fetch failed - ${err.message} (${restored} previous entries restored)`);
+  }
+
+  const constellationRadio = applyKnownConstellationFrequencies(seen);
+  console.log(
+    `  official constellation plans: ${constellationRadio.matched} matched, ${constellationRadio.channels} entries`,
+  );
+
+  // SATCAT can lag a confirmed re-entry. Keep this override after the remote
+  // join so it is also effective when SATCAT was temporarily unreachable.
+  const knownDeorbited = filterKnownDeorbitedObjects(seen, new Date(fetchedAt));
+  if (knownDeorbited > 0) {
+    console.log(`  overrides: removed ${knownDeorbited} confirmed de-orbited object(s)`);
   }
 
   const allObjects = Array.from(seen.values()).sort((a, b) => {

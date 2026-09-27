@@ -75,6 +75,19 @@ describe('initRightPanel – DOM smoke', () => {
     expect(container.querySelector('#btn-ground-track')).not.toBeNull();
   });
 
+  it('shows a dashed radio-frequency row when no verified data exists', () => {
+    const obj = makeFakeObject();
+    setState({ objects: [obj], filteredIndices: [0] });
+    selectObject(0);
+
+    const container = document.createElement('div');
+    initRightPanel(container);
+
+    const emptyRow = container.querySelector('.radio-frequency-empty');
+    expect(emptyRow).not.toBeNull();
+    expect(emptyRow?.textContent).toContain('—');
+  });
+
   it('orbit-trail button reflects showOrbitTrail state', () => {
     const obj = makeFakeObject();
     setState({ objects: [obj], filteredIndices: [0], showOrbitTrail: true });

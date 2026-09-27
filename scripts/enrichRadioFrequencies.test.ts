@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyKnownConstellationFrequencies,
   applyRadioFrequencies,
+  buildSatnogsRadioFrequencyMap,
   buildRadioFrequencyMap,
 } from './enrichRadioFrequencies.mjs';
 
@@ -50,6 +52,56 @@ describe('radio-frequency enrichment', () => {
 
     expect(stats).toMatchObject({ catalogSatellites: 2, matched: 1, channels: 3 });
     expect(object).toHaveProperty('radioFrequencies');
+  });
+
+  it('accepts only confirmed, active SatNOGS transmitters and formats ranges', () => {
+    const base = {
+      norad_cat_id: 12345,
+      status: 'active',
+      alive: true,
+      unconfirmed: false,
+      frequency_violation: false,
+      description: 'Telemetry and command',
+      uplink_low: 145_800_000,
+      uplink_high: 145_900_000,
+      downlink_low: 437_500_000,
+      downlink_high: 437_500_000,
+      uplink_mode: 'FM',
+      mode: 'GMSK',
+      baud: 9600,
+    };
+    const frequencies = buildSatnogsRadioFrequencyMap([
+      base,
+      { ...base, norad_cat_id: 12346, unconfirmed: true },
+      { ...base, norad_cat_id: 12347, status: 'inactive' },
+    ]);
+
+    expect(frequencies.get(12345)).toEqual([
+      expect.objectContaining({
+        uplinkMHz: '145.8–145.9',
+        downlinkMHz: '437.5',
+        mode: 'FM / GMSK · 9600 baud',
+      }),
+    ]);
+    expect(frequencies.has(12346)).toBe(false);
+    expect(frequencies.has(12347)).toBe(false);
+  });
+
+  it('applies the official Galileo plan to every Galileo-family object', () => {
+    const galileo: { noradId: number; name: string; radioFrequencies?: unknown[] } = {
+      noradId: 37846,
+      name: 'GSAT0101 (GALILEO-PFM)',
+    };
+    const other = { noradId: 99999, name: 'OTHER' };
+    const seen = new Map([[37846, galileo], [99999, other]]);
+    const stats = applyKnownConstellationFrequencies(seen);
+
+    expect(stats).toEqual({ matched: 1, channels: 5 });
+    expect(galileo.radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ service: 'Galileo E1 navigation', downlinkMHz: '1575.420' }),
+      expect.objectContaining({ service: 'Galileo E6 navigation', downlinkMHz: '1278.750' }),
+    ]));
+    expect(other).not.toHaveProperty('radioFrequencies');
   });
 });
 
