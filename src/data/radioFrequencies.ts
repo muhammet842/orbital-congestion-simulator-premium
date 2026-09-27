@@ -61,18 +61,12 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
   }]],
   [67687, [
     {
-      service: 'Command uplink',
+      service: 'UHF command / telemetry',
       uplinkMHz: '450 (nominal)',
-      mode: 'UHF command link',
-      note: 'Mission paper gives the nominal band value, not a public amateur access channel. Do not transmit without operator authorization.',
-      sourceUrl: LEOPARD_TECHNICAL_PAPER,
-    },
-    {
-      service: 'Telemetry downlink',
       downlinkMHz: '400.960',
       mode: '4k8 GMSK',
-      note: 'SatNOGS lists this transmitter as active after command.',
-      sourceUrl: SATNOGS_LEOPARD,
+      note: '450 MHz is the nominal command uplink from the mission paper; SatNOGS lists the 400.960 MHz telemetry downlink. Do not transmit without operator authorization.',
+      sourceUrl: LEOPARD_TECHNICAL_PAPER,
     },
     {
       service: 'CW beacon',
@@ -84,8 +78,8 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
       service: 'Science data downlink',
       downlinkMHz: '2279.100',
       mode: 'BPSK · 64 kbps',
-      note: 'S-band mission data downlink; the technical paper specifies a 64 kbps link.',
-      sourceUrl: LEOPARD_TECHNICAL_PAPER,
+      note: 'S-band mission data downlink; SatNOGS lists BPSK and the technical paper specifies a 64 kbps link.',
+      sourceUrl: SATNOGS_LEOPARD,
     },
   ]],
   [69920, [{

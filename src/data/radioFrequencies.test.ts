@@ -20,11 +20,14 @@ describe('getRadioFrequencies', () => {
     expect(getRadioFrequencies(27607)![0].mode).not.toBe('changed');
   });
 
-  it('keeps LEOPARD command, telemetry, beacon and science links distinct', () => {
+  it('shows LEOPARD UHF uplink/downlink together and keeps its other links distinct', () => {
     const frequencies = getRadioFrequencies(67687);
     expect(frequencies).toEqual(expect.arrayContaining([
-      expect.objectContaining({ service: 'Command uplink', uplinkMHz: '450 (nominal)' }),
-      expect.objectContaining({ service: 'Telemetry downlink', downlinkMHz: '400.960' }),
+      expect.objectContaining({
+        service: 'UHF command / telemetry',
+        uplinkMHz: '450 (nominal)',
+        downlinkMHz: '400.960',
+      }),
       expect.objectContaining({ service: 'CW beacon', listenMHz: '400.960' }),
       expect.objectContaining({ service: 'Science data downlink', downlinkMHz: '2279.100' }),
     ]));
