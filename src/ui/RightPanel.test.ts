@@ -88,6 +88,17 @@ describe('initRightPanel – DOM smoke', () => {
     expect(emptyRow?.textContent).toContain('—');
   });
 
+  it('does not show the radio-frequency section for debris', () => {
+    const obj = { ...makeFakeObject('TEST DEB'), category: 'debris' as const };
+    setState({ objects: [obj], filteredIndices: [0] });
+    selectObject(0);
+
+    const container = document.createElement('div');
+    initRightPanel(container);
+
+    expect(container.querySelector('.radio-frequency-section')).toBeNull();
+  });
+
   it('orbit-trail button reflects showOrbitTrail state', () => {
     const obj = makeFakeObject();
     setState({ objects: [obj], filteredIndices: [0], showOrbitTrail: true });

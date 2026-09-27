@@ -405,7 +405,12 @@ function render(container: HTMLElement): void {
   const newBadge = isRecentlyLaunched(obj)
     ? `<span class="new-launch-badge" title="${escapeHtml(t('badge.new_launch_title'))}">${t('badge.new_launch')}</span>`
     : '';
-  const radioSection = renderRadioFrequencies(obj.radioFrequencies);
+  // Debris has no operational radio payload. Keep the empty/dashed state for
+  // spacecraft whose frequencies are unknown, but omit the section entirely
+  // for fragments and rocket bodies.
+  const radioSection = obj.category === 'debris'
+    ? ''
+    : renderRadioFrequencies(obj.radioFrequencies);
 
   detailEl.innerHTML = `
     <div class="detail-header">
