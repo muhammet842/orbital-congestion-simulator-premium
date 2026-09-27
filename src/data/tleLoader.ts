@@ -66,7 +66,9 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
         ...record,
         category: record.category as ObjectCategory,
       });
-      const radioFrequencies = record.radioFrequencies ?? getRadioFrequencies(record.noradId);
+      // Mission/operator-sourced overrides are more precise than aggregated
+      // catalog rows (which can omit command receivers or combine modes).
+      const radioFrequencies = getRadioFrequencies(record.noradId) ?? record.radioFrequencies;
 
       const satrec = twoline2satrec(enriched.line1, enriched.line2);
       const propagation = propagateObject(satrec, date);

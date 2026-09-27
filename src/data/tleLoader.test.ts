@@ -106,6 +106,36 @@ describe('createTrackedObjects', () => {
     }
     warn.mockRestore();
   });
+
+  it('prefers a primary-source override over an incomplete aggregated row', () => {
+    const dataset: TleDataset = {
+      fetchedAt: '2019-09-06T00:00:00.000Z',
+      source: 'test',
+      count: 1,
+      objects: [{
+        noradId: 67687,
+        name: 'LEOPARD',
+        line1: ISS_LINE1.replace('25544', '67687'),
+        line2: ISS_LINE2.replace('25544', '67687'),
+        category: 'stations',
+        radioFrequencies: [{
+          service: 'Downlink',
+          downlinkMHz: '400.960/2279.100',
+          mode: '4k8_GMSK CW',
+          sourceUrl: 'https://example.invalid/aggregated',
+        }],
+      }],
+    };
+
+    const [object] = createTrackedObjects(dataset, new Date(Date.UTC(2019, 8, 6, 1, 10, 0)));
+    expect(object.radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ uplinkMHz: '450 (nominal)' }),
+      expect.objectContaining({ downlinkMHz: '2279.100', mode: 'BPSK · 64 kbps' }),
+    ]));
+    expect(object.radioFrequencies).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ downlinkMHz: '400.960/2279.100' }),
+    ]));
+  });
 });
 
 describe('computeStats', () => {

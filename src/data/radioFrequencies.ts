@@ -13,6 +13,9 @@ const AMSAT_ISS = 'https://www.amsat.org/amateur-radio-on-the-iss/';
 const AMSAT_SO50 = 'https://www.amsat.org/two-way-satellites/so-50-satellite-information/';
 const AMSAT_AO91 = 'https://www.amsat.org/two-way-satellites/ao-91/';
 const AMSAT_DIGIPEATER = 'https://www.amsat.org/live-digipeater-satellites/';
+const LEOPARD_TECHNICAL_PAPER =
+  'https://kyutech.repo.nii.ac.jp/record/2001973/files/10464095.pdf';
+const SATNOGS_LEOPARD = 'https://db.satnogs.org/satellite/67687/';
 
 const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
   [25544, [
@@ -56,6 +59,35 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
     note: 'AO-91 availability is power-dependent; verify current status.',
     sourceUrl: AMSAT_AO91,
   }]],
+  [67687, [
+    {
+      service: 'Command uplink',
+      uplinkMHz: '450 (nominal)',
+      mode: 'UHF command link',
+      note: 'Mission paper gives the nominal band value, not a public amateur access channel. Do not transmit without operator authorization.',
+      sourceUrl: LEOPARD_TECHNICAL_PAPER,
+    },
+    {
+      service: 'Telemetry downlink',
+      downlinkMHz: '400.960',
+      mode: '4k8 GMSK',
+      note: 'SatNOGS lists this transmitter as active after command.',
+      sourceUrl: SATNOGS_LEOPARD,
+    },
+    {
+      service: 'CW beacon',
+      listenMHz: '400.960',
+      mode: 'CW',
+      sourceUrl: SATNOGS_LEOPARD,
+    },
+    {
+      service: 'Science data downlink',
+      downlinkMHz: '2279.100',
+      mode: 'BPSK · 64 kbps',
+      note: 'S-band mission data downlink; the technical paper specifies a 64 kbps link.',
+      sourceUrl: LEOPARD_TECHNICAL_PAPER,
+    },
+  ]],
   [69920, [{
     service: 'Packet digipeater',
     listenMHz: '145.925 / 436.680',

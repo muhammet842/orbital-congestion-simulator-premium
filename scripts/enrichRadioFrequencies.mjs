@@ -2,7 +2,7 @@ const AMSAT_ACTIVE_FREQUENCIES_URL =
   'https://raw.githubusercontent.com/palewire/amateur-satellite-database/main/data/amsat-active-frequencies.json';
 
 /** These have richer, manually verified entries in src/data/radioFrequencies.ts. */
-export const CURATED_RADIO_NORAD_IDS = new Set([25544, 27607, 43017, 69920]);
+export const CURATED_RADIO_NORAD_IDS = new Set([25544, 27607, 43017, 67687, 69920]);
 
 function clean(value) {
   if (typeof value !== 'string') return undefined;
