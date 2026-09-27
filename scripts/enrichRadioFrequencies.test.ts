@@ -96,12 +96,35 @@ describe('radio-frequency enrichment', () => {
     const seen = new Map([[37846, galileo], [99999, other]]);
     const stats = applyKnownConstellationFrequencies(seen);
 
-    expect(stats).toEqual({ matched: 1, channels: 5 });
+    expect(stats).toEqual({ matched: 1, channels: 6 });
     expect(galileo.radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ service: 'Galileo mission feeder uplink', uplinkMHz: '5000–5010' }),
       expect.objectContaining({ service: 'Galileo E1 navigation', downlinkMHz: '1575.420' }),
       expect.objectContaining({ service: 'Galileo E6 navigation', downlinkMHz: '1278.750' }),
     ]));
     expect(other).not.toHaveProperty('radioFrequencies');
+  });
+
+  it('uses published family plans beyond Galileo', () => {
+    const objects = [
+      { noradId: 1, name: 'STARLINK-1000' },
+      { noradId: 2, name: 'ONEWEB-0001' },
+      { noradId: 3, name: 'GPS BIIR-5 (PRN 22)' },
+      { noradId: 4, name: 'BEIDOU-3 M1' },
+    ];
+    const seen = new Map(objects.map((object) => [object.noradId, object]));
+    const stats = applyKnownConstellationFrequencies(seen);
+
+    expect(stats.matched).toBe(4);
+    expect((objects[0] as typeof objects[number] & { radioFrequencies: unknown[] }).radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ uplinkMHz: '14000–14500', downlinkMHz: '10700–12700' }),
+    ]));
+    expect((objects[2] as typeof objects[number] & { radioFrequencies: unknown[] }).radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ service: 'GPS L1 navigation', downlinkMHz: '1575.420' }),
+    ]));
+    expect((objects[3] as typeof objects[number] & { radioFrequencies: unknown[] }).radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ service: 'BeiDou B1I navigation', downlinkMHz: '1561.098' }),
+    ]));
   });
 });
 

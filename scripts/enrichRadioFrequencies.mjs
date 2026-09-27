@@ -3,6 +3,16 @@ const AMSAT_ACTIVE_FREQUENCIES_URL =
 const SATNOGS_TRANSMITTERS_URL = 'https://db.satnogs.org/api/transmitters/?format=json';
 const GALILEO_OS_SOURCE =
   'https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo_OS_SIS_ICD_v2.1.pdf';
+const GALILEO_UPLINK_SOURCE =
+  'https://www.itu.int/dms_pubrec/itu-r/rec/m/R-REC-M.1906-1-201509-I!!PDF-E.pdf';
+const GALILEO_SAR_SOURCE =
+  'https://www.gsc-europa.eu/system-service-status/sar-information/sargalileo-satellites-information/sar-payload-characteristics';
+const GPS_SOURCE =
+  'https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo-HAS-SDD_v1.0.pdf';
+const BEIDOU_SOURCE =
+  'https://www.beidou.gov.cn/zt/xwfbh/bdshjbxtjc/gdxw4/201812/P020181227418920163239.pdf';
+const STARLINK_SOURCE = 'https://docs.fcc.gov/public/attachments/FCC-22-91A1.pdf';
+const ONEWEB_SOURCE = 'https://docs.fcc.gov/public/attachments/FCC-17-77A1.pdf';
 
 /** These have richer, manually verified entries in src/data/radioFrequencies.ts. */
 export const CURATED_RADIO_NORAD_IDS = new Set([25544, 27607, 43017, 67687, 69920]);
@@ -164,22 +174,102 @@ export function applySatnogsRadioFrequencies(seen, rows) {
 }
 
 const GALILEO_FREQUENCIES = [
+  {
+    service: 'Galileo mission feeder uplink',
+    uplinkMHz: '5000–5010',
+    mode: 'C-band RNSS feeder link',
+    note: 'Ground mission segment only; not intended for user access.',
+    sourceUrl: GALILEO_UPLINK_SOURCE,
+  },
   { service: 'Galileo E1 navigation', downlinkMHz: '1575.420', mode: 'CBOC(6,1,1/11)' },
   { service: 'Galileo E5 navigation', downlinkMHz: '1191.795', mode: 'AltBOC(15,10)' },
   { service: 'Galileo E5a navigation', downlinkMHz: '1176.450', mode: 'BPSK(10)' },
   { service: 'Galileo E5b navigation', downlinkMHz: '1207.140', mode: 'BPSK(10)' },
   { service: 'Galileo E6 navigation', downlinkMHz: '1278.750', mode: 'BPSK(5)' },
-].map((frequency) => ({ ...frequency, sourceUrl: GALILEO_OS_SOURCE }));
+].map((frequency) => ({
+  ...frequency,
+  sourceUrl: frequency.sourceUrl ?? GALILEO_OS_SOURCE,
+}));
+
+const GALILEO_SAR_FREQUENCY = {
+  service: 'Galileo SAR repeater',
+  uplinkMHz: '406.0–406.1',
+  downlinkMHz: '1544.0–1544.2',
+  mode: 'Cospas-Sarsat transparent repeater',
+  sourceUrl: GALILEO_SAR_SOURCE,
+};
+
+const GPS_FREQUENCIES = [
+  { service: 'GPS L1 navigation', downlinkMHz: '1575.420', mode: 'BPSK(1)' },
+  { service: 'GPS L2 navigation', downlinkMHz: '1227.600', mode: 'BPSK(1)' },
+  { service: 'GPS L5 navigation', downlinkMHz: '1176.450', mode: 'BPSK(10)' },
+].map((frequency) => ({ ...frequency, sourceUrl: GPS_SOURCE }));
+
+const BEIDOU_FREQUENCIES = [
+  { service: 'BeiDou B1I navigation', downlinkMHz: '1561.098', mode: 'BPSK(2)' },
+  { service: 'BeiDou B1C navigation', downlinkMHz: '1575.420', mode: 'BOC(1,1) / QMBOC' },
+  { service: 'BeiDou B2a navigation', downlinkMHz: '1176.450', mode: 'BPSK(10)' },
+  { service: 'BeiDou B3I navigation', downlinkMHz: '1268.520', mode: 'BPSK(10)' },
+].map((frequency) => ({ ...frequency, sourceUrl: BEIDOU_SOURCE }));
+
+const STARLINK_FREQUENCIES = [{
+  service: 'Starlink user broadband',
+  uplinkMHz: '14000–14500',
+  downlinkMHz: '10700–12700',
+  mode: 'Ku-band broadband',
+  note: 'Licensed operating range; individual beams use portions of the band.',
+  sourceUrl: STARLINK_SOURCE,
+}];
+
+const ONEWEB_FREQUENCIES = [
+  {
+    service: 'OneWeb user broadband',
+    uplinkMHz: '14000–14500',
+    downlinkMHz: '10700–12700',
+    mode: 'Ku-band broadband',
+    note: 'Licensed operating range; individual beams use portions of the band.',
+    sourceUrl: ONEWEB_SOURCE,
+  },
+  {
+    service: 'OneWeb gateway link',
+    uplinkMHz: '27500–29100 / 29500–30000',
+    downlinkMHz: '17800–18600 / 18800–19300',
+    mode: 'Ka-band gateway',
+    sourceUrl: ONEWEB_SOURCE,
+  },
+];
+
+const FAMILY_PROFILES = [
+  { pattern: /^GPS\b/i, frequencies: GPS_FREQUENCIES },
+  { pattern: /^BEIDOU\b/i, frequencies: BEIDOU_FREQUENCIES },
+  { pattern: /^STARLINK-/i, frequencies: STARLINK_FREQUENCIES },
+  { pattern: /^ONEWEB-/i, frequencies: ONEWEB_FREQUENCIES },
+];
 
 export function applyKnownConstellationFrequencies(seen) {
   let matched = 0;
+  let channels = 0;
   for (const object of seen.values()) {
     if (/^(?:GSAT\d|GALILEO\b)/i.test(object.name)) {
-      object.radioFrequencies = GALILEO_FREQUENCIES.map((frequency) => ({ ...frequency }));
+      const frequencies = GALILEO_FREQUENCIES.map((frequency) => ({ ...frequency }));
+      // The first two IOV spacecraft do not carry the SARR payload.
+      if (object.noradId !== 37846 && object.noradId !== 37847) {
+        frequencies.push({ ...GALILEO_SAR_FREQUENCY });
+      }
+      object.radioFrequencies = frequencies;
       matched++;
+      channels += frequencies.length;
+      continue;
+    }
+
+    const profile = FAMILY_PROFILES.find(({ pattern }) => pattern.test(object.name));
+    if (profile) {
+      object.radioFrequencies = profile.frequencies.map((frequency) => ({ ...frequency }));
+      matched++;
+      channels += profile.frequencies.length;
     }
   }
-  return { matched, channels: matched * GALILEO_FREQUENCIES.length };
+  return { matched, channels };
 }
 
 export async function fetchAmsatActiveFrequencies(fetchImpl = fetch, options = {}) {
