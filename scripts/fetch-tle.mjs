@@ -17,6 +17,10 @@ import {
   filterSatcatDecayedObjects,
 } from './enrichFromSatcat.mjs';
 import { filterKnownDeorbitedObjects } from './deorbitedObjects.mjs';
+import {
+  applyRadioFrequencies,
+  fetchAmsatActiveFrequencies,
+} from './enrichRadioFrequencies.mjs';
 
 const STATION_SOURCES = [
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', category: 'stations' },
@@ -233,17 +237,23 @@ async function loadPreviousFirstSeenMap() {
   try {
     const raw = await readFile(fileURLToPath(OUTPUT_PATH), 'utf8');
     const data = JSON.parse(raw);
-    if (!Array.isArray(data.objects)) return { known: new Set(), firstSeenAt: new Map() };
+    if (!Array.isArray(data.objects)) {
+      return { known: new Set(), firstSeenAt: new Map(), radioFrequencies: new Map() };
+    }
 
     const known = new Set();
     const firstSeenAt = new Map();
+    const radioFrequencies = new Map();
     for (const obj of data.objects) {
       known.add(obj.noradId);
       if (obj.firstSeenAt) firstSeenAt.set(obj.noradId, obj.firstSeenAt);
+      if (Array.isArray(obj.radioFrequencies) && obj.radioFrequencies.length > 0) {
+        radioFrequencies.set(obj.noradId, obj.radioFrequencies);
+      }
     }
-    return { known, firstSeenAt };
+    return { known, firstSeenAt, radioFrequencies };
   } catch {
-    return { known: new Set(), firstSeenAt: new Map() };
+    return { known: new Set(), firstSeenAt: new Map(), radioFrequencies: new Map() };
   }
 }
 
@@ -532,6 +542,30 @@ async function main() {
   const knownDeorbited = filterKnownDeorbitedObjects(seen, new Date(fetchedAt));
   if (knownDeorbited > 0) {
     console.log(`  overrides: removed ${knownDeorbited} confirmed de-orbited object(s)`);
+  }
+
+  // Join the active amateur-satellite frequency catalog by stable NORAD ID.
+  // This is best-effort: a radio-data outage must not block fresh orbital data.
+  // Four manually verified satellites are intentionally left to the richer
+  // runtime overrides in src/data/radioFrequencies.ts.
+  console.log('Enriching amateur-radio frequencies from AMSAT/SatNOGS...');
+  try {
+    const radioRows = await fetchAmsatActiveFrequencies(fetch, { headers: REQUEST_HEADERS });
+    const { catalogSatellites, matched, channels } = applyRadioFrequencies(seen, radioRows);
+    console.log(
+      `  radio: ${catalogSatellites} catalog satellites -> ${matched} matched, ${channels} channel entries`,
+    );
+  } catch (err) {
+    let restored = 0;
+    for (const [noradId, frequencies] of previous.radioFrequencies) {
+      const object = seen.get(noradId);
+      if (!object) continue;
+      object.radioFrequencies = frequencies;
+      restored++;
+    }
+    console.warn(
+      `  radio enrichment failed - ${err.message} (${restored} previous entries restored; curated entries remain available)`,
+    );
   }
 
   const allObjects = Array.from(seen.values()).sort((a, b) => {

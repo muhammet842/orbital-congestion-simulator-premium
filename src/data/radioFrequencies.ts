@@ -1,8 +1,9 @@
 /**
- * Curated amateur-radio frequency metadata keyed by NORAD catalogue number.
+ * Manually verified amateur-radio overrides keyed by NORAD catalogue number.
  *
- * TLE/SATCAT does not publish amateur payload channel plans. Keep this small
- * and sourced: a missing entry means "unknown", not "no radio payload".
+ * The fetch pipeline adds the broader AMSAT/SatNOGS catalog directly to each
+ * TLE record. Keep only richer or mission-specific overrides here: a missing
+ * entry means "no manual override", not "no radio payload".
  * Frequencies can be retuned or disabled, so the detail panel always links to
  * the status/source page and intentionally does not claim live availability.
  */

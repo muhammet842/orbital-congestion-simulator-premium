@@ -34,7 +34,7 @@ export interface TleRecord {
   category: ObjectCategory;
   country?: string;
   owner?: string;
-  /** Curated amateur-radio channels, resolved by NORAD ID at catalogue load. */
+  /** Amateur-radio channels joined from AMSAT/SatNOGS or curated by NORAD ID. */
   radioFrequencies?: RadioFrequency[];
   /** ISO timestamp of the first automated fetch that observed this NORAD ID.
    *  Absent for objects that were already known before this field existed. */
