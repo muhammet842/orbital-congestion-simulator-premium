@@ -10,6 +10,7 @@ import { twoline2satrec } from 'satellite.js';
 import { getCategoryColor, inferFunctionGroup } from '../orbital/classify';
 import { propagateObject } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
+import { getRadioFrequencies } from './radioFrequencies';
 import type { TleDataset, TrackedObject, ObjectCategory } from '../types';
 
 /**
@@ -65,6 +66,7 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
         ...record,
         category: record.category as ObjectCategory,
       });
+      const radioFrequencies = record.radioFrequencies ?? getRadioFrequencies(record.noradId);
 
       const satrec = twoline2satrec(enriched.line1, enriched.line2);
       const propagation = propagateObject(satrec, date);
@@ -83,6 +85,7 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
 
       tracked.push({
         ...enriched,
+        ...(radioFrequencies ? { radioFrequencies } : {}),
         satrec,
         layer: propagation.layer,
         color: getCategoryColor(enriched.category, propagation.layer, enriched.country),

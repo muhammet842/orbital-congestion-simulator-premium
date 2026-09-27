@@ -1156,6 +1156,51 @@ body {
   margin: 12px 0;
 }
 
+.radio-frequency-section {
+  margin: 14px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.radio-frequency-section h3 {
+  margin: 0 0 5px;
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.radio-frequency-disclaimer {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+}
+
+.radio-frequency-scroll { overflow-x: auto; }
+
+.radio-frequency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.radio-frequency-table th,
+.radio-frequency-table td {
+  padding: 6px 5px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.radio-frequency-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.radio-frequency-table td:not(:first-child) { font-family: var(--font-mono); }
+.radio-frequency-note td,
+.radio-frequency-source td { font-family: inherit !important; color: var(--text-muted); }
+.radio-frequency-source a { color: var(--accent); }
+
 .error-screen {
   display: flex;
   flex-direction: column;

@@ -74,6 +74,9 @@ describe('createTrackedObjects', () => {
     expect(objects[0].noradId).toBe(25544);
     expect(objects[0].layer).toBe('LEO');
     expect(objects[0].satrec).toBeTruthy();
+    expect(objects[0].radioFrequencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ service: 'APRS digipeater', uplinkMHz: '145.825' }),
+    ]));
   });
 
   it('skips records when propagation fails at the requested date', () => {

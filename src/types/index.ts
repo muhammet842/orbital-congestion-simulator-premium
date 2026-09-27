@@ -9,6 +9,20 @@
 export type OrbitLayer = 'LEO' | 'MEO' | 'GEO' | 'HEO';
 export type ObjectCategory = 'stations' | 'active' | 'debris';
 
+/** A published amateur-satellite radio channel. Frequencies are in MHz. */
+export interface RadioFrequency {
+  /** User-facing service, for example "APRS digipeater" or "FM voice". */
+  service: string;
+  uplinkMHz?: string;
+  downlinkMHz?: string;
+  /** Receive-only / beacon frequency when an uplink is not published. */
+  listenMHz?: string;
+  mode: string;
+  note?: string;
+  /** Authoritative frequency/status page for a final on-air check. */
+  sourceUrl: string;
+}
+
 /** Visual grouping for color-by-function mode (derived from TLE name + category). */
 export type ObjectFunctionGroup = 'starlink' | 'debris' | 'station' | 'active';
 
@@ -20,6 +34,8 @@ export interface TleRecord {
   category: ObjectCategory;
   country?: string;
   owner?: string;
+  /** Curated amateur-radio channels, resolved by NORAD ID at catalogue load. */
+  radioFrequencies?: RadioFrequency[];
   /** ISO timestamp of the first automated fetch that observed this NORAD ID.
    *  Absent for objects that were already known before this field existed. */
   firstSeenAt?: string;

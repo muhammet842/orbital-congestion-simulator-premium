@@ -405,6 +405,7 @@ function render(container: HTMLElement): void {
   const newBadge = isRecentlyLaunched(obj)
     ? `<span class="new-launch-badge" title="${escapeHtml(t('badge.new_launch_title'))}">${t('badge.new_launch')}</span>`
     : '';
+  const radioSection = renderRadioFrequencies(obj.radioFrequencies);
 
   detailEl.innerHTML = `
     <div class="detail-header">
@@ -423,6 +424,7 @@ function render(container: HTMLElement): void {
       <div class="detail-row"><dt>${t('sat.category')}</dt><dd>${t(`cat.${snapshot.category}`)}</dd></div>
       <div class="detail-row"><dt>${t('sat.inclination')}</dt><dd>${snapshot.inclinationDeg.toFixed(1)}°</dd></div>
     </dl>
+    ${radioSection}
     <button type="button" id="btn-spotter" class="btn-orbit-trail btn-spotter">
       ${t('spotter.open')}
     </button>
@@ -432,6 +434,41 @@ function render(container: HTMLElement): void {
     <button type="button" id="btn-ground-track" class="btn-orbit-trail${state.showGroundTrack ? ' active' : ''}">
       ${state.showGroundTrack ? t('sat.hide_ground') : t('sat.show_ground')}
     </button>
+  `;
+}
+
+function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined): string {
+  if (!frequencies?.length) return '';
+
+  const rows = frequencies.map((frequency) => `
+    <tr>
+      <td>${escapeHtml(frequency.service)}</td>
+      <td>${escapeHtml(frequency.uplinkMHz ?? '—')}</td>
+      <td>${escapeHtml(frequency.downlinkMHz ?? '—')}</td>
+      <td>${escapeHtml(frequency.listenMHz ?? '—')}</td>
+      <td>${escapeHtml(frequency.mode)}</td>
+    </tr>
+    ${frequency.note ? `<tr class="radio-frequency-note"><td colspan="5">${escapeHtml(frequency.note)}</td></tr>` : ''}
+    <tr class="radio-frequency-source"><td colspan="5"><a href="${escapeHtml(frequency.sourceUrl)}" target="_blank" rel="noopener noreferrer">${t('sat.radio_source')}</a></td></tr>
+  `).join('');
+
+  return `
+    <section class="radio-frequency-section" aria-labelledby="radio-frequency-heading">
+      <h3 id="radio-frequency-heading">${t('sat.radio_heading')}</h3>
+      <p class="muted radio-frequency-disclaimer">${t('sat.radio_disclaimer')}</p>
+      <div class="radio-frequency-scroll">
+        <table class="radio-frequency-table">
+          <thead><tr>
+            <th>${t('sat.radio_service')}</th>
+            <th>${t('sat.radio_uplink')}</th>
+            <th>${t('sat.radio_downlink')}</th>
+            <th>${t('sat.radio_listen')}</th>
+            <th>${t('sat.radio_mode')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>
   `;
 }
 

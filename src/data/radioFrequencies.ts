@@ -1,0 +1,70 @@
+/**
+ * Curated amateur-radio frequency metadata keyed by NORAD catalogue number.
+ *
+ * TLE/SATCAT does not publish amateur payload channel plans. Keep this small
+ * and sourced: a missing entry means "unknown", not "no radio payload".
+ * Frequencies can be retuned or disabled, so the detail panel always links to
+ * the status/source page and intentionally does not claim live availability.
+ */
+import type { RadioFrequency } from '../types';
+
+const AMSAT_ISS = 'https://www.amsat.org/amateur-radio-on-the-iss/';
+const AMSAT_SO50 = 'https://www.amsat.org/two-way-satellites/so-50-satellite-information/';
+const AMSAT_AO91 = 'https://www.amsat.org/two-way-satellites/ao-91/';
+const AMSAT_DIGIPEATER = 'https://www.amsat.org/live-digipeater-satellites/';
+
+const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
+  [25544, [
+    {
+      service: 'APRS digipeater',
+      uplinkMHz: '145.825',
+      downlinkMHz: '145.825',
+      mode: 'FM · 1200 bps packet',
+      note: 'Worldwide APRS mode; check ARISS status before transmitting.',
+      sourceUrl: AMSAT_ISS,
+    },
+    {
+      service: 'Cross-band voice repeater',
+      uplinkMHz: '145.990',
+      downlinkMHz: '437.800',
+      mode: 'FM · CTCSS 67.0 Hz',
+      note: 'Operation is schedule and status dependent.',
+      sourceUrl: AMSAT_ISS,
+    },
+    {
+      service: 'SSTV',
+      listenMHz: '145.800',
+      mode: 'FM',
+      note: 'Occasional image downlink.',
+      sourceUrl: AMSAT_ISS,
+    },
+  ]],
+  [27607, [{
+    service: 'FM voice repeater',
+    uplinkMHz: '145.850',
+    downlinkMHz: '436.795',
+    mode: 'FM · CTCSS 67.0 Hz',
+    note: 'A 74.4 Hz tone arms the 10-minute repeater timer.',
+    sourceUrl: AMSAT_SO50,
+  }]],
+  [43017, [{
+    service: 'FM voice repeater',
+    uplinkMHz: '435.250',
+    downlinkMHz: '145.960',
+    mode: 'FM',
+    note: 'AO-91 availability is power-dependent; verify current status.',
+    sourceUrl: AMSAT_AO91,
+  }]],
+  [69920, [{
+    service: 'Packet digipeater',
+    listenMHz: '145.925 / 436.680',
+    mode: '9k6 GFSK/G3RUH',
+    note: 'Published as a live digipeater; check operating mode before transmit.',
+    sourceUrl: AMSAT_DIGIPEATER,
+  }]],
+]);
+
+export function getRadioFrequencies(noradId: number): RadioFrequency[] | undefined {
+  const frequencies = BY_NORAD.get(noradId);
+  return frequencies ? frequencies.map((frequency) => ({ ...frequency })) : undefined;
+}
