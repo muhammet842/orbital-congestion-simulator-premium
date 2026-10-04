@@ -18,10 +18,11 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Orbit layers & filters** — LEO / MEO / GEO / HEO; satellites / stations / debris; search; altitude & inclination ranges
 - **Color by Function** — Starlink, stations, active payloads, and debris at a glance
 - **New to this catalog** — filter objects first seen in this app’s TLE list within the last 14 days (`firstSeenAt`)
-- **Object details** — altitude, velocity, country/owner, orbit trail, ground track, footprint
+- **Object details** — altitude, velocity, country/owner, orbit trail, ground track, footprint, and published radio-frequency metadata
+- **Radio-frequency reference** — verified uplink, downlink, beacon/listening frequencies, modulation modes, operational notes, and direct source links for supported spacecraft and constellations
 - **Close-approach alerts** — next-24h scanning with sortable cards and a VERIFY playback mode (T−60s → CPA → T+15s)
 - **Historical event replays** — seven landmark collisions, ASAT tests, and breakups
-- **Kessler “Future Projection”** — header 🌌 panel with live scenario sliders, charts, and narrative (no separate run button)
+- **Kessler “Future Projection”** — header projection panel with live scenario sliders, charts, and narrative (no separate run button)
 - **Satellite Spotter** — mobile sky guide using device sensors and magnetic declination correction
 - **Interactive how-to tour** — language gate + spotlight walkthrough (header `?`)
 - **i18n** — English, Turkish, German, Russian, Chinese
@@ -40,7 +41,7 @@ Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm 
 | 3D | Three.js |
 | Orbital mechanics | satellite.js (SGP4) + Web Worker batch propagation |
 | Testing | Vitest (unit) + Playwright (e2e) |
-| Data | CelesTrak TLE + SATCAT (static `tle.json`) |
+| Data | CelesTrak TLE and SATCAT, AMSAT and SatNOGS radio catalogs, and official constellation frequency plans |
 | Deploy | [Vercel](https://orbital-congestion-simulator.vercel.app) |
 
 ## Getting started
@@ -72,6 +73,8 @@ CI (GitHub Actions): build + unit tests on every push/PR; Playwright e2e on `mai
 
 On first visit the app asks you to **choose a language**, then walks through the UI step by step with on-screen highlights (globe, search/filters, details, close approaches, historical events, time bar, Future Projection). Use **Skip** anytime; reopen the tour with the **?** button in the header.
 
+Select a spacecraft to inspect its orbital parameters and, when published data is available, its radio services, uplink and downlink frequencies, receive-only channels, transmission modes, operational notes, and linked reference sources. Frequency details are intentionally omitted for debris objects.
+
 Deep links: `?object=<NORAD>` and `?event=<id>`.
 
 ## Data source
@@ -80,14 +83,18 @@ Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.or
 
 - **TLE / GP** — active satellites (capped at 7,000 — Starlink/OneWeb sub-capped), debris (capped at 5,000 — Cosmos 2251, Fengyun-1C, Iridium 33, Cosmos 1408, analyst objects, then other trackable `DEB` fragments), and stations (ISS, Tiangong, etc.)
 - **SATCAT** — one download of [`satcat.csv`](https://celestrak.org/pub/satcat.csv) joined by NORAD ID so each object can carry a **country** (and organization **owner** when SATCAT’s `OWNER` is an agency/consortium code). Name-based heuristics in `objectMetadata.ts` remain the fallback when SATCAT has no match or only supplies a country code (so operators like SpaceX can still come from the name).
+- **AMSAT and SatNOGS** — published amateur-radio and active transmitter records joined by NORAD ID. Only confirmed, operationally valid SatNOGS transmitter entries are retained.
+- **Official constellation plans** — documented service bands for supported Galileo, GPS, BeiDou, Starlink, and OneWeb spacecraft families.
 
 Output: `public/data/tle.json` — up to **12,000 objects**, deduplicated by NORAD ID.
 
-A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT, and commits `public/data/tle.json` so the deployed app stays under the in-app 3-day staleness warning. Manual refresh:
+A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT and radio-frequency sources, and commits `public/data/tle.json` so the deployed app stays under the in-app 3-day staleness warning. Manual refresh:
 
 ```bash
 npm run fetch-tle
 ```
+
+Radio-frequency enrichment is best-effort: an upstream radio catalog outage does not block fresh orbital data. Previously verified entries are retained when possible, while curated spacecraft records and official constellation profiles remain available.
 
 ### “NEW” objects filter
 
@@ -99,6 +106,7 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 - **Educational scale** — in VERIFY close-approach mode, 3D models shrink to stay smaller than the computed miss distance so pairs do not visually overlap at sub-kilometre CPAs.
 - **Projection panel** — Kessler “Future Projection” is a simplified what-if model, not an official debris forecast (see the in-panel disclaimer).
 - **TLE age** — Live Stats shows when `tle.json` was last fetched; a warning appears after ~3 days without refresh.
+- **Radio-frequency use** — displayed frequencies are a reference compiled from published sources, not operating authorization. Services may be retuned, inactive, geographically restricted, or subject to licensing; verify the linked source and applicable regulations before transmitting.
 
 ## Orbital mechanics
 
@@ -130,10 +138,10 @@ Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.g
 Open the [live demo](https://orbital-congestion-simulator.vercel.app) (desktop first). Skip or finish the short tour, then try:
 
 1. **Color by Function** (Display Options) — Starlink / stations / active / debris become readable at a glance.
-2. **Search** `ISS` or `25544`, select it, toggle orbit trail / ground track on the right.
+2. **Search** `ISS` or `25544`, select it, inspect the sourced radio-frequency table, and toggle orbit trail / ground track on the right.
 3. **Historical Events** — start with Iridium 33 ↔ Cosmos 2251; scrub or Exit when done.
 4. **Close Approach Alerts** — if cards appear, open one for VERIFY playback (may take a minute to scan).
-5. **Future Projection** — header 🌌 button; move the sliders (no separate Run).
+5. **Future Projection** — open the projection panel from the header and move the sliders (no separate Run).
 6. **Phone** — select a bright target → **Spot from here**; allow location/motion. Outside + figure-eight if the compass drifts.
 
 Positions are SGP4 from a periodic TLE snapshot, not a live tracking API.
