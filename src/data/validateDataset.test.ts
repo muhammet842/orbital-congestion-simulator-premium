@@ -13,6 +13,7 @@ describe('recordProblem', () => {
     ['short line', { ...good, line1: L1.slice(1) }],
     ['id mismatch', { ...good, noradId: 1 }],
     ['non-string name', { ...good, name: 5 }],
+    ['non-boolean amateur flag', { ...good, radioFrequencies: [{ service: 'a', mode: 'b', sourceUrl: 'https://x.org', amateur: 'yes' }] }],
     ['js url', { ...good, radioFrequencies: [{ service: 'a', mode: 'b', sourceUrl: 'javascript:1' }] }],
   ])('rejects %s', (_label, record) => expect(recordProblem(record)).not.toBeNull());
 });

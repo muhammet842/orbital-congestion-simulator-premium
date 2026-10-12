@@ -26,6 +26,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
       mode: 'FM · 1200 bps packet',
       note: 'Worldwide APRS mode; check ARISS status before transmitting.',
       sourceUrl: AMSAT_ISS,
+      amateur: true,
     },
     {
       service: 'Cross-band voice repeater',
@@ -34,6 +35,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
       mode: 'FM · CTCSS 67.0 Hz',
       note: 'Operation is schedule and status dependent.',
       sourceUrl: AMSAT_ISS,
+      amateur: true,
     },
     {
       service: 'SSTV',
@@ -41,6 +43,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
       mode: 'FM',
       note: 'Occasional image downlink.',
       sourceUrl: AMSAT_ISS,
+      amateur: true,
     },
   ]],
   [27607, [{
@@ -50,6 +53,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
     mode: 'FM · CTCSS 67.0 Hz',
     note: 'A 74.4 Hz tone arms the 10-minute repeater timer.',
     sourceUrl: AMSAT_SO50,
+    amateur: true,
   }]],
   [43017, [{
     service: 'FM voice repeater',
@@ -58,6 +62,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
     mode: 'FM',
     note: 'AO-91 availability is power-dependent; verify current status.',
     sourceUrl: AMSAT_AO91,
+    amateur: true,
   }]],
   [67687, [
     {
@@ -67,12 +72,14 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
       mode: '4k8 GMSK',
       note: '450 MHz is the nominal command uplink from the mission paper; SatNOGS lists the 400.960 MHz telemetry downlink. Do not transmit without operator authorization.',
       sourceUrl: LEOPARD_TECHNICAL_PAPER,
+      amateur: false,
     },
     {
       service: 'CW beacon',
       listenMHz: '400.960',
       mode: 'CW',
       sourceUrl: SATNOGS_LEOPARD,
+      amateur: false,
     },
     {
       service: 'Science data downlink',
@@ -80,6 +87,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
       mode: 'BPSK · 64 kbps',
       note: 'S-band mission data downlink; SatNOGS lists BPSK and the technical paper specifies a 64 kbps link.',
       sourceUrl: SATNOGS_LEOPARD,
+      amateur: false,
     },
   ]],
   [69920, [{
@@ -88,6 +96,7 @@ const BY_NORAD: ReadonlyMap<number, readonly RadioFrequency[]> = new Map([
     mode: '9k6 GFSK/G3RUH',
     note: 'Published as a live digipeater; check operating mode before transmit.',
     sourceUrl: AMSAT_DIGIPEATER,
+    amateur: true,
   }]],
 ]);
 

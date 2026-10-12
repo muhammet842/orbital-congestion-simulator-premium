@@ -53,6 +53,9 @@ export function recordProblem(record: unknown): string | null {
       if (typeof f?.service !== 'string' || typeof f?.mode !== 'string' || !isHttpUrl(f?.sourceUrl)) {
         return 'bad radioFrequencies entry';
       }
+      if (f.amateur !== undefined && typeof f.amateur !== 'boolean') {
+        return 'bad radioFrequencies entry';
+      }
     }
   }
   return null;

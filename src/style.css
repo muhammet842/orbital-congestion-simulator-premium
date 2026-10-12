@@ -1160,6 +1160,7 @@ body {
   margin: 14px 0;
   padding-top: 12px;
   border-top: 1px solid var(--panel-border);
+  container: radio-freq / inline-size;
 }
 
 .radio-frequency-section h3 {
@@ -1200,6 +1201,69 @@ body {
 .radio-frequency-note td,
 .radio-frequency-source td { font-family: inherit !important; color: var(--text-muted); }
 .radio-frequency-source a { color: var(--accent); }
+.radio-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 0.65em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.radio-frequency-row--other td:first-child { color: var(--text-muted); }
+.radio-frequency-marker { margin-top: 6px; }
+
+/* Narrow panels (phones): the 5-column table would hide Mode behind a sideways
+   scroll, so show each channel as a stacked card with labelled values. */
+@container radio-freq (max-width: 460px) {
+  .radio-frequency-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .radio-frequency-table,
+  .radio-frequency-table tbody,
+  .radio-frequency-table tr,
+  .radio-frequency-table td {
+    display: block;
+    width: 100%;
+  }
+  .radio-frequency-table td {
+    padding: 2px 0;
+    border: 0;
+    font-size: 0.8rem;
+  }
+  .radio-frequency-main {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--panel-border);
+  }
+  .radio-frequency-main:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .radio-cell-service {
+    margin-bottom: 4px;
+    font-size: 0.9rem !important;
+    font-weight: 600;
+  }
+  .radio-frequency-table td[data-label] {
+    display: flex;
+    gap: 8px;
+  }
+  .radio-frequency-table td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 6.5em;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  .radio-cell-empty { display: none !important; }
+  .radio-frequency-empty td:not(:first-child) { display: none; }
+  .radio-frequency-note td,
+  .radio-frequency-source td { padding-top: 4px; }
+}
 
 .error-screen {
   display: flex;
@@ -1759,6 +1823,8 @@ body {
     z-index: 20;
     transition: transform 0.25s ease;
     box-shadow: 0 0 32px rgba(0, 0, 0, 0.55);
+    /* Opaque: the translucent desktop fill lets the time bar bleed through. */
+    background: rgb(14, 15, 18);
     padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
   }
 
@@ -1770,6 +1836,7 @@ body {
 
   .panel-right {
     right: 0;
+    width: min(88vw, 380px);
     border-left: 1px solid var(--panel-border);
     transform: translateX(100%);
   }
@@ -1914,7 +1981,7 @@ body {
   }
 
   .panel-right {
-    width: min(82vw, 300px);
+    width: min(90vw, 340px);
   }
 
   .time-display {
@@ -1923,6 +1990,33 @@ body {
 }
 
 @media (pointer: coarse) {
+  .filter-row > input[type=checkbox],
+  .filter-row > input[type=radio] {
+    width: 20px;
+    height: 20px;
+    margin-top: 0;
+  }
+
+  /* Bigger thumbs for the altitude / inclination range sliders. */
+  .dr-input::-webkit-slider-thumb {
+    width: 26px;
+    height: 26px;
+  }
+  .dr-input::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+  }
+
+  .conjunction-sort-option {
+    min-height: 40px;
+    padding: 0 10px 0 2px;
+  }
+
+  .conjunction-sort-option input {
+    width: 20px;
+    height: 20px;
+  }
+
   .object-list-item {
     height: 42px;
   }

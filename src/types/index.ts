@@ -21,6 +21,9 @@ export interface RadioFrequency {
   note?: string;
   /** Authoritative frequency/status page for a final on-air check. */
   sourceUrl: string;
+  /** true = amateur-radio service, false = confirmed non-amateur (weather,
+   *  navigation, broadband…), absent = not classified by the source. */
+  amateur?: boolean;
 }
 
 /** Visual grouping for color-by-function mode (derived from TLE name + category). */

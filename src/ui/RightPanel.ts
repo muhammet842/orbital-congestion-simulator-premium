@@ -34,6 +34,7 @@ import { isRecentlyLaunched } from '../data/newLaunches';
 import { t, onLangChange } from '../i18n/i18n';
 import { openSpotterPanel } from './SpotterPanel';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
+import { prepareRadioRows } from '../data/radioDisplay';
 
 /**
  * Compute the 3-D separation in km between the two collision objects at T-5min,
@@ -443,14 +444,25 @@ function render(container: HTMLElement): void {
   `;
 }
 
+/**
+ * One table cell. `data-label` feeds the stacked card layout used in narrow
+ * panels (see `.radio-frequency-section` container query in style.css), where
+ * the header row is hidden and each value carries its own label.
+ */
+function radioCell(label: string, value: string | undefined): string {
+  return `<td data-label="${escapeHtml(label)}"${value ? '' : ' class="radio-cell-empty"'}>${escapeHtml(value ?? '—')}</td>`;
+}
+
 function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined): string {
-  const rows = frequencies?.length ? frequencies.map((frequency) => `
-    <tr>
-      <td>${escapeHtml(frequency.service)}</td>
-      <td>${escapeHtml(frequency.uplinkMHz ?? '—')}</td>
-      <td>${escapeHtml(frequency.downlinkMHz ?? '—')}</td>
-      <td>${escapeHtml(frequency.listenMHz ?? '—')}</td>
-      <td>${escapeHtml(frequency.mode)}</td>
+  const prepared = frequencies?.length ? prepareRadioRows(frequencies) : [];
+  const hasMarker = prepared.some((row) => row.hasMarker);
+  const rows = prepared.length ? prepared.map((frequency) => `
+    <tr class="radio-frequency-main${frequency.amateur === false ? ' radio-frequency-row--other' : ''}">
+      <td class="radio-cell-service">${escapeHtml(frequency.genericService ? t('sat.radio_generic') : frequency.service)}${frequency.amateur === true ? ` <span class="radio-badge">${t('sat.radio_amateur')}</span>` : ''}</td>
+      ${radioCell(t('sat.radio_uplink'), frequency.uplinkMHz)}
+      ${radioCell(t('sat.radio_downlink'), frequency.downlinkMHz)}
+      ${radioCell(t('sat.radio_listen'), frequency.listenMHz)}
+      ${radioCell(t('sat.radio_mode'), frequency.mode)}
     </tr>
     ${frequency.note ? `<tr class="radio-frequency-note"><td colspan="5">${escapeHtml(frequency.note)}</td></tr>` : ''}
     <tr class="radio-frequency-source"><td colspan="5"><a href="${escapeHtml(safeHttpUrl(frequency.sourceUrl))}" target="_blank" rel="noopener noreferrer">${t('sat.radio_source')}</a></td></tr>
@@ -476,6 +488,7 @@ function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[]
           <tbody>${rows}</tbody>
         </table>
       </div>
+      ${hasMarker ? `<p class="muted radio-frequency-disclaimer radio-frequency-marker">${t('sat.radio_marker_note')}</p>` : ''}
     </section>
   `;
 }
