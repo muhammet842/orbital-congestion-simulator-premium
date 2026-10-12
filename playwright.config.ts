@@ -2,7 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
+  // The globe renders in software (SwiftShader) on CI runners, so a page can take
+  // ~20 s to become interactive on a busy runner. 30 s left no headroom and
+  // made the mobile specs fail whenever the runner was slower than usual.
+  timeout: 60_000,
   retries: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
 
