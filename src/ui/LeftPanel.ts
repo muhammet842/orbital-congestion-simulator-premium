@@ -39,6 +39,7 @@ import {
 import { initEventCards } from './EventCards';
 import { t, applyTranslations, onLangChange } from '../i18n/i18n';
 import { isRecentlyLaunched, hasAnyRecentlyLaunched } from '../data/newLaunches';
+import { escapeHtml } from './escapeHtml';
 
 const LAYERS: OrbitLayer[] = ['LEO', 'MEO', 'GEO', 'HEO'];
 const CATEGORY_FILTERS: Array<ObjectCategory | 'all'> = ['all', 'active', 'stations', 'debris'];
@@ -335,13 +336,6 @@ function updateListSelectionHighlight(container: HTMLElement): void {
   });
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function renderLayerFilters(container: HTMLElement): void {
   const filtersEl = container.querySelector('#layer-filters')!;

@@ -33,6 +33,7 @@ import { getHistoricalEvent } from './EventCards';
 import { isRecentlyLaunched } from '../data/newLaunches';
 import { t, onLangChange } from '../i18n/i18n';
 import { openSpotterPanel } from './SpotterPanel';
+import { escapeHtml, safeHttpUrl } from './escapeHtml';
 
 /**
  * Compute the 3-D separation in km between the two collision objects at T-5min,
@@ -452,7 +453,7 @@ function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[]
       <td>${escapeHtml(frequency.mode)}</td>
     </tr>
     ${frequency.note ? `<tr class="radio-frequency-note"><td colspan="5">${escapeHtml(frequency.note)}</td></tr>` : ''}
-    <tr class="radio-frequency-source"><td colspan="5"><a href="${escapeHtml(frequency.sourceUrl)}" target="_blank" rel="noopener noreferrer">${t('sat.radio_source')}</a></td></tr>
+    <tr class="radio-frequency-source"><td colspan="5"><a href="${escapeHtml(safeHttpUrl(frequency.sourceUrl))}" target="_blank" rel="noopener noreferrer">${t('sat.radio_source')}</a></td></tr>
   `).join('') : `
     <tr class="radio-frequency-empty">
       <td>${t('sat.radio_no_data')}</td><td>—</td><td>—</td><td>—</td><td>—</td>
@@ -743,10 +744,3 @@ function refreshEventReplayHUD(container: HTMLElement, eventId: string, collisio
   }
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}

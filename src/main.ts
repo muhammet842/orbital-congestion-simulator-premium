@@ -23,6 +23,7 @@ import { initKesslerPanel } from './ui/KesslerPanel';
 import { initHowToGuide } from './ui/HowToGuide';
 import { findConjunctions, setUpcomingConjunctionWorkerFactory } from './orbital/conjunction';
 import { applyTranslations, t } from './i18n/i18n';
+import { escapeHtml } from './ui/escapeHtml';
 
 async function main(): Promise<void> {
   const app = document.querySelector<HTMLDivElement>('#app');
@@ -113,12 +114,5 @@ function showError(app: HTMLElement, message: string): void {
   `;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 main();

@@ -42,11 +42,11 @@ Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm 
 | Orbital mechanics | satellite.js (SGP4) + Web Worker batch propagation |
 | Testing | Vitest (unit) + Playwright (e2e) |
 | Data | CelesTrak TLE and SATCAT, AMSAT and SatNOGS radio catalogs, and official constellation frequency plans |
-| Deploy | [Vercel](https://orbital-congestion-simulator.vercel.app) |
+| Deploy | [Vercel](https://orbital-congestion-simulator.vercel.app) — `vercel.json` sets a Content-Security-Policy and other security headers |
 
 ## Getting started
 
-**Requirements:** Node.js 20+, a WebGL-capable browser.
+**Requirements:** Node.js 22+ (what CI uses), a WebGL-capable browser.
 
 ```bash
 git clone https://github.com/muhammet842/orbital-congestion-simulator-premium.git
@@ -100,6 +100,12 @@ Radio-frequency enrichment is best-effort: an upstream radio catalog outage does
 
 Objects can carry a `firstSeenAt` stamp when they first appear in an automated fetch relative to the previous catalog snapshot. The UI filter **“New to this catalog”** uses that stamp — it means **first seen in this app’s TLE list within the last 14 days**, not the physical launch or formation date (and not SATCAT `LAUNCH_DATE`). Stamps accumulate across refreshes; a cold/empty baseline does not mark the whole catalog as new. See [docs/NEW_OBJECTS.md](docs/NEW_OBJECTS.md).
 
+## Security notes
+
+- Catalog text (names, owners, countries) comes from an external feed and is HTML-escaped (`src/ui/escapeHtml.ts`) before it reaches the DOM; external links are limited to http(s).
+- `public/data/tle.json` is validated at load time (`src/data/validateDataset.ts`) and again in `npm test`, which the TLE refresh workflow runs before committing.
+- If you add a new origin (fonts, tiles, APIs), update the CSP in `vercel.json`.
+
 ## Limitations (read before demoing)
 
 - **Not live tracking** — positions are propagated from static TLE snapshots with SGP4; there is no real-time position API.
@@ -151,7 +157,7 @@ Positions are SGP4 from a periodic TLE snapshot, not a live tracking API.
 Healthy catalog: **~12,000** objects and **stations** (ISS / Tiangong) visible in Live Stats. A thin fetch once shipped ~3.5k objects and zero stations.
 
 1. Check GitHub → **Actions → TLE Refresh** (and CI).
-2. Locally: `npm run fetch-tle` — the script **refuses** to overwrite `public/data/tle.json` if totals/stations/active/debris fall below hard minimums.
+2. Locally: `npm run fetch-tle` — the script **refuses** to overwrite `public/data/tle.json` if totals/stations/active/debris fall below hard minimums, or if any category (or the total) drops more than 15% versus the previous file (override an intentional drop with `ALLOW_CATALOG_DROP=1`).
 3. If the fetch succeeds with a full catalog, commit/push `public/data/tle.json` (or wait for a green scheduled run).
 4. On the deployed site, confirm **Live Stats → TLE data updated** and object counts.
 

@@ -7,6 +7,7 @@
 import { applyTranslations, onLangChange, setLang, SUPPORTED_LANGS, t, type Lang } from '../i18n/i18n';
 import { closeKesslerPanel, openKesslerPanel } from './KesslerPanel';
 import { setTourPanel } from './Layout';
+import { escapeHtml } from './escapeHtml';
 
 const LS_HELP_SEEN = 'orbital-help-seen-v3';
 
@@ -79,13 +80,6 @@ function markGuideSeen(): void {
   }
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function syncLangSelect(lang: Lang): void {
   const select = document.querySelector<HTMLSelectElement>('#lang-select');

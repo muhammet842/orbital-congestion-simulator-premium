@@ -9,6 +9,7 @@
  */
 import { selectHistoricalEvent, getState, subscribe } from '../state/appState';
 import { t, onLangChange } from '../i18n/i18n';
+import { escapeHtml } from './escapeHtml';
 
 export interface HistoricalEventTLE {
   name: string;
@@ -315,13 +316,6 @@ function eventTypeLabel(type: EventType): string {
   return t(`event_type.${type}`, EVENT_TYPE_LABELS[type] ?? type);
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function formatEventDate(isoDate: string): string {
   return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('en-GB', {
