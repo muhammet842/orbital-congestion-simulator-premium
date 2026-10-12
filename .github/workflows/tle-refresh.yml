@@ -12,10 +12,18 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch: {}
 
+# A scheduled run overlapping a manual dispatch would race on `git push`.
+concurrency:
+  group: tle-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh-tle:
     name: Fetch latest TLE data & commit if changed
     runs-on: ubuntu-latest
+    # fetch-tle bounds every request, but cap the job too so a hang can never
+    # hold a runner for GitHub's 6-hour default.
+    timeout-minutes: 30
     permissions:
       contents: write
 
@@ -36,6 +44,13 @@ jobs:
       - name: Fetch latest TLE + SATCAT enrichment from CelesTrak
         run: npm run fetch-tle
 
+      # Pushes made with GITHUB_TOKEN do not trigger ci.yml, so validate the
+      # new dataset here before it can reach production.
+      - name: Build and unit-test against the new dataset
+        run: |
+          npm run build
+          npm test
+
       - name: Commit and push updated dataset
         run: |
           git config user.name "github-actions[bot]"
@@ -48,4 +63,6 @@ jobs:
 
           git add public/data/tle.json
           git commit -m "chore: automated TLE data refresh"
+          # Someone may have pushed while this job ran — replay on top.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push

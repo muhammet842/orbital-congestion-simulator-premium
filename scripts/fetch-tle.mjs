@@ -11,6 +11,7 @@
  * to production; fail closed and leave the previous tle.json on disk.
  */
 import { applyFirstSeenAt } from './applyFirstSeenAt.mjs';
+import { findCatalogRegressions, isValidTlePair } from './catalogGuard.mjs';
 import {
   applySatcatOwners,
   fetchSatcatMetadataMap,
@@ -117,6 +118,10 @@ const REQUEST_HEADERS = {
 
 const DEBRIS_NAME = /DEB|R\/B|COBJECT|SL-\d|COSMOS\s+\d+\s+DEB|OBJECT\s+[A-Z0-9]+/i;
 
+const FETCH_TIMEOUT_MS = 60_000;
+const FETCH_ATTEMPTS = 4;
+const MAX_RETRY_DELAY_MS = 60_000;
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -129,6 +134,7 @@ function parseTleText(text, category) {
 
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const objects = [];
+  let rejected = 0;
 
   for (let i = 0; i + 2 < lines.length; i++) {
     const name = lines[i];
@@ -142,6 +148,13 @@ function parseTleText(text, category) {
     const noradMatch = line1.match(/^1\s+(\d+)/);
     if (!noradMatch) continue;
 
+    // Truncated or corrupted responses must not reach SGP4 in the browser.
+    if (!isValidTlePair(line1, line2)) {
+      rejected++;
+      i += 2;
+      continue;
+    }
+
     objects.push({
       noradId: parseInt(noradMatch[1], 10),
       name,
@@ -153,20 +166,44 @@ function parseTleText(text, category) {
     i += 2;
   }
 
+  if (rejected > 0) {
+    console.warn(`  rejected ${rejected} TLE(s) with a bad checksum/length for category=${category}`);
+  }
   return objects;
 }
 
+function retryDelayMs(attempt, response) {
+  const retryAfter = Number(response?.headers?.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, MAX_RETRY_DELAY_MS);
+  }
+  return Math.min(1500 * 2 ** attempt, MAX_RETRY_DELAY_MS);
+}
+
+/** Retries transient failures (403 bursts, 429, 5xx, network errors and
+ *  timeouts) with backoff. Every attempt is bounded by FETCH_TIMEOUT_MS so a
+ *  hung connection cannot stall the Actions runner. */
 async function fetchUrl(url) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(url, { headers: REQUEST_HEADERS });
-    if (response.ok) return response.text();
-    if (response.status === 403 && attempt === 0) {
-      await sleep(1500);
+  let lastError;
+  for (let attempt = 0; attempt < FETCH_ATTEMPTS; attempt++) {
+    let response;
+    try {
+      response = await fetch(url, {
+        headers: REQUEST_HEADERS,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+    } catch (err) {
+      lastError = new Error(`${err.name === 'TimeoutError' ? 'Timeout' : err.message} for ${url}`);
+      if (attempt < FETCH_ATTEMPTS - 1) await sleep(retryDelayMs(attempt));
       continue;
     }
-    throw new Error(`HTTP ${response.status} for ${url}`);
+    if (response.ok) return response.text();
+    lastError = new Error(`HTTP ${response.status} for ${url}`);
+    const transient = response.status === 403 || response.status === 429 || response.status >= 500;
+    if (!transient) break;
+    if (attempt < FETCH_ATTEMPTS - 1) await sleep(retryDelayMs(attempt, response));
   }
-  throw new Error(`Failed to fetch ${url}`);
+  throw lastError ?? new Error(`Failed to fetch ${url}`);
 }
 
 async function fetchSource(source) {
@@ -233,6 +270,21 @@ function activePriority(name) {
  * freshly-appearing ID can be distinguished from one that was simply
  * dropped-and-re-added by a re-ordering of the fetch groups.
  */
+/** Category counts of the catalog currently on disk, or null if unreadable. */
+async function loadPreviousCounts() {
+  const { readFile } = await import('node:fs/promises');
+  const { fileURLToPath } = await import('node:url');
+  try {
+    const data = JSON.parse(await readFile(fileURLToPath(OUTPUT_PATH), 'utf8'));
+    if (!Array.isArray(data.objects)) return null;
+    const counts = {};
+    for (const obj of data.objects) counts[obj.category] = (counts[obj.category] ?? 0) + 1;
+    return counts;
+  } catch {
+    return null;
+  }
+}
+
 async function loadPreviousFirstSeenMap() {
   const { readFile } = await import('node:fs/promises');
   const { fileURLToPath } = await import('node:url');
@@ -626,6 +678,21 @@ async function main() {
   const MIN_STATIONS = 5;
   const MIN_ACTIVE = 3_000;
   const MIN_DEBRIS = 2_000;
+  const regressions = findCatalogRegressions(counts, await loadPreviousCounts());
+  if (regressions.length > 0) {
+    const message =
+      'Catalog shrank sharply vs the previous tle.json (likely a partial upstream outage):\n  ' +
+      regressions.join('\n  ');
+    if (process.env.ALLOW_CATALOG_DROP === '1') {
+      console.warn(`${message}\n  ALLOW_CATALOG_DROP=1 set, writing anyway.`);
+    } else {
+      throw new Error(
+        `${message}\nPrevious public/data/tle.json left unchanged. ` +
+          'If the drop is intentional (e.g. caps changed), rerun with ALLOW_CATALOG_DROP=1.',
+      );
+    }
+  }
+
   if (
     allObjects.length < MIN_TOTAL ||
     stations < MIN_STATIONS ||

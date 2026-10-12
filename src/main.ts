@@ -21,7 +21,7 @@ import { initTimeControls } from './ui/TimeControls';
 import { initDeepLink } from './routing/deepLink';
 import { initKesslerPanel } from './ui/KesslerPanel';
 import { initHowToGuide } from './ui/HowToGuide';
-import { findConjunctions } from './orbital/conjunction';
+import { findConjunctions, setUpcomingConjunctionWorkerFactory } from './orbital/conjunction';
 import { applyTranslations, t } from './i18n/i18n';
 
 async function main(): Promise<void> {
@@ -56,6 +56,17 @@ async function main(): Promise<void> {
     // browser/stored language resolves to non-English would see an
     // untranslated shell until they touched the language dropdown.
     applyTranslations(document);
+
+    // 24h close-approach sweep runs in its own worker (main-thread idle-slice
+    // fallback if workers are unavailable or the worker fails).
+    if (typeof Worker !== 'undefined') {
+      setUpcomingConjunctionWorkerFactory(
+        () =>
+          new Worker(new URL('./workers/conjunction.worker.ts', import.meta.url), {
+            type: 'module',
+          }),
+      );
+    }
 
     const sceneManager = new SceneManager(sceneContainer);
     await sceneManager.initOrbitalMeshes(objects);

@@ -5,12 +5,16 @@
  *
  * Message protocol
  * ────────────────
- * Main → Worker  { type: 'init',      objects: InitObject[] }
- * Worker → Main  { type: 'ready',     count: number }
+ * Main → Worker  { type: 'init',      generation: number, objects: InitObject[] }
+ * Worker → Main  { type: 'ready',     generation, count: number }
  *
  * Main → Worker  { type: 'propagate', tickMs: number }
- * Worker → Main  { type: 'results',   tickMs: number, data: Float64Array }
+ * Worker → Main  { type: 'results',   generation, tickMs: number, data: Float64Array }
  *                 (data is TRANSFERRED — zero-copy, main thread owns it)
+ * Worker → Main  { type: 'error',     generation, message: string }
+ *
+ * `generation` echoes the latest init so the main thread can drop replies
+ * computed for a catalog it has since replaced.
  *
  * Buffer layout  (STRIDE = 10 Float64 values per object)
  * ──────────────
@@ -53,9 +57,10 @@ interface InitObject {
 }
 
 type WorkerInMessage =
-  | { type: 'init'; objects: InitObject[] }
+  | { type: 'init'; generation?: number; objects: InitObject[] }
   | { type: 'propagate'; tickMs: number };
 
+let generation = 0;
 let satrecs: SatRec[] = [];
 // Two alternating buffers — one is being filled while the other is in transit.
 let bufA = new Float64Array(0);
@@ -63,15 +68,26 @@ let bufB = new Float64Array(0);
 let useBufA = true;
 
 self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
-  const msg = e.data;
+  try {
+    handleMessage(e.data);
+  } catch (err) {
+    self.postMessage({
+      type: 'error',
+      generation,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+};
 
+function handleMessage(msg: WorkerInMessage): void {
   if (msg.type === 'init') {
+    generation = msg.generation ?? 0;
     satrecs = msg.objects.map((o) => twoline2satrec(o.line1, o.line2));
     const len = satrecs.length * STRIDE;
     bufA = new Float64Array(len);
     bufB = new Float64Array(len);
     useBufA = true;
-    self.postMessage({ type: 'ready', count: satrecs.length });
+    self.postMessage({ type: 'ready', generation, count: satrecs.length });
     return;
   }
 
@@ -113,7 +129,7 @@ self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
     // Transfer ownership to the main thread (zero-copy)
     const transfer = buf.buffer;
     (self as unknown as Worker).postMessage(
-      { type: 'results', tickMs: msg.tickMs, data: buf },
+      { type: 'results', generation, tickMs: msg.tickMs, data: buf },
       [transfer],
     );
 
@@ -126,4 +142,4 @@ self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
     }
     useBufA = !useBufA;
   }
-};
+}

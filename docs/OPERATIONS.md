@@ -5,6 +5,8 @@
 - Workflow: [`.github/workflows/tle-refresh.yml`](../.github/workflows/tle-refresh.yml) (daily at 03:17 UTC).
 - Manual: `npm run fetch-tle` then commit `public/data/tle.json` if needed.
 - Each fetch pulls CelesTrak **TLE groups** and joins **SATCAT** (`satcat.csv`) for country/owner fields. If SATCAT is temporarily unavailable, the script still writes TLEs and the UI falls back to name heuristics.
+- The fetch refuses to overwrite `tle.json` when any category (or the total) drops more than 15% (and ≥50 objects) versus the previous file — usually a partial CelesTrak outage, and the next daily run normally recovers. If the drop is intentional (e.g. caps changed), run `ALLOW_CATALOG_DROP=1 npm run fetch-tle`. TLE lines with a bad checksum or length are dropped at parse time.
+- The workflow builds and unit-tests the new dataset before committing, because its `GITHUB_TOKEN` push does not trigger `ci.yml`.
 - In-app UI warns when `fetchedAt` is older than ~3 days — keep Actions green.
 - Verify on GitHub → **Actions → TLE Refresh** that the latest run succeeded.
 - Live catalog: open the deployed app and check **Live Stats → TLE data updated**.

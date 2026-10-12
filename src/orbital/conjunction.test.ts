@@ -14,7 +14,10 @@ import {
   invalidateConjunctionCache,
   invalidateUpcomingConjunctionCache,
   isCoOrbitingPair,
+  linearClosestApproach,
   MAX_DISPLAY_ALERTS,
+  MAX_STORED_ALERTS,
+  UPCOMING_SAMPLE_STEP_MS,
   normalizeConjunctionAlert,
   rankConjunctionAlertsForDisplay,
   selectConjunctionAlertsForDisplay,
@@ -630,7 +633,7 @@ describe('findUpcomingConjunctions — forward-looking 24h screen', () => {
 
   /** Linear relative motion whose true closest approach sits exactly at `cpaMs`. */
   function mockLinearApproach(cpaMs: number): void {
-    vi.spyOn(propagatorModule, 'propagateObject').mockImplementation((satrec, date) => {
+    const impl = (satrec: unknown, date: Date) => {
       const id = (satrec as unknown as { id: string }).id;
       const dtSec = (date.getTime() - cpaMs) / 1000;
       const sign = id === 'A' ? 1 : -1;
@@ -644,9 +647,11 @@ describe('findUpcomingConjunctions — forward-looking 24h screen', () => {
         altitudeKm: 550,
         velocityKmS: REL_VELOCITY_KM_S / 2,
         inclinationDeg: 53,
-        layer: 'LEO',
+        layer: 'LEO' as const,
       };
-    });
+    };
+    vi.spyOn(propagatorModule, 'propagateObject').mockImplementation(impl);
+    vi.spyOn(propagatorModule, 'propagateState').mockImplementation(impl);
   }
 
   afterEach(() => {
@@ -697,6 +702,116 @@ describe('findUpcomingConjunctions — forward-looking 24h screen', () => {
     const result = findUpcomingConjunctions(objects, new Date(startMs), HORIZON_MS, SAMPLE_STEP_MS);
 
     expect(result.alerts).toHaveLength(0);
+  });
+});
+
+describe('upcoming sweep — fast crossings between samples', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  type Pair = { id: number; cpaMs: number; missKm: number; relV: number };
+
+  /** Straight-line crossings: each pair's objects meet head-on at `cpaMs`
+   *  with the given miss distance, far from every other pair. */
+  function mockCrossings(pairs: Pair[]): TrackedObject[] {
+    const objects: TrackedObject[] = [];
+    for (const p of pairs) {
+      for (const side of [0, 1]) {
+        objects.push({
+          noradId: p.id * 10 + side,
+          name: `P${p.id}-${side}`,
+          line1: `L1-${p.id}-${side}`,
+          line2: `L2-${p.id}-${side}`,
+          category: 'debris',
+          country: 'US',
+          owner: 'TEST',
+          layer: 'LEO',
+          color: [1, 1, 1],
+          functionGroup: 'debris',
+          meanAltitudeKm: 550,
+          inclinationDeg: 53,
+          satrec: { pair: p, side } as unknown as TrackedObject['satrec'],
+        });
+      }
+    }
+    const impl = (satrec: unknown, date: Date) => {
+      const { pair, side } = satrec as { pair: Pair; side: number };
+      const dt = (date.getTime() - pair.cpaMs) / 1000;
+      const sign = side === 0 ? 1 : -1;
+      const v = sign * (pair.relV / 2);
+      // Pairs sit 100,000 km apart from each other along z.
+      return {
+        positionEci: { x: v * dt, y: side === 0 ? 0 : pair.missKm, z: pair.id * 100_000 },
+        velocityEci: { x: v, y: 0, z: 0 },
+        altitudeKm: 550,
+        velocityKmS: Math.abs(v),
+        inclinationDeg: 53,
+        layer: 'LEO' as const,
+      };
+    };
+    vi.spyOn(propagatorModule, 'propagateObject').mockImplementation(impl);
+    vi.spyOn(propagatorModule, 'propagateState').mockImplementation(impl);
+    return objects;
+  }
+
+  it('finds a 14 km/s crossing whose CPA falls between two samples, with exact distance and time', () => {
+    const startMs = Date.UTC(2026, 0, 1);
+    // 17 s past a sample: the pair is ~240 km apart at both neighbouring
+    // samples, far outside any fixed snapshot net.
+    const cpaMs = startMs + 5 * UPCOMING_SAMPLE_STEP_MS + 17_000;
+    const objects = mockCrossings([{ id: 1, cpaMs, missKm: 1.2, relV: 14 }]);
+
+    const result = findUpcomingConjunctions(objects, new Date(startMs), 10 * UPCOMING_SAMPLE_STEP_MS);
+
+    expect(result.alerts).toHaveLength(1);
+    expect(result.alerts[0].distanceKm).toBeCloseTo(1.2, 6);
+    expect(Math.abs(result.alerts[0].time.getTime() - cpaMs)).toBeLessThanOrEqual(1);
+    expect(result.alerts[0].relativeVelocityKmS).toBeCloseTo(14, 6);
+  });
+
+  it('reports sub-100 m crossings (the most dangerous ones)', () => {
+    const startMs = Date.UTC(2026, 0, 1);
+    const cpaMs = startMs + 3 * UPCOMING_SAMPLE_STEP_MS + 29_000;
+    const objects = mockCrossings([{ id: 1, cpaMs, missKm: 0.04, relV: 10 }]);
+
+    const result = findUpcomingConjunctions(objects, new Date(startMs), 10 * UPCOMING_SAMPLE_STEP_MS);
+
+    expect(result.alerts).toHaveLength(1);
+    expect(result.alerts[0].distanceKm).toBeCloseTo(0.04, 6);
+  });
+
+  it('keeps both the soonest and the tightest approaches in the stored pool', () => {
+    const startMs = Date.UTC(2026, 0, 1);
+    const count = MAX_STORED_ALERTS + 10;
+    // Later pairs are tighter, so a "soonest only" pool would drop them.
+    const pairs = Array.from({ length: count }, (_, k) => ({
+      id: k + 1,
+      cpaMs: startMs + (k + 1) * UPCOMING_SAMPLE_STEP_MS + 7_000,
+      missKm: 2.9 - k * 0.05,
+      relV: 12,
+    }));
+    const objects = mockCrossings(pairs);
+
+    const result = findUpcomingConjunctions(objects, new Date(startMs), (count + 2) * UPCOMING_SAMPLE_STEP_MS);
+
+    const tightest = Math.min(...result.alerts.map((a) => a.distanceKm));
+    expect(tightest).toBeCloseTo(2.9 - (count - 1) * 0.05, 6);
+    expect(result.alerts.length + result.hiddenCount).toBe(count);
+  });
+});
+
+describe('linearClosestApproach', () => {
+  it('solves the CPA of straight-line relative motion', () => {
+    const { tauSec, missKm } = linearClosestApproach({ x: -100, y: 3, z: 0 }, { x: 10, y: 0, z: 0 });
+    expect(tauSec).toBeCloseTo(10, 9);
+    expect(missKm).toBeCloseTo(3, 9);
+  });
+
+  it('treats zero relative velocity as "closest now"', () => {
+    const { tauSec, missKm } = linearClosestApproach({ x: 3, y: 4, z: 0 }, { x: 0, y: 0, z: 0 });
+    expect(tauSec).toBe(0);
+    expect(missKm).toBeCloseTo(5, 9);
   });
 });
 
@@ -768,13 +883,9 @@ describe('getUpcomingConjunctions — async, incremental scheduling', () => {
       satrec: { id: i } as unknown as TrackedObject['satrec'],
     }));
 
-    const propagateSpy = vi.spyOn(propagatorModule, 'propagateObject').mockReturnValue({
+    const propagateSpy = vi.spyOn(propagatorModule, 'propagateState').mockReturnValue({
       positionEci: { x: 0, y: 0, z: 0 },
       velocityEci: { x: 0, y: 0, z: 0 },
-      altitudeKm: 550,
-      velocityKmS: 7.5,
-      inclinationDeg: 53,
-      layer: 'LEO',
     });
 
     const scheduled: IdleCallback[] = [];
@@ -798,7 +909,7 @@ describe('getUpcomingConjunctions — async, incremental scheduling', () => {
     propagateSpy.mockRestore();
   });
 
-  it('regression: no single idle-time slice takes long enough to visibly stutter, even for a large, spread-out catalog', { retry: 2 }, () => {
+  it('regression: no single idle-time slice takes long enough to visibly stutter, even for a large, spread-out catalog', { retry: 2, timeout: 30_000 }, () => {
     // This targets a second stutter source found after the fix above: the
     // spatial-hash candidate search (grid build + neighbor query) for one
     // snapshot was still run as a single synchronous, unchunked call and
@@ -823,7 +934,7 @@ describe('getUpcomingConjunctions — async, incremental scheduling', () => {
       satrec: { id: i } as unknown as TrackedObject['satrec'],
     }));
 
-    vi.spyOn(propagatorModule, 'propagateObject').mockImplementation((satrec) => {
+    const propagateSpy = vi.spyOn(propagatorModule, 'propagateState').mockImplementation((satrec) => {
       const id = (satrec as unknown as { id: number }).id;
       return {
         positionEci: { x: id * 10_000, y: 0, z: 0 },
@@ -857,6 +968,9 @@ describe('getUpcomingConjunctions — async, incremental scheduling', () => {
       cb({ didTimeout: false, timeRemaining: () => 50 });
       maxCallMs = Math.max(maxCallMs, performance.now() - t0);
       guard++;
+      // The spy records every call; a full 60 s-cadence sweep is millions of
+      // them, so drop the history to keep memory flat.
+      if (guard % 20 === 0) propagateSpy.mockClear();
     }
 
     expect(finished).toBe(true);

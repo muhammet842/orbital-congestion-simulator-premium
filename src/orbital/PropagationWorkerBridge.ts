@@ -16,8 +16,17 @@
  * free — so the main thread always uses the most recent available data.
  *
  * If the Worker hasn't returned its first result yet, getLatestResults()
- * returns null; callers should fall back to synchronous propagation for that
- * frame only.
+ * returns null; callers should fall back to synchronous propagation.
+ *
+ * Failure handling
+ * ────────────────
+ * Every `init` carries a generation number that the Worker echoes back, so a
+ * reply computed for an older catalog is never decoded against a newer one.
+ * A Worker error, a malformed message, or a reply that never arrives
+ * (watchdog) restarts the Worker up to MAX_RESTARTS times. While restarting —
+ * and permanently once restarts are exhausted — getLatestResults() returns
+ * null so the scene falls back to synchronous propagation instead of freezing
+ * on the last good frame.
  */
 
 import type { TrackedObject, OrbitLayer } from '../types';
@@ -26,6 +35,9 @@ import { quantizeSimulationTimeMs } from './propagationBatch';
 
 const STRIDE = 10;
 const LAYER_NAMES: OrbitLayer[] = ['LEO', 'MEO', 'GEO', 'HEO'];
+const MAX_RESTARTS = 2;
+/** A full-catalog pass takes tens of ms; init well under a second. */
+export const WORKER_WATCHDOG_MS = 10_000;
 
 function decodeBuffer(
   data: Float64Array,
@@ -35,7 +47,7 @@ function decodeBuffer(
   for (let i = 0; i < count; i++) {
     const base = i * STRIDE;
     const layerIdx = data[base + 9];
-    if (layerIdx < 0) continue;
+    if (!(layerIdx >= 0)) continue; // -1 = failed, NaN/undefined = short buffer
     out[i] = {
       positionEci: { x: data[base + 0], y: data[base + 1], z: data[base + 2] },
       velocityEci: { x: data[base + 3], y: data[base + 4], z: data[base + 5] },
@@ -49,11 +61,14 @@ function decodeBuffer(
 }
 
 type WorkerOutMessage =
-  | { type: 'ready'; count: number }
-  | { type: 'results'; tickMs: number; data: Float64Array };
+  | { type: 'ready'; count: number; generation?: number }
+  | { type: 'results'; tickMs: number; data: Float64Array; generation?: number }
+  | { type: 'error'; message: string; generation?: number };
+
+type InitPayload = { line1: string; line2: string }[];
 
 export class PropagationWorkerBridge {
-  private readonly worker: Worker;
+  private worker: Worker | null = null;
   private latestResults: (PropagationResult | null)[] | null = null;
   private workerReady = false;
   private pending = false;
@@ -61,36 +76,20 @@ export class PropagationWorkerBridge {
   private queuedTickMs: number | null = null;
   private lastProcessedTickMs = NaN;
   private objectCount = 0;
+  private generation = 0;
+  private initPayload: InitPayload | null = null;
+  /** Wall time of the outstanding init/propagate request (watchdog). */
+  private awaitingSinceMs: number | null = null;
+  private restarts = 0;
+  private failed = false;
 
   constructor() {
-    this.worker = new Worker(
-      new URL('../workers/propagation.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    this.worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
-      const msg = e.data;
-      if (msg.type === 'ready') {
-        this.workerReady = true;
-        return;
-      }
-      if (msg.type === 'results') {
-        this.pending = false;
-        this.lastProcessedTickMs = msg.tickMs;
-        this.latestResults = decodeBuffer(msg.data, this.objectCount);
+    this.worker = this.spawn();
+  }
 
-        // If a newer request was queued while the Worker was busy, send it now.
-        if (
-          this.queuedTickMs !== null &&
-          this.queuedTickMs !== this.lastProcessedTickMs
-        ) {
-          this.dispatchToWorker(this.queuedTickMs);
-          this.queuedTickMs = null;
-        }
-      }
-    };
-    this.worker.onerror = (err) => {
-      console.error('[PropagationWorker] error:', err);
-    };
+  /** False once the Worker has failed more than MAX_RESTARTS times. */
+  isAvailable(): boolean {
+    return !this.failed;
   }
 
   /**
@@ -99,15 +98,8 @@ export class PropagationWorkerBridge {
    */
   init(objects: TrackedObject[]): void {
     this.objectCount = objects.length;
-    this.latestResults = null;
-    this.workerReady = false;
-    this.pending = false;
-    this.queuedTickMs = null;
-    this.lastProcessedTickMs = NaN;
-    this.worker.postMessage({
-      type: 'init',
-      objects: objects.map((o) => ({ line1: o.line1, line2: o.line2 })),
-    });
+    this.initPayload = objects.map((o) => ({ line1: o.line1, line2: o.line2 }));
+    this.sendInit();
   }
 
   /**
@@ -117,7 +109,10 @@ export class PropagationWorkerBridge {
    * Non-blocking — result arrives via the internal message handler.
    */
   request(simTimeMs: number, speed: number): void {
-    if (!this.workerReady) return;
+    if (this.awaitingSinceMs !== null && performance.now() - this.awaitingSinceMs > WORKER_WATCHDOG_MS) {
+      this.handleFailure(new Error('worker did not respond in time'));
+    }
+    if (!this.workerReady || !this.worker) return;
     const tickMs = quantizeSimulationTimeMs(simTimeMs, speed);
     if (tickMs === this.lastProcessedTickMs) return;
 
@@ -131,20 +126,117 @@ export class PropagationWorkerBridge {
   }
 
   /**
-   * Returns the last decoded results, or null on the very first frame
-   * before any Worker reply has arrived.
+   * Returns the last decoded results, or null before the first reply and
+   * whenever the Worker is down.
    */
   getLatestResults(): (PropagationResult | null)[] | null {
     return this.latestResults;
   }
 
   dispose(): void {
-    this.worker.terminate();
+    this.worker?.terminate();
+    this.worker = null;
+    this.awaitingSinceMs = null;
+  }
+
+  private spawn(): Worker | null {
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL('../workers/propagation.worker.ts', import.meta.url), {
+        type: 'module',
+      });
+    } catch (err) {
+      console.error('[PropagationWorker] could not start:', err);
+      this.failed = true;
+      return null;
+    }
+    worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
+      if (worker !== this.worker) return; // message from a terminated instance
+      this.handleMessage(e.data);
+    };
+    worker.onerror = (err) => {
+      if (worker === this.worker) this.handleFailure(err);
+    };
+    worker.onmessageerror = (err) => {
+      if (worker === this.worker) this.handleFailure(err);
+    };
+    return worker;
+  }
+
+  private handleMessage(msg: WorkerOutMessage): void {
+    // Replies tagged for an older init are stale (catalog replaced since).
+    if (msg.generation !== undefined && msg.generation !== this.generation) return;
+
+    if (msg.type === 'ready') {
+      this.workerReady = true;
+      this.awaitingSinceMs = null;
+      return;
+    }
+    if (msg.type === 'error') {
+      this.handleFailure(new Error(msg.message));
+      return;
+    }
+    if (msg.type === 'results') {
+      this.pending = false;
+      this.awaitingSinceMs = null;
+      this.lastProcessedTickMs = msg.tickMs;
+      this.latestResults = decodeBuffer(msg.data, this.objectCount);
+      // A healthy reply resets the restart budget.
+      this.restarts = 0;
+
+      // If a newer request was queued while the Worker was busy, send it now.
+      if (
+        this.queuedTickMs !== null &&
+        this.queuedTickMs !== this.lastProcessedTickMs
+      ) {
+        this.dispatchToWorker(this.queuedTickMs);
+        this.queuedTickMs = null;
+      }
+    }
+  }
+
+  private handleFailure(reason: unknown): void {
+    console.error('[PropagationWorker] error:', reason);
+    this.worker?.terminate();
+    this.worker = null;
+    this.resetProgress();
+
+    if (this.restarts >= MAX_RESTARTS) {
+      this.failed = true;
+      console.error('[PropagationWorker] giving up; using main-thread propagation');
+      return;
+    }
+    this.restarts++;
+    this.worker = this.spawn();
+    if (this.initPayload) this.sendInit();
+  }
+
+  private resetProgress(): void {
+    this.latestResults = null;
+    this.workerReady = false;
+    this.pending = false;
+    this.queuedTickMs = null;
+    this.lastProcessedTickMs = NaN;
+    this.awaitingSinceMs = null;
+  }
+
+  private sendInit(): void {
+    this.resetProgress();
+    if (!this.worker || !this.initPayload) return;
+    this.generation++;
+    this.awaitingSinceMs = performance.now();
+    this.worker.postMessage({
+      type: 'init',
+      generation: this.generation,
+      objects: this.initPayload,
+    });
   }
 
   private dispatchToWorker(tickMs: number): void {
+    if (!this.worker) return;
     this.pending = true;
     this.queuedTickMs = null;
+    this.awaitingSinceMs = performance.now();
     this.worker.postMessage({ type: 'propagate', tickMs });
   }
 }

@@ -10,20 +10,24 @@ import type { TrackedObject } from '../types';
 class MockWorker {
   onmessage: ((e: MessageEvent) => void) | null = null;
   onerror: ((e: unknown) => void) | null = null;
+  onmessageerror: ((e: unknown) => void) | null = null;
   postMessage = vi.fn();
   terminate = vi.fn();
 }
 
 let lastWorkerInstance: MockWorker | null = null;
+let workerInstances: MockWorker[] = [];
 
 beforeEach(() => {
   lastWorkerInstance = null;
+  workerInstances = [];
   vi.stubGlobal(
     'Worker',
     class extends MockWorker {
       constructor(..._args: unknown[]) {
         super();
         lastWorkerInstance = this;
+        workerInstances.push(this);
       }
     },
   );
@@ -54,6 +58,7 @@ describe('PropagationWorkerBridge', () => {
 
     expect(lastWorkerInstance!.postMessage).toHaveBeenCalledWith({
       type: 'init',
+      generation: expect.any(Number),
       objects: objects.map((o) => ({ line1: o.line1, line2: o.line2 })),
     });
   });
@@ -199,5 +204,92 @@ describe('PropagationWorkerBridge', () => {
     bridge.init(makeObjects(1));
     bridge.dispose();
     expect(lastWorkerInstance!.terminate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PropagationWorkerBridge — failure handling', () => {
+  function initGeneration(worker: MockWorker): number {
+    const call = worker.postMessage.mock.calls.filter((c) => c[0].type === 'init').at(-1);
+    return call![0].generation;
+  }
+
+  function reply(worker: MockWorker, generation: number, tickMs: number, count = 1): void {
+    const buf = new Float64Array(count * 10);
+    worker.onmessage!({ data: { type: 'results', generation, tickMs, data: buf } } as MessageEvent);
+  }
+
+  async function readyBridge() {
+    const { PropagationWorkerBridge } = await import('./PropagationWorkerBridge');
+    const bridge = new PropagationWorkerBridge();
+    bridge.init(makeObjects(1));
+    const worker = lastWorkerInstance!;
+    const generation = initGeneration(worker);
+    worker.onmessage!({ data: { type: 'ready', generation, count: 1 } } as MessageEvent);
+    return { bridge, worker, generation };
+  }
+
+  it('restarts the worker after an error and drops stale results so the scene falls back', async () => {
+    const { bridge, worker, generation } = await readyBridge();
+    bridge.request(Date.UTC(2024, 0, 1), 1);
+    reply(worker, generation, Date.UTC(2024, 0, 1));
+    expect(bridge.getLatestResults()).not.toBeNull();
+
+    worker.onerror!(new Error('boom'));
+
+    expect(worker.terminate).toHaveBeenCalled();
+    expect(bridge.getLatestResults()).toBeNull();
+    expect(workerInstances).toHaveLength(2);
+    // The replacement worker is re-initialised with the same catalog.
+    expect(workerInstances[1].postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'init' }),
+    );
+    expect(bridge.isAvailable()).toBe(true);
+  });
+
+  it('treats an error message from the worker as a failure', async () => {
+    const { bridge, worker, generation } = await readyBridge();
+    worker.onmessage!({ data: { type: 'error', generation, message: 'bad TLE' } } as MessageEvent);
+    expect(workerInstances).toHaveLength(2);
+    expect(bridge.getLatestResults()).toBeNull();
+  });
+
+  it('ignores results tagged with an older init generation', async () => {
+    const { PropagationWorkerBridge } = await import('./PropagationWorkerBridge');
+    const bridge = new PropagationWorkerBridge();
+    bridge.init(makeObjects(1));
+    const worker = lastWorkerInstance!;
+    const oldGeneration = initGeneration(worker);
+    bridge.init(makeObjects(3));
+    const newGeneration = initGeneration(worker);
+    expect(newGeneration).not.toBe(oldGeneration);
+
+    worker.onmessage!({ data: { type: 'ready', generation: oldGeneration, count: 1 } } as MessageEvent);
+    reply(worker, oldGeneration, Date.UTC(2024, 0, 1));
+    expect(bridge.getLatestResults()).toBeNull();
+  });
+
+  it('restarts a worker that stops responding (watchdog)', async () => {
+    const { WORKER_WATCHDOG_MS } = await import('./PropagationWorkerBridge');
+    const nowSpy = vi.spyOn(performance, 'now').mockReturnValue(0);
+    const { bridge, worker } = await readyBridge();
+    bridge.request(Date.UTC(2024, 0, 1), 1); // dispatched, never answered
+
+    nowSpy.mockReturnValue(WORKER_WATCHDOG_MS + 1);
+    bridge.request(Date.UTC(2024, 0, 1, 0, 0, 5), 1);
+
+    expect(worker.terminate).toHaveBeenCalled();
+    expect(workerInstances).toHaveLength(2);
+    nowSpy.mockRestore();
+  });
+
+  it('gives up after repeated failures and stays on the main-thread fallback', async () => {
+    const { bridge } = await readyBridge();
+    for (let i = 0; i < 5; i++) {
+      lastWorkerInstance!.onerror?.(new Error(`crash ${i}`));
+    }
+    expect(bridge.isAvailable()).toBe(false);
+    expect(bridge.getLatestResults()).toBeNull();
+    // 1 original + 2 restarts, then no further spawns.
+    expect(workerInstances).toHaveLength(3);
   });
 });

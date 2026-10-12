@@ -26,6 +26,7 @@ import { resolveModelKey } from './modelResolver';
 import { satelliteModelLoader } from './SatelliteModelLoader';
 import { conjunctionModelScale } from './conjunctionScale';
 import { pickClosestScreenIndex, type ScreenPickCandidate } from './screenPick';
+import { isVisibleFromCamera } from './earthOcclusion';
 
 export { conjunctionModelScale };
 
@@ -306,7 +307,7 @@ export class OrbitalMeshes {
       if (
         !isSelected &&
         !isConjunction &&
-        (!layerFilters[result.layer] || !isFacingCamera(result, cameraPosition))
+        (!layerFilters[result.layer] || !isVisibleFromCamera(result, cameraPosition))
       ) {
         wrapper.visible = false;
         continue;
@@ -392,19 +393,3 @@ function applyTint(
   });
 }
 
-function isFacingCamera(
-  result: PropagationResult,
-  cameraPosition: { x: number; y: number; z: number },
-): boolean {
-  const scenePos = eciToScene(
-    result.positionEci.x,
-    result.positionEci.y,
-    result.positionEci.z,
-  );
-  return (
-    scenePos.x * cameraPosition.x +
-    scenePos.y * cameraPosition.y +
-    scenePos.z * cameraPosition.z >
-    0
-  );
-}
