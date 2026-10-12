@@ -36,7 +36,8 @@ function rowToFrequencies(row) {
   const beaconMHz = clean(row.beacon);
   const mode = clean(row.mode) ?? 'See current satellite status';
   const note = clean(row.callsign) ? `Callsign: ${clean(row.callsign)}` : undefined;
-  const common = { mode, ...(note ? { note } : {}), sourceUrl: sourceUrl(row) };
+  // The AMSAT active-frequency list only covers amateur satellites.
+  const common = { mode, ...(note ? { note } : {}), sourceUrl: sourceUrl(row), amateur: true };
   const frequencies = [];
 
   if (uplinkMHz || downlinkMHz) {
@@ -111,6 +112,13 @@ function formatMHz(lowHz, highHz) {
   return `${render(low)}–${render(high)}`;
 }
 
+/** SatNOGS `service` → amateur flag. "Unknown"/empty stays unclassified. */
+function satnogsAmateurFlag(row) {
+  const service = clean(row?.service);
+  if (!service || service === 'Unknown') return undefined;
+  return service === 'Amateur';
+}
+
 function satnogsRowToFrequency(row) {
   if (
     row?.status !== 'active' ||
@@ -136,6 +144,7 @@ function satnogsRowToFrequency(row) {
     ...(downlinkMHz ? { downlinkMHz } : {}),
     mode,
     sourceUrl: `https://db.satnogs.org/satellite/${Number(row.norad_cat_id)}/`,
+    ...(satnogsAmateurFlag(row) !== undefined ? { amateur: satnogsAmateurFlag(row) } : {}),
   };
 }
 
@@ -189,6 +198,7 @@ const GALILEO_FREQUENCIES = [
 ].map((frequency) => ({
   ...frequency,
   sourceUrl: frequency.sourceUrl ?? GALILEO_OS_SOURCE,
+  amateur: false,
 }));
 
 const GALILEO_SAR_FREQUENCY = {
@@ -197,20 +207,21 @@ const GALILEO_SAR_FREQUENCY = {
   downlinkMHz: '1544.0–1544.2',
   mode: 'Cospas-Sarsat transparent repeater',
   sourceUrl: GALILEO_SAR_SOURCE,
+  amateur: false,
 };
 
 const GPS_FREQUENCIES = [
   { service: 'GPS L1 navigation', downlinkMHz: '1575.420', mode: 'BPSK(1)' },
   { service: 'GPS L2 navigation', downlinkMHz: '1227.600', mode: 'BPSK(1)' },
   { service: 'GPS L5 navigation', downlinkMHz: '1176.450', mode: 'BPSK(10)' },
-].map((frequency) => ({ ...frequency, sourceUrl: GPS_SOURCE }));
+].map((frequency) => ({ ...frequency, sourceUrl: GPS_SOURCE, amateur: false }));
 
 const BEIDOU_FREQUENCIES = [
   { service: 'BeiDou B1I navigation', downlinkMHz: '1561.098', mode: 'BPSK(2)' },
   { service: 'BeiDou B1C navigation', downlinkMHz: '1575.420', mode: 'BOC(1,1) / QMBOC' },
   { service: 'BeiDou B2a navigation', downlinkMHz: '1176.450', mode: 'BPSK(10)' },
   { service: 'BeiDou B3I navigation', downlinkMHz: '1268.520', mode: 'BPSK(10)' },
-].map((frequency) => ({ ...frequency, sourceUrl: BEIDOU_SOURCE }));
+].map((frequency) => ({ ...frequency, sourceUrl: BEIDOU_SOURCE, amateur: false }));
 
 const STARLINK_FREQUENCIES = [{
   service: 'Starlink user broadband',
@@ -219,6 +230,7 @@ const STARLINK_FREQUENCIES = [{
   mode: 'Ku-band broadband',
   note: 'Licensed operating range; individual beams use portions of the band.',
   sourceUrl: STARLINK_SOURCE,
+  amateur: false,
 }];
 
 const ONEWEB_FREQUENCIES = [
@@ -229,6 +241,7 @@ const ONEWEB_FREQUENCIES = [
     mode: 'Ku-band broadband',
     note: 'Licensed operating range; individual beams use portions of the band.',
     sourceUrl: ONEWEB_SOURCE,
+    amateur: false,
   },
   {
     service: 'OneWeb gateway link',
@@ -236,6 +249,7 @@ const ONEWEB_FREQUENCIES = [
     downlinkMHz: '17800–18600 / 18800–19300',
     mode: 'Ka-band gateway',
     sourceUrl: ONEWEB_SOURCE,
+    amateur: false,
   },
 ];
 

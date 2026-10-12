@@ -62,6 +62,9 @@ import { EventReplayLabels } from './EventReplayLabels';
 import { getHistoricalEvent } from '../ui/EventCards';
 import { isSpotterOpen } from '../ui/SpotterPanel';
 
+/** Main-thread propagation cadence when no Worker result is available. */
+const SYNC_FALLBACK_QUANTUM_MS = 250;
+
 export class SceneManager {
   readonly renderer: WebGLRenderer;
   readonly scene: Scene;
@@ -586,12 +589,12 @@ export class SceneManager {
 
     // Fire async request to the Worker for the next frame's data.
     // The Worker result arrives via message handler and is buffered.
-    // Falls back to synchronous propagation only on the very first frame
-    // before the Worker has replied (null → synchronous).
+    // Falls back to (throttled) synchronous propagation before the Worker's
+    // first reply, while it restarts, or if it has failed for good.
     this.propWorker.request(simTime.getTime(), timeSpeed);
     const propagations =
       this.propWorker.getLatestResults() ??
-      getPropagationResults(currentState.objects, simTime, timeSpeed);
+      getPropagationResults(currentState.objects, simTime, timeSpeed, SYNC_FALLBACK_QUANTUM_MS);
     const debrisStride = getDebrisUpdateStride(timeSpeed);
     const skipPointsUpdate = this.debrisFrameCounter++ % debrisStride !== 0;
 

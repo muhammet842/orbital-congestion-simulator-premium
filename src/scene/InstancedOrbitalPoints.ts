@@ -19,6 +19,7 @@ import type { ObjectCategory, TrackedObject, OrbitLayer } from '../types';
 import { matchesSearchQuery } from '../state/appState';
 import { isRecentlyLaunched } from '../data/newLaunches';
 import { conjunctionModelScale } from './conjunctionScale';
+import { isVisibleFromCamera } from './earthOcclusion';
 
 const scaleMatrix = new Matrix4();
 
@@ -141,7 +142,7 @@ export class InstancedOrbitalPoints {
       if (
         !isSelected &&
         !isConjunction &&
-        (!layerFilters[result.layer] || !isFacingCamera(result, cameraPosition))
+        (!layerFilters[result.layer] || !isVisibleFromCamera(result, cameraPosition))
       ) {
         this.matrix.makeScale(0, 0, 0);
         this.mesh.setMatrixAt(i, this.matrix);
@@ -198,19 +199,3 @@ export class InstancedOrbitalPoints {
   }
 }
 
-function isFacingCamera(
-  result: PropagationResult,
-  cameraPosition: { x: number; y: number; z: number },
-): boolean {
-  const scenePos = eciToScene(
-    result.positionEci.x,
-    result.positionEci.y,
-    result.positionEci.z,
-  );
-  return (
-    scenePos.x * cameraPosition.x +
-    scenePos.y * cameraPosition.y +
-    scenePos.z * cameraPosition.z >
-    0
-  );
-}

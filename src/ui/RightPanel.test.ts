@@ -88,6 +88,50 @@ describe('initRightPanel – DOM smoke', () => {
     expect(emptyRow?.textContent).toContain('—');
   });
 
+  it('badges amateur channels, lists them first and cleans labels', () => {
+    const obj = {
+      ...makeFakeObject(),
+      radioFrequencies: [
+        { service: 'Weather 137.932', downlinkMHz: '137.932', mode: 'APT', sourceUrl: 'https://x.org', amateur: false },
+        { service: 'FM repeater', uplinkMHz: '145.85', downlinkMHz: '436.795', mode: 'FM', sourceUrl: 'https://x.org', amateur: true },
+        { service: '145.9', listenMHz: '145.9', mode: 'SSB CW*', sourceUrl: 'https://x.org' },
+      ],
+    };
+    setState({ objects: [obj], filteredIndices: [0] });
+    selectObject(0);
+
+    const container = document.createElement('div');
+    initRightPanel(container);
+
+    const labels = [...container.querySelectorAll('.radio-frequency-table tbody tr:not(.radio-frequency-note):not(.radio-frequency-source) td:first-child')]
+      .map((td) => td.textContent?.replace(/\s+/g, ' ').trim());
+    expect(labels[0]).toMatch(/^FM repeater/);
+    expect(container.querySelectorAll('.radio-badge')).toHaveLength(1);
+    expect(labels[1]).toBe('Transmitter');
+    expect(labels[2]).toBe('Weather');
+    expect(container.querySelector('.radio-frequency-marker')).not.toBeNull();
+  });
+
+  it('labels every value cell and marks empty ones, for the stacked phone layout', () => {
+    const obj = {
+      ...makeFakeObject(),
+      radioFrequencies: [
+        { service: 'Beacon', listenMHz: '435.605', mode: 'CW', sourceUrl: 'https://x.org' },
+      ],
+    };
+    setState({ objects: [obj], filteredIndices: [0] });
+    selectObject(0);
+
+    const container = document.createElement('div');
+    initRightPanel(container);
+
+    const cells = [...container.querySelectorAll('.radio-frequency-main td[data-label]')];
+    expect(cells.map((c) => c.getAttribute('data-label'))).toEqual([
+      'Uplink MHz', 'Downlink MHz', 'Listen MHz', 'Mode',
+    ]);
+    expect(cells.map((c) => c.classList.contains('radio-cell-empty'))).toEqual([true, true, false, false]);
+  });
+
   it('does not show the radio-frequency section for debris', () => {
     const obj = { ...makeFakeObject('TEST DEB'), category: 'debris' as const };
     setState({ objects: [obj], filteredIndices: [0] });

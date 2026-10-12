@@ -18,13 +18,20 @@ export function getDebrisUpdateStride(speed: number): number {
 let cachedTickMs = NaN;
 let cachedResults: (PropagationResult | null)[] = [];
 
-/** Propagate all objects once per quantized sim-time tick (shared by debris + GLTF paths). */
+/**
+ * Propagate all objects once per quantized sim-time tick (shared by debris + GLTF paths).
+ * `minQuantumMs` coarsens the tick further — the main-thread fallback uses it
+ * so a missing/failed Worker costs a few full-catalog passes per second
+ * instead of one per frame.
+ */
 export function getPropagationResults(
   objects: TrackedObject[],
   simTime: Date,
   speed: number,
+  minQuantumMs = 0,
 ): (PropagationResult | null)[] {
-  const tickMs = quantizeSimulationTimeMs(simTime.getTime(), speed);
+  let tickMs = quantizeSimulationTimeMs(simTime.getTime(), speed);
+  if (minQuantumMs > 0) tickMs = Math.floor(tickMs / minQuantumMs) * minQuantumMs;
   if (tickMs === cachedTickMs && cachedResults.length === objects.length) {
     return cachedResults;
   }

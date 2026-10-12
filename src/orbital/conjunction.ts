@@ -13,7 +13,7 @@
  * stale idle callback cannot wipe cards mid-rescan.
  */
 import { eciToScene } from './coordinates';
-import { propagateObject } from './propagator';
+import { propagateObject, propagateState, type PropagationState } from './propagator';
 import type { ConjunctionEvent, OrbitLayer, TrackedObject } from '../types';
 
 export interface ConjunctionScanResult {
@@ -821,114 +821,401 @@ export function invalidateConjunctionCache(): void {
   pendingRefresh = null;
 }
 
+
 // ── Predictive 24h scan ─────────────────────────────────────────────────────
 /**
  * Unlike everything above (which only ever evaluates the *current* instant,
  * plus a ±10s refine window around it), this walks forward in time and asks
- * "what will actually pass close over the next N hours?" — a genuine
- * prediction, not a live radar of what's already happening.
+ * "what will actually pass close over the next N hours?".
  *
- * Approach: sample the whole LEO catalog at fixed intervals across the
- * horizon, run the same spatial-hash candidate search at each snapshot, and
- * locally refine every candidate found (reusing `refineCloseApproach`, which
- * already does its own coarse+fine zoom). The single best (closest) approach
- * per object pair anywhere in the horizon is kept.
+ * Approach — a linear-motion sieve that cannot skip fast crossings:
  *
- * This is deliberately *not* exhaustive. Fast-crossing LEO pairs (relative
- * velocity up to ~15 km/s) can cross an entire wide detection net between
- * two 10-minute snapshots — the same fundamental sampling trade-off as the
- * live scan above, just at a much coarser cadence because a full-catalog
- * SGP4 sweep repeated every few minutes for 24h is already a lot of compute.
- * This is a best-effort screening pass (same spirit as real-world "smart
- * sieve" conjunction assessment filters): it reliably surfaces genuinely
- * close or repeatedly-observed approaches, but a vanishingly narrow
- * single-pass event could in principle slip through undetected.
+ *  1. Sample every LEO object's position *and velocity* every
+ *     `UPCOMING_SAMPLE_STEP_MS` (60 s).
+ *  2. At each sample, find every pair within `upcomingDetectionRadiusKm`.
+ *     The radius is chosen so that any pair whose true CPA falls inside this
+ *     sample's ±30 s window is guaranteed to be inside it, even head-on at
+ *     `UPCOMING_MAX_REL_VELOCITY_KM_S`.
+ *  3. For each pair, solve the closest approach of the *linear* relative
+ *     motion (r + v·τ). Over ±30 s, two nearby objects feel almost the same
+ *     gravity, so this is accurate to well under a kilometre. Keep the pair
+ *     only when that CPA lands inside this sample's window and its miss
+ *     distance is under `UPCOMING_SCREEN_KM`.
+ *  4. Refine each survivor with SGP4 by iterating the same linear CPA solve
+ *     (Newton-style) until the CPA time converges to the millisecond.
+ *
+ * The old 10-minute snapshot + fixed-step refine missed ~97% of real
+ * sub-3 km crossings on the live catalog (a 10–15 km/s crossing spends only
+ * a few seconds inside any reasonable net). Each window of this sieve hands
+ * off to the next with no gaps, so coverage does not depend on luck.
  */
 export const UPCOMING_HORIZON_MS = 24 * 60 * 60 * 1000;
-export const UPCOMING_SAMPLE_STEP_MS = 10 * 60 * 1000;
-export const UPCOMING_DETECTION_RADIUS_KM = 50;
-export const UPCOMING_REFINE_WINDOW_MS = UPCOMING_SAMPLE_STEP_MS;
-export const UPCOMING_REFINE_STEP_MS = 15_000;
-/** A full sweep costs a full-catalog SGP4 pass per snapshot (see above) —
- *  far too expensive to repeat every tick, so re-run it at most this often. */
+export const UPCOMING_SAMPLE_STEP_MS = 60 * 1000;
+/** Upper bound on LEO relative speed (head-on circular orbits ≈ 15.6 km/s). */
+export const UPCOMING_MAX_REL_VELOCITY_KM_S = 16;
+/** Linear-CPA screen. The margin over THRESHOLD_KM absorbs the linear-motion
+ *  approximation error (well under 1 km at 60 s sampling). */
+export const UPCOMING_SCREEN_KM = THRESHOLD_KM + 5;
+/** A sweep is a lot of SGP4 work, so re-run it at most this often (wall time). */
 export const UPCOMING_RESCAN_INTERVAL_MS = 5 * 60 * 1000;
+/** …unless simulated time has drifted this far from the last sweep start
+ *  (fast-forward, rewind, historical jumps). */
+export const UPCOMING_MAX_SIM_DRIFT_MS = 60 * 60 * 1000;
 
-type ScenePosition = { x: number; y: number; z: number };
-type UpcomingSampleEntry = { index: number; position: ScenePosition };
+const CPA_MAX_ITERATIONS = 12;
+const CPA_CONVERGED_MS = 1;
+/** Clamp a single Newton step so a bad starting guess cannot jump orbits. */
+const CPA_MAX_STEP_SEC = 120;
 
-/** Shared by both the synchronous (test-only) scan and the chunked production
- *  scanner below — checks one candidate pair found at `sampleDate` and, if it
- *  survives all filters, records it as the best known approach for that pair. */
-function evaluateUpcomingCandidate(
-  objects: TrackedObject[],
-  entries: UpcomingSampleEntry[],
-  ei: number,
-  ej: number,
-  sampleDate: Date,
-  startMs: number,
-  horizonMs: number,
-  bestByPair: Map<string, ConjunctionEvent>,
-): void {
-  const objI = objects[entries[ei].index];
-  const objJ = objects[entries[ej].index];
-  if (sharesOrbitData(objI, objJ)) return;
-
-  const refined = refineCloseApproach(
-    objects,
-    entries[ei].index,
-    entries[ej].index,
-    sampleDate,
-    UPCOMING_REFINE_WINDOW_MS,
-    UPCOMING_REFINE_STEP_MS,
-  );
-  if (!refined) return;
-  // A refine pass can walk slightly outside [start, start+horizon] near
-  // the edges of the sweep — don't report a "predicted" approach that's
-  // actually already in the past relative to the scan's own start time.
-  if (refined.time.getTime() < startMs || refined.time.getTime() > startMs + horizonMs) return;
-  if (refined.distanceKm < MIN_DISTANCE_KM || refined.distanceKm > THRESHOLD_KM) return;
-  if (isCoOrbitingPair(refined.relativeVelocityKmS)) return;
-
-  const pairKey = conjunctionPairKey(String(refined.noradIdA), String(refined.noradIdB));
-  const existing = bestByPair.get(pairKey);
-  if (!existing || refined.distanceKm < existing.distanceKm) {
-    bestByPair.set(pairKey, refined);
-  }
+/** Net radius that guarantees every CPA inside a sample's ±step/2 window is
+ *  caught at that sample (see the scan overview above). */
+export function upcomingDetectionRadiusKm(sampleStepMs: number = UPCOMING_SAMPLE_STEP_MS): number {
+  return UPCOMING_MAX_REL_VELOCITY_KM_S * (sampleStepMs / 2000) + UPCOMING_SCREEN_KM + 10;
 }
 
-function scanUpcomingSample(
-  objects: TrackedObject[],
-  sampleMs: number,
-  startMs: number,
-  horizonMs: number,
-  bestByPair: Map<string, ConjunctionEvent>,
-): void {
-  const sampleDate = new Date(sampleMs);
-  const leoEntries: UpcomingSampleEntry[] = [];
+type Vec3 = { x: number; y: number; z: number };
 
-  for (let i = 0; i < objects.length; i++) {
-    const obj = objects[i];
-    if (obj.layer !== SUBSET) continue;
-    const propagation = propagateObject(obj.satrec, sampleDate);
-    if (!propagation) continue;
-    leoEntries.push({ index: i, position: propagation.positionEci });
+/** Closest approach of linear relative motion r(τ) = r + v·τ (km, km/s, s). */
+export function linearClosestApproach(r: Vec3, v: Vec3): { tauSec: number; missKm: number } {
+  const vv = v.x * v.x + v.y * v.y + v.z * v.z;
+  const tauSec = vv > 1e-12 ? -(r.x * v.x + r.y * v.y + r.z * v.z) / vv : 0;
+  const mx = r.x + v.x * tauSec;
+  const my = r.y + v.y * tauSec;
+  const mz = r.z + v.z * tauSec;
+  return { tauSec, missKm: Math.sqrt(mx * mx + my * my + mz * mz) };
+}
+
+interface CpaSolution {
+  timeMs: number;
+  distanceKm: number;
+  posA: PropagationState;
+  posB: PropagationState;
+}
+
+/**
+ * Converge on the true SGP4 closest approach near `guessMs` by repeatedly
+ * solving the linear CPA from the current relative state. Typically 2–4
+ * iterations; returns the closest evaluated state.
+ */
+export function solveClosestApproach(
+  satrecA: TrackedObject['satrec'],
+  satrecB: TrackedObject['satrec'],
+  guessMs: number,
+): CpaSolution | null {
+  let t = guessMs;
+  let best: CpaSolution | null = null;
+
+  for (let i = 0; i < CPA_MAX_ITERATIONS; i++) {
+    const date = new Date(t);
+    const a = propagateState(satrecA, date);
+    const b = propagateState(satrecB, date);
+    if (!a || !b) return best;
+
+    const r = {
+      x: b.positionEci.x - a.positionEci.x,
+      y: b.positionEci.y - a.positionEci.y,
+      z: b.positionEci.z - a.positionEci.z,
+    };
+    const distance = Math.sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
+    if (!best || distance < best.distanceKm) {
+      best = { timeMs: t, distanceKm: distance, posA: a, posB: b };
+    }
+
+    const v = {
+      x: b.velocityEci.x - a.velocityEci.x,
+      y: b.velocityEci.y - a.velocityEci.y,
+      z: b.velocityEci.z - a.velocityEci.z,
+    };
+    const { tauSec } = linearClosestApproach(r, v);
+    const stepSec = Math.max(-CPA_MAX_STEP_SEC, Math.min(CPA_MAX_STEP_SEC, tauSec));
+    if (Math.abs(stepSec * 1000) < CPA_CONVERGED_MS) break;
+    t += stepSec * 1000;
   }
 
-  const candidatePairs = findCandidatePairsWithinRadius(
-    leoEntries.map((e) => e.position),
-    UPCOMING_DETECTION_RADIUS_KM,
-  );
+  return best;
+}
 
-  for (const [ei, ej] of candidatePairs) {
-    evaluateUpcomingCandidate(objects, leoEntries, ei, ej, sampleDate, startMs, horizonMs, bestByPair);
+/** Packs integer cell coordinates into one numeric Map key. The key is linear
+ *  in (ix, iy, iz), so neighbour deltas stay exact; coordinates beyond ±512
+ *  only merge buckets (extra distance checks), never drop pairs. */
+function sweepCellKey(ix: number, iy: number, iz: number): number {
+  return ((ix + 512) * 1024 + (iy + 512)) * 1024 + (iz + 512);
+}
+
+/** Own cell (delta 0) plus the 13 lexicographically "forward" neighbours, as
+ *  key deltas. Together they cover every neighbouring cell pair exactly once. */
+const SWEEP_FORWARD_OFFSETS: number[] = (() => {
+  const offsets = [0];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        if (dx > 0 || (dx === 0 && (dy > 0 || (dy === 0 && dz > 0)))) {
+          offsets.push((dx * 1024 + dy) * 1024 + dz);
+        }
+      }
+    }
+  }
+  return offsets;
+})();
+
+/**
+ * The stored pool feeds both left-panel sort modes, so keep the soonest
+ * *and* the tightest approaches — a "soonest only" pool would make the
+ * criticality sort re-order 30 arbitrary near-term events.
+ */
+function buildStoredAlertPool(ranked: ConjunctionEvent[]): ConjunctionScanResult {
+  if (ranked.length <= MAX_STORED_ALERTS) return { alerts: ranked, hiddenCount: 0 };
+  const keep = new Set<ConjunctionEvent>(ranked.slice(0, MAX_STORED_ALERTS));
+  for (const event of rankConjunctionAlertsByCriticality(ranked).slice(0, MAX_STORED_ALERTS)) {
+    keep.add(event);
+  }
+  const alerts = rankConjunctionAlertsByTime(Array.from(keep));
+  return { alerts, hiddenCount: ranked.length - alerts.length };
+}
+
+/**
+ * Cap on how much work happens per `step()` call: objects propagated,
+ * spatial-hash cells bucketed/queried, or candidates refined. Keeps every
+ * slice under a frame budget when the sweep runs on the main thread (the
+ * fallback path); the worker just calls `step()` in a tight loop.
+ */
+const UPCOMING_PROPAGATE_CHUNK = 1000;
+const UPCOMING_GRID_CHUNK = 1500;
+const UPCOMING_QUERY_CHUNK = 500;
+const UPCOMING_REFINE_CHUNK = 25;
+
+export type UpcomingSweepStepResult = 'working' | 'sample-done' | 'done';
+
+/** One resumable 24h sweep. `step()` advances it by one bounded unit of work. */
+export class UpcomingConjunctionSweep {
+  readonly startMs: number;
+  readonly horizonMs: number;
+  readonly sampleStepMs: number;
+  private readonly objects: TrackedObject[];
+  private readonly leoIndices: number[];
+  private readonly totalSamples: number;
+  private readonly radiusKm: number;
+  private readonly bestByPair = new Map<string, ConjunctionEvent>();
+  private sampleIndex = 0;
+  private finished = false;
+
+  // Per-sample progress (reset by `resetSample`). Positions/velocities live
+  // in a flat typed array (x,y,z,vx,vy,vz per entry) because the neighbour
+  // query is the hot loop of the whole sweep and must not allocate per pair.
+  private objectCursor = 0;
+  private entryCount = 0;
+  private readonly entryIndex: Int32Array;
+  private readonly entryState: Float64Array;
+  private readonly entryCell: Float64Array;
+  private grid: Map<number, number[]> | null = null;
+  private gridCursor = 0;
+  private queryCursor = 0;
+  private candidates: Array<{ ei: number; ej: number; guessMs: number }> | null = null;
+  private refineCursor = 0;
+
+  constructor(
+    objects: TrackedObject[],
+    startMs: number,
+    horizonMs: number = UPCOMING_HORIZON_MS,
+    sampleStepMs: number = UPCOMING_SAMPLE_STEP_MS,
+  ) {
+    this.objects = objects;
+    this.startMs = startMs;
+    this.horizonMs = horizonMs;
+    this.sampleStepMs = sampleStepMs;
+    this.totalSamples = Math.floor(horizonMs / sampleStepMs);
+    this.radiusKm = upcomingDetectionRadiusKm(sampleStepMs);
+    this.leoIndices = [];
+    for (let i = 0; i < objects.length; i++) {
+      if (objects[i].layer === SUBSET) this.leoIndices.push(i);
+    }
+    const n = this.leoIndices.length;
+    this.entryIndex = new Int32Array(n);
+    this.entryState = new Float64Array(n * 6);
+    this.entryCell = new Float64Array(n);
+  }
+
+  get done(): boolean {
+    return this.finished;
+  }
+
+  get hitCount(): number {
+    return this.bestByPair.size;
+  }
+
+  snapshot(): ConjunctionScanResult {
+    const ranked = deduplicatePhysicalConjunctions(Array.from(this.bestByPair.values()), this.objects)
+      // Drop CPAs already behind the sweep clock so the panel stays "what's next".
+      .filter((event) => event.time.getTime() >= this.startMs - 1_000);
+    return buildStoredAlertPool(ranked);
+  }
+
+  step(): UpcomingSweepStepResult {
+    if (this.finished) return 'done';
+    const sampleMs = this.startMs + this.sampleIndex * this.sampleStepMs;
+    const state = this.entryState;
+
+    // Phase 1: propagate a bounded chunk of this sample's LEO objects.
+    if (this.objectCursor < this.leoIndices.length) {
+      const date = new Date(sampleMs);
+      const end = Math.min(this.objectCursor + UPCOMING_PROPAGATE_CHUNK, this.leoIndices.length);
+      for (let k = this.objectCursor; k < end; k++) {
+        const idx = this.leoIndices[k];
+        const p = propagateState(this.objects[idx].satrec, date);
+        if (!p) continue;
+        const e = this.entryCount++;
+        const o = e * 6;
+        this.entryIndex[e] = idx;
+        state[o] = p.positionEci.x;
+        state[o + 1] = p.positionEci.y;
+        state[o + 2] = p.positionEci.z;
+        state[o + 3] = p.velocityEci.x;
+        state[o + 4] = p.velocityEci.y;
+        state[o + 5] = p.velocityEci.z;
+      }
+      this.objectCursor = end;
+      return 'working';
+    }
+
+    const n = this.entryCount;
+    if (this.grid === null) this.grid = new Map();
+
+    // Phase 2a: bucket a bounded chunk of positions into the spatial hash.
+    if (this.gridCursor < n) {
+      const end = Math.min(this.gridCursor + UPCOMING_GRID_CHUNK, n);
+      for (let i = this.gridCursor; i < end; i++) {
+        const o = i * 6;
+        const key = sweepCellKey(
+          Math.floor(state[o] / this.radiusKm),
+          Math.floor(state[o + 1] / this.radiusKm),
+          Math.floor(state[o + 2] / this.radiusKm),
+        );
+        this.entryCell[i] = key;
+        const bucket = this.grid.get(key);
+        if (bucket) bucket.push(i);
+        else this.grid.set(key, [i]);
+      }
+      this.gridCursor = end;
+      return 'working';
+    }
+
+    if (this.candidates === null) this.candidates = [];
+
+    // Phase 2b: neighbour query + linear-CPA screen. Each unordered pair is
+    // visited once: same-cell pairs with j > i, plus the 13 "forward"
+    // neighbour cells.
+    if (this.queryCursor < n) {
+      const radiusSq = this.radiusKm * this.radiusKm;
+      const halfWindowSec = this.sampleStepMs / 2000;
+      const screenSq = UPCOMING_SCREEN_KM * UPCOMING_SCREEN_KM;
+      const coOrbitSq = CROSSING_MIN_REL_VELOCITY_KM_S * CROSSING_MIN_REL_VELOCITY_KM_S;
+      const end = Math.min(this.queryCursor + UPCOMING_QUERY_CHUNK, n);
+      for (let i = this.queryCursor; i < end; i++) {
+        const cell = this.entryCell[i];
+        const oi = i * 6;
+        const px = state[oi];
+        const py = state[oi + 1];
+        const pz = state[oi + 2];
+        const vx = state[oi + 3];
+        const vy = state[oi + 4];
+        const vz = state[oi + 5];
+        for (let c = 0; c < SWEEP_FORWARD_OFFSETS.length; c++) {
+          const offset = SWEEP_FORWARD_OFFSETS[c];
+          const bucket = this.grid.get(cell + offset);
+          if (!bucket) continue;
+          for (let b = 0; b < bucket.length; b++) {
+            const j = bucket[b];
+            if (offset === 0 && j <= i) continue;
+            const oj = j * 6;
+            const rx = state[oj] - px;
+            const ry = state[oj + 1] - py;
+            const rz = state[oj + 2] - pz;
+            if (rx * rx + ry * ry + rz * rz > radiusSq) continue;
+            const wx = state[oj + 3] - vx;
+            const wy = state[oj + 4] - vy;
+            const wz = state[oj + 5] - vz;
+            const ww = wx * wx + wy * wy + wz * wz;
+            if (ww < coOrbitSq) continue;
+            const tauSec = -(rx * wx + ry * wy + rz * wz) / ww;
+            // CPAs outside the half-window belong to a neighbouring sample.
+            if (tauSec < -halfWindowSec || tauSec > halfWindowSec) continue;
+            const mx = rx + wx * tauSec;
+            const my = ry + wy * tauSec;
+            const mz = rz + wz * tauSec;
+            if (mx * mx + my * my + mz * mz > screenSq) continue;
+            if (sharesOrbitData(this.objects[this.entryIndex[i]], this.objects[this.entryIndex[j]])) continue;
+            this.candidates.push({ ei: i, ej: j, guessMs: sampleMs + tauSec * 1000 });
+          }
+        }
+      }
+      this.queryCursor = end;
+      return 'working';
+    }
+
+    // Phase 3: refine a bounded chunk of this sample's candidates with SGP4.
+    if (this.refineCursor < this.candidates.length) {
+      const end = Math.min(this.refineCursor + UPCOMING_REFINE_CHUNK, this.candidates.length);
+      for (let k = this.refineCursor; k < end; k++) {
+        const { ei, ej, guessMs } = this.candidates[k];
+        this.recordCandidate(this.entryIndex[ei], this.entryIndex[ej], guessMs);
+      }
+      this.refineCursor = end;
+      return 'working';
+    }
+
+    this.sampleIndex++;
+    this.resetSample();
+    if (this.sampleIndex > this.totalSamples) {
+      this.finished = true;
+      return 'done';
+    }
+    return 'sample-done';
+  }
+
+  private recordCandidate(indexA: number, indexB: number, guessMs: number): void {
+    const objA = this.objects[indexA];
+    const objB = this.objects[indexB];
+    const cpa = solveClosestApproach(objA.satrec, objB.satrec, guessMs);
+    if (!cpa) return;
+    if (cpa.timeMs < this.startMs || cpa.timeMs > this.startMs + this.horizonMs) return;
+    if (cpa.distanceKm > THRESHOLD_KM) return;
+    const relV = relativeVelocityKmS(cpa.posA.velocityEci, cpa.posB.velocityEci);
+    if (isCoOrbitingPair(relV)) return;
+
+    const event: ConjunctionEvent = {
+      objectA: objA.name,
+      objectB: objB.name,
+      noradIdA: objA.noradId,
+      noradIdB: objB.noradId,
+      indexA,
+      indexB,
+      distanceKm: cpa.distanceKm,
+      relativeVelocityKmS: relV,
+      time: new Date(cpa.timeMs),
+      midpointScene: midpointScene(cpa.posA.positionEci, cpa.posB.positionEci),
+    };
+    const pairKey = conjunctionPairKey(String(objA.noradId), String(objB.noradId));
+    const existing = this.bestByPair.get(pairKey);
+    if (!existing || event.distanceKm < existing.distanceKm) {
+      this.bestByPair.set(pairKey, event);
+    }
+  }
+
+  private resetSample(): void {
+    this.objectCursor = 0;
+    this.entryCount = 0;
+    this.grid = null;
+    this.gridCursor = 0;
+    this.queryCursor = 0;
+    this.candidates = null;
+    this.refineCursor = 0;
   }
 }
 
 /**
- * Synchronous, one-shot version of the predictive scan — walks the entire
- * horizon in a single call. Fine for tests/small catalogs; production code
- * should use `getUpcomingConjunctions` instead, which spreads the same work
- * across many idle-time slices so it never blocks the main thread.
+ * Synchronous, one-shot version of the predictive scan. Fine for tests and
+ * small catalogs; production uses `getUpcomingConjunctions`, which runs the
+ * same sweep in a Web Worker (or in idle-time slices as a fallback).
  */
 export function findUpcomingConjunctions(
   objects: TrackedObject[],
@@ -936,91 +1223,78 @@ export function findUpcomingConjunctions(
   horizonMs: number = UPCOMING_HORIZON_MS,
   sampleStepMs: number = UPCOMING_SAMPLE_STEP_MS,
 ): ConjunctionScanResult {
-  const startMs = startDate.getTime();
-  const totalSamples = Math.floor(horizonMs / sampleStepMs);
-  const bestByPair = new Map<string, ConjunctionEvent>();
-
-  for (let step = 0; step <= totalSamples; step++) {
-    scanUpcomingSample(objects, startMs + step * sampleStepMs, startMs, horizonMs, bestByPair);
+  const sweep = new UpcomingConjunctionSweep(objects, startDate.getTime(), horizonMs, sampleStepMs);
+  while (sweep.step() !== 'done') {
+    // run to completion
   }
-
-  const ranked = deduplicatePhysicalConjunctions(Array.from(bestByPair.values()), objects).filter(
-    (event) => event.time.getTime() >= startMs - 1_000,
-  );
-  return {
-    alerts: ranked.slice(0, MAX_STORED_ALERTS),
-    hiddenCount: Math.max(0, ranked.length - MAX_STORED_ALERTS),
-  };
+  return sweep.snapshot();
 }
 
-/**
- * Cap on how much work happens per idle-time slice: objects propagated,
- * spatial-hash grid cells bucketed/queried, or candidates refined. A full
- * snapshot touches every LEO object (thousands) — doing any of these steps
- * "all at once" per snapshot, even spread one-snapshot-per-idle-callback,
- * blocked the main thread for tens to 100ms+ at a time and was clearly
- * visible as stutter (measured: ~100ms to propagate + ~20-35ms just for the
- * spatial-hash candidate search alone, on the real ~9,800-object catalog).
- * Chunking at this finer grain — including the candidate search itself,
- * split into a bucket-build pass and a neighbor-query pass — keeps every
- * single slice of work comfortably under a frame budget, at the cost of the
- * full 24h sweep taking longer in wall-clock time to finish in the
- * background.
- */
-const UPCOMING_PROPAGATE_CHUNK = 500;
-const UPCOMING_GRID_CHUNK = 1500;
-const UPCOMING_QUERY_CHUNK = 500;
-const UPCOMING_REFINE_CHUNK = 2;
+// ── Sweep orchestration (worker first, idle-slice fallback) ────────────────
 
-interface UpcomingScanState {
-  objects: TrackedObject[];
-  /** Indices into `objects` that are in the tracked (LEO) subset — computed
-   *  once up front so every snapshot doesn't re-filter the whole catalog. */
-  leoIndices: number[];
-  startMs: number;
-  horizonMs: number;
-  sampleStepMs: number;
-  totalSamples: number;
-  sampleIndex: number;
-  bestByPair: Map<string, ConjunctionEvent>;
-
-  // Progress within the *current* sample (reset each time we move to the next one).
-  // Phase 1 — propagate this sample's LEO objects.
-  objectCursor: number;
-  sampleEntries: UpcomingSampleEntry[];
-  // Phase 2 — spatial-hash candidate search, itself split into a build pass
-  // (bucket every entry) and a query pass (check each entry's 3x3x3 cell
-  // neighborhood) so a dense sample can't cause its own multi-ten-ms stall.
-  grid: CellGrid | null;
-  cells: Array<[number, number, number]>;
-  gridCursor: number;
-  queryCursor: number;
-  pendingCandidates: Array<[number, number]> | null;
-  // Phase 3 — refine each candidate pair found in phase 2.
-  refineCursor: number;
+/** Minimal per-object payload the conjunction worker needs (index-aligned
+ *  with the main-thread catalog so event indices stay valid). */
+export interface UpcomingWorkerObject {
+  noradId: number;
+  name: string;
+  line1: string;
+  line2: string;
+  category: TrackedObject['category'];
+  layer: OrbitLayer;
 }
 
-let upcomingScan: UpcomingScanState | null = null;
+export type UpcomingWorkerRequest =
+  | {
+      type: 'scan';
+      scanId: number;
+      startMs: number;
+      horizonMs: number;
+      sampleStepMs: number;
+      /** Present only when the catalog changed since the last scan. */
+      objects?: UpcomingWorkerObject[];
+    }
+  | { type: 'cancel'; scanId: number };
+
+export type UpcomingWorkerResponse =
+  | { type: 'progress'; scanId: number; result: ConjunctionScanResult }
+  | { type: 'done'; scanId: number; result: ConjunctionScanResult }
+  | { type: 'error'; scanId: number; message: string };
+
+type UpcomingWorkerFactory = () => Worker;
+
+let workerFactory: UpcomingWorkerFactory | null = null;
+let worker: Worker | null = null;
+let workerBroken = false;
+let workerCatalog: TrackedObject[] | null = null;
+let workerScanId: number | null = null;
+
+let scanGeneration = 0;
+let activeSweep: UpcomingConjunctionSweep | null = null;
+let activeListener: ConjunctionRefreshListener | null = null;
 let upcomingResult: ConjunctionScanResult = { alerts: [], hiddenCount: 0 };
 let upcomingScanStartedWallMs = -Infinity;
-let upcomingStepScheduled = false;
+let upcomingScanStartSimMs = NaN;
 /** True once at least one sweep has finished since the last hard reset.
  *  Distinguishes "still scanning on first load" from "scan finished, none found". */
 let upcomingScanCompletedOnce = false;
 
-function snapshotUpcomingResult(scan: UpcomingScanState): ConjunctionScanResult {
-  const ranked = deduplicatePhysicalConjunctions(Array.from(scan.bestByPair.values()), scan.objects)
-    // Drop CPAs already behind the sweep clock so the panel stays "what's next".
-    .filter((event) => event.time.getTime() >= scan.startMs - 1_000);
-  return {
-    alerts: ranked.slice(0, MAX_STORED_ALERTS),
-    hiddenCount: Math.max(0, ranked.length - MAX_STORED_ALERTS),
-  };
+/**
+ * Register how to create the conjunction worker. Kept out of this module so
+ * the worker (which imports this file) does not try to spawn itself.
+ */
+export function setUpcomingConjunctionWorkerFactory(factory: UpcomingWorkerFactory | null): void {
+  workerFactory = factory;
+  workerBroken = false;
+  if (worker) {
+    worker.terminate();
+    worker = null;
+    workerCatalog = null;
+  }
 }
 
 /** True while a 24h predictive sweep is mid-flight. */
 export function isUpcomingConjunctionScanPending(): boolean {
-  return upcomingScan != null;
+  return activeSweep != null || workerScanId != null;
 }
 
 /** False until the first sweep after load/invalidate has produced a final result. */
@@ -1028,171 +1302,101 @@ export function hasUpcomingConjunctionScanCompleted(): boolean {
   return upcomingScanCompletedOnce;
 }
 
-function buildLeoIndices(objects: TrackedObject[]): number[] {
-  const indices: number[] = [];
-  for (let i = 0; i < objects.length; i++) {
-    if (objects[i].layer === SUBSET) indices.push(i);
-  }
-  return indices;
-}
-
-function finishUpcomingScan(scan: UpcomingScanState): void {
-  upcomingResult = snapshotUpcomingResult(scan);
-  upcomingScan = null;
+function publishFinal(result: ConjunctionScanResult, listener: ConjunctionRefreshListener | null): void {
+  upcomingResult = result;
   upcomingScanCompletedOnce = true;
+  listener?.(result);
 }
 
-function resetSampleProgress(scan: UpcomingScanState): void {
-  scan.objectCursor = 0;
-  scan.sampleEntries = [];
-  scan.grid = null;
-  scan.cells = [];
-  scan.gridCursor = 0;
-  scan.queryCursor = 0;
-  scan.pendingCandidates = null;
-  scan.refineCursor = 0;
+function markWorkerBroken(reason: unknown): void {
+  console.error('[ConjunctionWorker] falling back to main-thread scan:', reason);
+  workerBroken = true;
+  worker?.terminate();
+  worker = null;
+  workerCatalog = null;
+  if (workerScanId != null) {
+    workerScanId = null;
+    // Let the next getUpcomingConjunctions call restart on the fallback path.
+    upcomingScanStartedWallMs = -Infinity;
+  }
 }
 
-/**
- * Advances the in-progress sweep by one small, bounded unit of work and
- * returns true once the whole horizon has been covered and `upcomingResult`
- * is up to date. Every individual call is capped by one of the
- * `UPCOMING_*_CHUNK` constants above, so it's safe to call from a single
- * idle-time slice without risking a visible stutter.
- */
-function stepUpcomingScanOnce(): boolean {
-  const scan = upcomingScan;
-  if (!scan) return true;
-
-  const sampleMs = scan.startMs + scan.sampleIndex * scan.sampleStepMs;
-  const sampleDate = new Date(sampleMs);
-
-  // Phase 1: propagate a bounded chunk of this sample's LEO objects.
-  if (scan.objectCursor < scan.leoIndices.length) {
-    const chunkEnd = Math.min(scan.objectCursor + UPCOMING_PROPAGATE_CHUNK, scan.leoIndices.length);
-    for (let k = scan.objectCursor; k < chunkEnd; k++) {
-      const idx = scan.leoIndices[k];
-      const propagation = propagateObject(scan.objects[idx].satrec, sampleDate);
-      if (propagation) scan.sampleEntries.push({ index: idx, position: propagation.positionEci });
-    }
-    scan.objectCursor = chunkEnd;
-    return false;
-  }
-
-  if (scan.grid === null) {
-    scan.grid = new Map();
-    scan.cells = new Array(scan.sampleEntries.length);
-  }
-
-  // Phase 2a: bucket a bounded chunk of this sample's positions into the grid.
-  if (scan.gridCursor < scan.sampleEntries.length) {
-    const cellSize = Math.max(UPCOMING_DETECTION_RADIUS_KM, 1e-6);
-    const chunkEnd = Math.min(scan.gridCursor + UPCOMING_GRID_CHUNK, scan.sampleEntries.length);
-    for (let i = scan.gridCursor; i < chunkEnd; i++) {
-      const { x, y, z } = scan.sampleEntries[i].position;
-      const ix = Math.floor(x / cellSize);
-      const iy = Math.floor(y / cellSize);
-      const iz = Math.floor(z / cellSize);
-      scan.cells[i] = [ix, iy, iz];
-      getOrCreateBucket(scan.grid, ix, iy, iz).push(i);
-    }
-    scan.gridCursor = chunkEnd;
-    return false;
-  }
-
-  if (scan.pendingCandidates === null) scan.pendingCandidates = [];
-
-  // Phase 2b: query a bounded chunk of entries against the (now complete) grid.
-  if (scan.queryCursor < scan.sampleEntries.length) {
-    const radiusSq = UPCOMING_DETECTION_RADIUS_KM * UPCOMING_DETECTION_RADIUS_KM;
-    const chunkEnd = Math.min(scan.queryCursor + UPCOMING_QUERY_CHUNK, scan.sampleEntries.length);
-    for (let i = scan.queryCursor; i < chunkEnd; i++) {
-      const [ix, iy, iz] = scan.cells[i];
-      const pi = scan.sampleEntries[i].position;
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dz = -1; dz <= 1; dz++) {
-            const bucket = getBucket(scan.grid, ix + dx, iy + dy, iz + dz);
-            if (!bucket) continue;
-            for (const j of bucket) {
-              if (j <= i) continue;
-              const pj = scan.sampleEntries[j].position;
-              const ddx = pi.x - pj.x;
-              const ddy = pi.y - pj.y;
-              const ddz = pi.z - pj.z;
-              if (ddx * ddx + ddy * ddy + ddz * ddz <= radiusSq) {
-                scan.pendingCandidates.push([i, j]);
-              }
-            }
-          }
-        }
+function ensureWorker(): Worker | null {
+  if (worker) return worker;
+  if (!workerFactory || workerBroken) return null;
+  try {
+    const created = workerFactory();
+    created.onmessage = (e: MessageEvent<UpcomingWorkerResponse>) => {
+      const msg = e.data;
+      if (msg.scanId !== workerScanId) return; // stale (cancelled / superseded)
+      if (msg.type === 'progress') {
+        activeListener?.(msg.result);
+      } else if (msg.type === 'done') {
+        workerScanId = null;
+        publishFinal(msg.result, activeListener);
+      } else {
+        markWorkerBroken(msg.message);
       }
-    }
-    scan.queryCursor = chunkEnd;
-    return false;
+    };
+    created.onerror = (err) => markWorkerBroken(err.message || err);
+    created.onmessageerror = (err) => markWorkerBroken(err);
+    worker = created;
+    return worker;
+  } catch (err) {
+    markWorkerBroken(err);
+    return null;
   }
-
-  // Phase 3: refine a bounded chunk of this sample's candidates.
-  if (scan.refineCursor < scan.pendingCandidates.length) {
-    const chunkEnd = Math.min(scan.refineCursor + UPCOMING_REFINE_CHUNK, scan.pendingCandidates.length);
-    for (let k = scan.refineCursor; k < chunkEnd; k++) {
-      const [ei, ej] = scan.pendingCandidates[k];
-      evaluateUpcomingCandidate(
-        scan.objects,
-        scan.sampleEntries,
-        ei,
-        ej,
-        sampleDate,
-        scan.startMs,
-        scan.horizonMs,
-        scan.bestByPair,
-      );
-    }
-    scan.refineCursor = chunkEnd;
-    return false;
-  }
-
-  // This sample is fully processed — advance to the next one.
-  scan.sampleIndex++;
-  resetSampleProgress(scan);
-
-  if (scan.sampleIndex > scan.totalSamples) {
-    finishUpcomingScan(scan);
-    return true;
-  }
-  return false;
 }
 
-function scheduleUpcomingScanStep(onUpdate: ConjunctionRefreshListener): void {
-  if (upcomingStepScheduled) return;
-  upcomingStepScheduled = true;
+function startWorkerSweep(w: Worker, objects: TrackedObject[], startMs: number): void {
+  const request: UpcomingWorkerRequest = {
+    type: 'scan',
+    scanId: scanGeneration,
+    startMs,
+    horizonMs: UPCOMING_HORIZON_MS,
+    sampleStepMs: UPCOMING_SAMPLE_STEP_MS,
+  };
+  if (workerCatalog !== objects) {
+    request.objects = objects.map((o) => ({
+      noradId: o.noradId,
+      name: o.name,
+      line1: o.line1,
+      line2: o.line2,
+      category: o.category,
+      layer: o.layer,
+    }));
+    workerCatalog = objects;
+  }
+  workerScanId = scanGeneration;
+  w.postMessage(request);
+}
 
+/** Minimum wall-time spacing between streamed partial results (fallback path). */
+const UPCOMING_PARTIAL_INTERVAL_MS = 2_000;
+
+function scheduleUpcomingScanStep(sweep: UpcomingConjunctionSweep, lastPartial = { wallMs: -Infinity, hits: 0 }): void {
   const runStep = (): void => {
-    upcomingStepScheduled = false;
-    // A prior invalidate() may have torn the sweep down while this idle
-    // callback was already queued. Publishing in that case used to push an
-    // empty result into the UI and wipe cards that a brand-new sweep was
-    // about to rebuild — never call onUpdate for a cancelled step.
-    if (!upcomingScan) return;
+    // A newer sweep (or invalidate) replaced this one while the callback was
+    // queued — never publish or reschedule for a superseded sweep.
+    if (sweep !== activeSweep) return;
 
-    const sampleJustFinished =
-      upcomingScan.objectCursor >= upcomingScan.leoIndices.length &&
-      upcomingScan.pendingCandidates !== null &&
-      upcomingScan.refineCursor >= upcomingScan.pendingCandidates.length;
-
-    const done = stepUpcomingScanOnce();
-    if (done) {
-      onUpdate(upcomingResult);
+    const state = sweep.step();
+    if (state === 'done') {
+      activeSweep = null;
+      publishFinal(sweep.snapshot(), activeListener);
       return;
     }
-
-    // Stream partial hits as soon as a sample finishes refining so the left
-    // panel isn't blank for the whole multi-minute first sweep after refresh.
-    if (sampleJustFinished && upcomingScan && upcomingScan.bestByPair.size > 0) {
-      onUpdate(snapshotUpcomingResult(upcomingScan));
+    // Stream partial hits as samples finish so the panel isn't blank for the
+    // whole first sweep (throttled: a snapshot re-propagates every hit).
+    if (
+      state === 'sample-done' &&
+      sweep.hitCount > lastPartial.hits &&
+      performance.now() - lastPartial.wallMs >= UPCOMING_PARTIAL_INTERVAL_MS
+    ) {
+      lastPartial = { wallMs: performance.now(), hits: sweep.hitCount };
+      activeListener?.(sweep.snapshot());
     }
-
-    scheduleUpcomingScanStep(onUpdate);
+    scheduleUpcomingScanStep(sweep, lastPartial);
   };
 
   const idle = globalThis.requestIdleCallback;
@@ -1204,64 +1408,69 @@ function scheduleUpcomingScanStep(onUpdate: ConjunctionRefreshListener): void {
 }
 
 /**
- * Forward-looking close-approach screen — walks `UPCOMING_HORIZON_MS` into
- * the future (24h by default) and returns the closest predicted approaches,
- * sorted by soonest CPA time. This is what actually answers "what
- * close approaches are coming up", as opposed to `getConjunctions`, which
- * only ever reports what's happening at this exact instant.
+ * Forward-looking close-approach screen — the closest predicted approaches
+ * over the next `UPCOMING_HORIZON_MS`, sorted by soonest CPA.
  *
- * A full sweep touches every LEO object at dozens of points in time — too
- * expensive to run in one synchronous call on a render-heavy page — so this
- * advances the sweep by one snapshot per idle-time slice and only pushes a
- * new result via `onUpdate` once the whole sweep finishes. Call it every
- * frame just like `getConjunctions`: it's a cheap no-op between sweeps
- * (throttled by `UPCOMING_RESCAN_INTERVAL_MS`) and self-driving once a sweep
- * has started, so callers don't need to do anything beyond calling it.
- *
- * Displayed alerts are filtered by UI horizon/risk chips, then capped at
- * `MAX_DISPLAY_ALERTS` from a stored pool of up to `MAX_STORED_ALERTS`.
+ * Call it every frame: it is a cheap no-op between sweeps. A new sweep starts
+ * when the rescan interval has elapsed or simulated time has drifted/jumped
+ * away from the last sweep. Partial and final results arrive via `onUpdate`.
  */
 export function getUpcomingConjunctions(
   objects: TrackedObject[],
   referenceTime: Date,
   onUpdate: ConjunctionRefreshListener,
 ): ConjunctionScanResult {
+  activeListener = onUpdate;
   const nowWallMs = performance.now();
-  if (!upcomingScan && nowWallMs - upcomingScanStartedWallMs >= UPCOMING_RESCAN_INTERVAL_MS) {
-    upcomingScanStartedWallMs = nowWallMs;
-    upcomingScan = {
-      objects,
-      leoIndices: buildLeoIndices(objects),
-      startMs: referenceTime.getTime(),
-      horizonMs: UPCOMING_HORIZON_MS,
-      sampleStepMs: UPCOMING_SAMPLE_STEP_MS,
-      totalSamples: Math.floor(UPCOMING_HORIZON_MS / UPCOMING_SAMPLE_STEP_MS),
-      sampleIndex: 0,
-      bestByPair: new Map(),
-      objectCursor: 0,
-      sampleEntries: [],
-      grid: null,
-      cells: [],
-      gridCursor: 0,
-      queryCursor: 0,
-      pendingCandidates: null,
-      refineCursor: 0,
-    };
-    scheduleUpcomingScanStep(onUpdate);
+  const simMs = referenceTime.getTime();
+  const pending = isUpcomingConjunctionScanPending();
+
+  let start: boolean;
+  if (pending) {
+    // Restart an in-flight sweep only when its window no longer covers "now"
+    // (rewind, or a jump beyond the horizon).
+    start =
+      simMs < upcomingScanStartSimMs - UPCOMING_SAMPLE_STEP_MS ||
+      simMs > upcomingScanStartSimMs + UPCOMING_HORIZON_MS;
+  } else {
+    start =
+      nowWallMs - upcomingScanStartedWallMs >= UPCOMING_RESCAN_INTERVAL_MS ||
+      !(Math.abs(simMs - upcomingScanStartSimMs) <= UPCOMING_MAX_SIM_DRIFT_MS);
   }
+  if (!start) return upcomingResult;
+
+  scanGeneration++;
+  upcomingScanStartedWallMs = nowWallMs;
+  upcomingScanStartSimMs = simMs;
+  activeSweep = null;
+  workerScanId = null;
+
+  const w = ensureWorker();
+  if (w) {
+    try {
+      startWorkerSweep(w, objects, simMs);
+      return upcomingResult;
+    } catch (err) {
+      markWorkerBroken(err);
+    }
+  }
+
+  const sweep = new UpcomingConjunctionSweep(objects, simMs);
+  activeSweep = sweep;
+  scheduleUpcomingScanStep(sweep);
   return upcomingResult;
 }
 
 export function invalidateUpcomingConjunctionCache(): void {
-  upcomingScan = null;
+  if (worker && workerScanId != null) {
+    worker.postMessage({ type: 'cancel', scanId: workerScanId } satisfies UpcomingWorkerRequest);
+  }
+  activeSweep = null;
+  workerScanId = null;
   // Keep the last published alerts visible until the replacement sweep
   // finishes — wiping them here made a refresh/exit look like "no approaches
-  // exist" for the entire (slow) recompute window.
+  // exist" for the entire recompute window.
   upcomingScanStartedWallMs = -Infinity;
+  upcomingScanStartSimMs = NaN;
   upcomingScanCompletedOnce = false;
-  // If a step was already scheduled for the sweep being torn down, its idle
-  // callback will still fire — `runStep` now no-ops when `upcomingScan` is
-  // null instead of publishing an empty result. Clear the flag so a fresh
-  // `getUpcomingConjunctions` can schedule its first step.
-  upcomingStepScheduled = false;
 }

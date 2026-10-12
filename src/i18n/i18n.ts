@@ -5,8 +5,26 @@ export { SUPPORTED_LANGS } from './translations';
 
 const LS_KEY = 'orbital-lang';
 
+/** Storage access throws (SecurityError) in sandboxed iframes and when site
+ *  data is blocked. This runs at module load, so it must never throw. */
+function readStoredLang(): Lang | null {
+  try {
+    return localStorage.getItem(LS_KEY) as Lang | null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredLang(lang: Lang): void {
+  try {
+    localStorage.setItem(LS_KEY, lang);
+  } catch {
+    // The language still applies for this session.
+  }
+}
+
 function detectInitialLang(): Lang {
-  const stored = localStorage.getItem(LS_KEY) as Lang | null;
+  const stored = readStoredLang();
   if (stored && stored in translations) return stored;
   // Try to match browser language
   const browser = navigator.language?.slice(0, 2).toLowerCase();
@@ -24,7 +42,7 @@ export function getLang(): Lang {
 export function setLang(lang: Lang): void {
   if (lang === _lang) return;
   _lang = lang;
-  localStorage.setItem(LS_KEY, lang);
+  writeStoredLang(lang);
   _subscribers.forEach((fn) => fn());
 }
 

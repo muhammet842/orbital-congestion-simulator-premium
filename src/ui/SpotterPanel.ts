@@ -52,6 +52,7 @@ import {
   subscribeSensors,
   type SensorSnapshot,
 } from './observerSensors';
+import { escapeHtml } from './escapeHtml';
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
@@ -1026,10 +1027,3 @@ function formatLocalTime(date: Date): string {
   return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}

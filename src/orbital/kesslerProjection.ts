@@ -93,17 +93,24 @@ const BASELINE_COLLISION_P = { leo: 0.11, meo: 0.006, geo: 0.008 } as const;
 const DEBRIS_PER_COLLISION = { leo: 1800, meo: 900, geo: 600 } as const;
 
 /**
- * Annual removal fraction for intact/controllable objects at 1× mitigation.
- * LEO benefits most from drag + active deorbit norms; GEO "removal" means
- * graveyard-orbit relocation out of the protected belt.
+ * Annual removal of intact objects (payloads + rocket bodies), split into
+ * natural decay (atmospheric drag — happens regardless of policy) and
+ * policy-driven disposal (deorbit / graveyard), which scales with the
+ * mitigation slider. GEO "removal" means relocation out of the protected belt.
+ *
+ * Calibrated so year-one business-as-usual net change matches the earlier
+ * single-population model (~7%/yr of the LEO total at 1× mitigation).
  */
-const ACTIVE_REMOVAL_FRACTION = { leo: 0.07, meo: 0.02, geo: 0.015 } as const;
+const INTACT_NATURAL_DECAY = { leo: 0.03, meo: 0, geo: 0 } as const;
+const INTACT_POLICY_REMOVAL = { leo: 0.095, meo: 0.042, geo: 0.033 } as const;
 
 /**
- * Annual debris removal / decay fraction at 1× mitigation.
- * LEO debris still decays slowly; MEO/GEO debris is essentially permanent.
+ * Annual debris removal, split the same way. LEO debris decays slowly by
+ * drag; MEO/GEO debris is essentially permanent. The policy part stands for
+ * active debris removal, which is tiny today.
  */
-const DEBRIS_REMOVAL_FRACTION = { leo: 0.025, meo: 0.002, geo: 0.0004 } as const;
+const DEBRIS_NATURAL_DECAY = { leo: 0.02, meo: 0.001, geo: 0 } as const;
+const DEBRIS_POLICY_REMOVAL = { leo: 0.005, meo: 0.001, geo: 0.0004 } as const;
 
 const INITIAL_DEBRIS_FRACTION = 0.55;
 const MAX_TOTAL_OBJECTS = 5_000_000;
@@ -158,24 +165,34 @@ function stepShell(
   const newLaunches =
     BASELINE_ANNUAL_LAUNCHES * params.launchRateMultiplier * LAUNCH_SHELL_FRACTIONS[shell];
 
-  const activeRemoved = Math.min(
-    pop.total,
-    pop.total * ACTIVE_REMOVAL_FRACTION[shell] * params.mitigationRate,
+  // Intact and debris populations are tracked separately so every object
+  // removed is actually subtracted from the total (no relabelling).
+  const intact = Math.max(0, pop.total - pop.debris);
+  const intactRemovalRate = clamp(
+    INTACT_NATURAL_DECAY[shell] + INTACT_POLICY_REMOVAL[shell] * params.mitigationRate,
+    0,
+    1,
   );
-  const debrisRemoved = Math.min(
-    pop.debris,
-    pop.debris * DEBRIS_REMOVAL_FRACTION[shell] * params.mitigationRate,
+  const debrisRemovalRate = clamp(
+    DEBRIS_NATURAL_DECAY[shell] + DEBRIS_POLICY_REMOVAL[shell] * params.mitigationRate,
+    0,
+    1,
   );
 
-  const nextTotal = clamp(
-    pop.total + newLaunches - activeRemoved + newDebris,
-    shellBaseline * 0.08,
-    MAX_TOTAL_OBJECTS * BASELINE_SHELL_FRACTIONS[shell] * 2.5,
-  );
-  const nextDebris = Math.max(0, Math.min(pop.debris + newDebris - debrisRemoved, nextTotal));
+  let nextIntact = intact * (1 - intactRemovalRate) + newLaunches;
+  let nextDebris = pop.debris * (1 - debrisRemovalRate) + newDebris;
+
+  // Numerical safety cap for extreme slider combinations; scales both
+  // populations together so the debris share is preserved.
+  const cap = MAX_TOTAL_OBJECTS * BASELINE_SHELL_FRACTIONS[shell] * 2.5;
+  const uncapped = nextIntact + nextDebris;
+  if (uncapped > cap) {
+    nextIntact *= cap / uncapped;
+    nextDebris *= cap / uncapped;
+  }
 
   return {
-    pop: { total: nextTotal, debris: nextDebris },
+    pop: { total: nextIntact + nextDebris, debris: nextDebris },
     expectedCollisions,
   };
 }

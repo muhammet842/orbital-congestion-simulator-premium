@@ -182,3 +182,42 @@ describe('classifyOutlook', () => {
     expect(classifyOutlook(50000)).toBe('runaway');
   });
 });
+
+describe('projectKesslerTimeline — population bookkeeping', () => {
+  const noInputs = { launchRateMultiplier: 0, collisionRiskMultiplier: 0 };
+
+  it('keeps natural LEO decay even with zero mitigation effort', () => {
+    const points = projectKesslerTimeline(2025, 2035, REAL_WORLD_BASELINE_OBJECTS, {
+      ...noInputs,
+      mitigationRate: 0,
+    });
+    for (let i = 1; i < points.length; i++) {
+      expect(points[i].leoObjects).toBeLessThan(points[i - 1].leoObjects);
+    }
+  });
+
+  it('removes decayed debris from the total instead of relabelling it as active', () => {
+    const points = projectKesslerTimeline(2025, 2026, REAL_WORLD_BASELINE_OBJECTS, {
+      ...noInputs,
+      mitigationRate: 1,
+    });
+    const start = REAL_WORLD_BASELINE_OBJECTS;
+    // Nothing is added, so every removed debris object must leave the total.
+    expect(points[0].totalObjects).toBeLessThan(start);
+    expect(points[0].debrisObjects).toBeLessThan(start * 0.55);
+    expect(points[0].totalObjects - points[0].debrisObjects).toBeLessThan(start * 0.45);
+  });
+
+  it('never creates objects from nothing (no population floor)', () => {
+    const points = projectKesslerTimeline(2025, 2125, REAL_WORLD_BASELINE_OBJECTS, {
+      ...noInputs,
+      mitigationRate: 3,
+    });
+    const last = points[points.length - 1];
+    expect(last.leoObjects).toBeLessThan(REAL_WORLD_BASELINE_OBJECTS * 0.82 * 0.08);
+    for (const p of points) {
+      expect(p.debrisObjects).toBeLessThanOrEqual(p.totalObjects);
+      expect(p.totalObjects).toBeGreaterThanOrEqual(0);
+    }
+  });
+});

@@ -11,6 +11,7 @@ import { getCategoryColor, inferFunctionGroup } from '../orbital/classify';
 import { propagateObject } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
 import { getRadioFrequencies } from './radioFrequencies';
+import { validateDataset } from './validateDataset';
 import type { TleDataset, TrackedObject, ObjectCategory } from '../types';
 
 /**
@@ -46,7 +47,10 @@ export async function loadTleDataset(): Promise<TleDataset> {
   if (!response.ok) {
     throw new Error('Orbital data not found. Run: npm run fetch-tle');
   }
-  const dataset = await response.json() as TleDataset;
+  const { dataset, droppedCount, problems } = validateDataset(await response.json());
+  if (droppedCount > 0) {
+    console.warn(`[tleLoader] Dropped ${droppedCount} invalid record(s):`, problems);
+  }
   const objects = filterKnownDeorbitedRecords(dataset.objects);
   return {
     ...dataset,

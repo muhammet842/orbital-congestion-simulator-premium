@@ -17,6 +17,21 @@ export interface PropagationResult {
   layer: OrbitLayer;
 }
 
+export type PropagationState = Pick<PropagationResult, 'positionEci' | 'velocityEci'>;
+
+/** ECI position/velocity only — skips the geodetic conversion, for hot loops
+ *  (conjunction sweeps) that never need altitude or layer. */
+export function propagateState(satrec: SatRec, date: Date): PropagationState | null {
+  const result = propagate(satrec, date);
+  if (!result || !result.position || !result.velocity) return null;
+  const position = result.position as EciVec3<number>;
+  const velocity = result.velocity as EciVec3<number>;
+  return {
+    positionEci: { x: position.x, y: position.y, z: position.z },
+    velocityEci: { x: velocity.x, y: velocity.y, z: velocity.z },
+  };
+}
+
 export function propagateObject(satrec: SatRec, date: Date): PropagationResult | null {
   const result = propagate(satrec, date);
   if (!result || !result.position || !result.velocity) {

@@ -129,6 +129,24 @@ describe('interactive tour', () => {
     expect(localStorage.getItem(LS_HELP_SEEN)).toBe('1');
   });
 
+  it('skips a step whose target is hidden in this layout (GitHub link on phones)', () => {
+    document.querySelector<HTMLElement>('.header-github')!.style.display = 'none';
+    openHowToGuide();
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 8');
+    document.getElementById('tour-next')?.click(); // language
+    document.getElementById('tour-next')?.click(); // would be GitHub
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('3 / 8');
+    expect(document.querySelector('.tour-title')?.textContent).not.toMatch(/GitHub/);
+    // Back returns to the step before, not to the skipped one.
+    document.getElementById('tour-back')?.click();
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 8');
+  });
+
+  it('keeps all steps when every target is visible', () => {
+    openHowToGuide();
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
+  });
+
   it('does not open a second root if already open', () => {
     openHowToGuide();
     openHowToGuide();

@@ -87,6 +87,31 @@ describe('radio-frequency enrichment', () => {
     expect(frequencies.has(12347)).toBe(false);
   });
 
+  it('classifies amateur channels from the source service', () => {
+    const base = {
+      norad_cat_id: 12345,
+      status: 'active',
+      alive: true,
+      unconfirmed: false,
+      frequency_violation: false,
+      downlink_low: 437_500_000,
+      downlink_high: 437_500_000,
+      mode: 'FM',
+    };
+    const get = (id: number, service: string) =>
+      buildSatnogsRadioFrequencyMap([{ ...base, norad_cat_id: id, service }]).get(id)![0];
+
+    expect(get(1, 'Amateur').amateur).toBe(true);
+    expect(get(2, 'Meteorological').amateur).toBe(false);
+    expect(get(3, 'Unknown')).not.toHaveProperty('amateur');
+    // AMSAT rows only list amateur satellites.
+    expect(buildRadioFrequencyMap(rows).get(12345)!.every((f: { amateur?: boolean }) => f.amateur === true)).toBe(true);
+    // Official constellation plans are not amateur services.
+    const seen = new Map([[1, { noradId: 1, name: 'STARLINK-1' }]]);
+    applyKnownConstellationFrequencies(seen);
+    expect(seen.get(1)!.radioFrequencies![0].amateur).toBe(false);
+  });
+
   it('applies the official Galileo plan to every Galileo-family object', () => {
     const galileo: { noradId: number; name: string; radioFrequencies?: unknown[] } = {
       noradId: 37846,

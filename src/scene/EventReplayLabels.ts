@@ -1,5 +1,6 @@
 import type { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
 import type { EventType } from '../ui/EventCards';
+import { escapeHtml } from '../ui/escapeHtml';
 
 const GM = 398600;           // km³ s⁻²
 const EARTH_RADIUS_KM = 6371;
@@ -47,12 +48,12 @@ function buildPanelHTML(
 ): string {
   return `
     <div class="era-lp__header">
-      <span class="era-lp__icon">${icon}</span>
-      <span class="era-lp__name">${name}</span>
+      <span class="era-lp__icon">${escapeHtml(icon)}</span>
+      <span class="era-lp__name">${escapeHtml(name)}</span>
     </div>
     <div class="era-lp__row">
       <span class="era-lp__key">Type</span>
-      <span class="era-lp__val">${type}</span>
+      <span class="era-lp__val">${escapeHtml(type)}</span>
     </div>
     <div class="era-lp__row">
       <span class="era-lp__key">Altitude</span>
