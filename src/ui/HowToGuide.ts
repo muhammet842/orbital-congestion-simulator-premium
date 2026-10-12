@@ -55,6 +55,36 @@ const STEP_CONFIG: StepConfig[] = [
   { id: 'projection', target: '#kessler-panel', panel: null, openKessler: true },
 ];
 
+/**
+ * Steps shown in the current layout. A step whose target exists but is hidden
+ * (e.g. the GitHub link, which phones collapse away) is skipped instead of
+ * being spotlit as a 0x0 box in the top-left corner.
+ */
+let activeSteps: StepConfig[] = STEP_CONFIG;
+
+function isHiddenByCss(el: HTMLElement): boolean {
+  for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+    if (window.getComputedStyle(node).display === 'none') return true;
+  }
+  return false;
+}
+
+function stepApplies(config: StepConfig): boolean {
+  if (config.panel || config.openKessler) return true;
+  const target = document.querySelector<HTMLElement>(config.target);
+  // A missing target keeps its step (shown centered); only a hidden one is dropped.
+  return !target || !isHiddenByCss(target);
+}
+
+function refreshActiveSteps(): void {
+  const current = activeSteps[stepIndex];
+  const applicable = STEP_CONFIG.filter(stepApplies);
+  activeSteps = applicable.length > 0 ? applicable : STEP_CONFIG;
+  const kept = current ? activeSteps.indexOf(current) : -1;
+  // Keep the same step after a rotation/resize; otherwise stay in range.
+  stepIndex = kept >= 0 ? kept : Math.min(stepIndex, activeSteps.length - 1);
+}
+
 let rootEl: HTMLElement | null = null;
 let phase: Phase = 'lang';
 let stepIndex = 0;
@@ -211,7 +241,7 @@ function handleTourParentScroll(): void {
   if (scrollGuardRaf) cancelAnimationFrame(scrollGuardRaf);
   scrollGuardRaf = requestAnimationFrame(() => {
     scrollGuardRaf = 0;
-    const config = STEP_CONFIG[stepIndex];
+    const config = activeSteps[stepIndex];
     if (!config) return;
     const target = document.querySelector<HTMLElement>(config.target);
     if (!target) return;
@@ -231,6 +261,9 @@ type HoleRect = { top: number; left: number; width: number; height: number };
 function getVisibleTargetRect(target: HTMLElement, parent: HTMLElement | null): HoleRect | null {
   const rect = target.getBoundingClientRect();
   if (!parent) {
+    // A collapsed (display:none / 0x0) target would otherwise be drawn as a
+    // spotlight stuck at the top-left corner.
+    if (rect.width < 1 || rect.height < 1) return null;
     return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
   }
   const pr = parent.getBoundingClientRect();
@@ -304,7 +337,7 @@ function layoutPads(hole: HoleRect): void {
 
 function positionHighlightAndCard(): void {
   if (!rootEl || phase !== 'tour') return;
-  const config = STEP_CONFIG[stepIndex];
+  const config = activeSteps[stepIndex];
   if (!config) return;
 
   const highlight = rootEl.querySelector<HTMLElement>('#tour-highlight');
@@ -500,8 +533,8 @@ function startUiTour(): void {
 }
 
 function renderStepCard(card: HTMLElement): void {
-  const config = STEP_CONFIG[stepIndex]!;
-  const total = STEPS.length;
+  const config = activeSteps[stepIndex]!;
+  const total = activeSteps.length;
   const isLast = stepIndex >= total - 1;
   card.classList.remove('tour-card--thesis', 'tour-card--center');
   card.setAttribute('aria-label', t(`help.step.${config.id}.title`));
@@ -538,6 +571,25 @@ function renderStepCard(card: HTMLElement): void {
   });
 }
 
+/**
+ * Mobile drawers slide in over ~250 ms, but the spotlight is first measured a
+ * couple of frames after opening — i.e. mid-slide, at the wrong position. A
+ * transform change doesn't trigger the ResizeObserver, so re-measure when the
+ * slide ends (with a timer as a fallback if no transition event arrives).
+ */
+function repositionAfterPanelSlide(config: StepConfig): void {
+  if (!config.panel) return;
+  const panel = document.getElementById(config.panel === 'left' ? 'left-panel' : 'right-panel');
+  if (!panel) return;
+  const stepAtStart = stepIndex;
+  const settle = (): void => {
+    panel.removeEventListener('transitionend', settle);
+    if (rootEl && phase === 'tour' && stepIndex === stepAtStart) scheduleReposition();
+  };
+  panel.addEventListener('transitionend', settle);
+  window.setTimeout(settle, 350);
+}
+
 function renderTour(): void {
   const root = ensureRoot();
   const card = root.querySelector<HTMLElement>('#tour-card')!;
@@ -561,7 +613,8 @@ function renderTour(): void {
   }
 
   dim.classList.remove('tour-dim--full');
-  const config = STEP_CONFIG[stepIndex]!;
+  refreshActiveSteps();
+  const config = activeSteps[stepIndex]!;
   const target = prepareStep(config);
   renderStepCard(card);
 
@@ -569,6 +622,7 @@ function renderTour(): void {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       positionHighlightAndCard();
+      repositionAfterPanelSlide(config);
       if (target && typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => scheduleReposition());
         resizeObserver.observe(target);
