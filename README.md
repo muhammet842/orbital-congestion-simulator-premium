@@ -57,7 +57,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The repo already ships with `public/data/tle.json`; run `npm run fetch-tle` only when you want a fresh CelesTrak pull.
+Open `http://localhost:5173`. The repo ships a seed `public/data/tle.json` (it can be days old, so the app may show its staleness warning). Run `npm run pull-data` to fetch the latest published snapshot, or `npm run fetch-tle` for a fresh CelesTrak pull.
 
 ## Development & testing
 
@@ -89,9 +89,9 @@ Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.or
 - **AMSAT and SatNOGS** — published amateur-radio and active transmitter records joined by NORAD ID. Only confirmed, operationally valid SatNOGS transmitter entries are retained.
 - **Official constellation plans** — documented service bands for supported Galileo, GPS, BeiDou, Starlink, and OneWeb spacecraft families.
 
-Output: `public/data/tle.json` — up to **12,000 objects**, deduplicated by NORAD ID.
+Output: `tle.json` — up to **12,000 objects**, deduplicated by NORAD ID. (`public/data/tle.json` in the repo is a seed; the live catalog is published by the daily workflow, see below.)
 
-A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT and radio-frequency sources, and commits `public/data/tle.json` so the deployed app stays under the in-app 3-day staleness warning. Manual refresh:
+A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT and radio-frequency sources, and publishes the catalog to a single-commit `data` branch (so the repository does not grow by ~5 MB a day). It then commits a tiny pointer, `public/data/data-ref.json`, to `main`, which redeploys the site; the Vercel build downloads that exact snapshot (`scripts/pull-data.mjs`). This keeps the deployed app under the in-app 3-day staleness warning. Manual refresh:
 
 ```bash
 npm run fetch-tle
@@ -166,7 +166,7 @@ Healthy catalog: **~12,000** objects and **stations** (ISS / Tiangong) visible i
 
 1. Check GitHub → **Actions → TLE Refresh** (and CI).
 2. Locally: `npm run fetch-tle` — the script **refuses** to overwrite `public/data/tle.json` if totals/stations/active/debris fall below hard minimums, or if any category (or the total) drops more than 15% versus the previous file (override an intentional drop with `ALLOW_CATALOG_DROP=1`).
-3. If the fetch succeeds with a full catalog, commit/push `public/data/tle.json` (or wait for a green scheduled run).
+3. If the fetch succeeds with a full catalog, run the **TLE Refresh** workflow from the Actions tab (don't commit `tle.json` by hand — see [docs/OPERATIONS.md](docs/OPERATIONS.md#where-the-data-lives)).
 4. On the deployed site, confirm **Live Stats → TLE data updated** and object counts.
 
 Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).

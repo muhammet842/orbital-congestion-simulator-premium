@@ -1,12 +1,19 @@
 name: TLE Refresh
 
-# Keeps public/data/tle.json from going stale without anyone having to
+# Keeps the published TLE catalog from going stale without anyone having to
 # remember to run `npm run fetch-tle` by hand. Runs every day at 03:17 UTC.
 # A daily cadence leaves substantial room below the 3-day in-app staleness
 # warning even when a scheduled GitHub run is delayed or a single CelesTrak
 # refresh fails. The minute is deliberately off the hour to avoid the busiest
 # GitHub Actions schedule slot.
 # Can also be triggered manually from the Actions tab.
+#
+# Where the data goes: the ~5 MB catalog is NOT committed to `main` any more
+# (every clone used to carry every day's copy). Each run force-replaces a
+# single-commit `data` branch holding tle.json, then commits only a tiny
+# pointer (public/data/data-ref.json) to `main`. That pointer commit is what
+# triggers the Vercel deploy, whose build downloads the snapshot by commit SHA
+# (scripts/pull-data.mjs). See docs/OPERATIONS.md.
 on:
   schedule:
     - cron: "17 3 * * *"
@@ -17,9 +24,12 @@ concurrency:
   group: tle-refresh
   cancel-in-progress: false
 
+env:
+  DATA_BRANCH: data
+
 jobs:
   refresh-tle:
-    name: Fetch latest TLE data & commit if changed
+    name: Fetch latest TLE data & publish snapshot
     runs-on: ubuntu-latest
     # fetch-tle bounds every request, but cap the job too so a hang can never
     # hold a runner for GitHub's 6-hour default.
@@ -40,29 +50,63 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # fetch-tle.mjs also downloads satcat.csv and joins OWNER → country/owner.
+      # fetch-tle.mjs compares against the previous catalog on disk (firstSeenAt
+      # stamps, radio-frequency fallback, the catalog-drop guard). The committed
+      # tle.json is only a seed, so use the latest published snapshot instead.
+      - name: Restore previous snapshot as the baseline
+        run: |
+          if git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null 2>&1; then
+            git fetch --depth=1 origin "$DATA_BRANCH"
+            git show FETCH_HEAD:tle.json > public/data/tle.json
+            echo "Baseline: latest snapshot on '$DATA_BRANCH'."
+          else
+            echo "No '$DATA_BRANCH' branch yet - baseline is the committed tle.json."
+          fi
+
+      # fetch-tle.mjs also downloads satcat.csv and joins OWNER -> country/owner.
       - name: Fetch latest TLE + SATCAT enrichment from CelesTrak
         run: npm run fetch-tle
 
       # Pushes made with GITHUB_TOKEN do not trigger ci.yml, so validate the
-      # new dataset here before it can reach production.
+      # new dataset here (the integrity test reads public/data/tle.json) before
+      # it can reach production.
       - name: Build and unit-test against the new dataset
         run: |
           npm run build
           npm test
 
-      - name: Commit and push updated dataset
+      # One orphan commit, force-pushed: the branch never accumulates history.
+      - name: Publish snapshot to the data branch
+        id: snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+          SNAP="$(mktemp -d)"
+          cp public/data/tle.json "$SNAP/tle.json"
+          cd "$SNAP"
+          git init -q -b "$DATA_BRANCH"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tle.json
+          git commit -q -m "data: TLE snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${DATA_BRANCH}"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-          if git diff --quiet -- public/data/tle.json; then
-            echo "tle.json unchanged — nothing to commit."
-            exit 0
-          fi
+      # `main` keeps its (stale) seed tle.json for local dev and tests; only the
+      # pointer changes. This small commit is what makes Vercel redeploy.
+      - name: Point main at the new snapshot
+        env:
+          SNAPSHOT_SHA: ${{ steps.snapshot.outputs.sha }}
+        run: |
+          set -euo pipefail
+          node scripts/write-data-ref.mjs --sha "$SNAPSHOT_SHA" --repository "$GITHUB_REPOSITORY" --branch "$DATA_BRANCH"
+          git checkout -- public/data/tle.json
 
-          git add public/data/tle.json
-          git commit -m "chore: automated TLE data refresh"
-          # Someone may have pushed while this job ran — replay on top.
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/data-ref.json
+          git commit -m "chore: data snapshot ${SNAPSHOT_SHA:0:7}"
+          # Someone may have pushed while this job ran - replay on top.
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push

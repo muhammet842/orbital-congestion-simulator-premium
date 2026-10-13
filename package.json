@@ -19,6 +19,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "fetch-tle": "node scripts/fetch-tle.mjs",
+    "pull-data": "node scripts/pull-data.mjs --force",
+    "prebuild": "node scripts/pull-data.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

@@ -2,7 +2,7 @@
  * Fetch + assemble public/data/tle.json from CelesTrak GP groups + SATCAT.
  *
  * Invoked by `npm run fetch-tle` and `.github/workflows/tle-refresh.yml`
- * (Mon/Thu). Caps active/debris counts, stamps firstSeenAt vs previous file,
+ * (daily). Caps active/debris counts, stamps firstSeenAt vs previous file,
  * joins OWNER → country when satcat.csv is available.
  *
  * CRITICAL: after assembly, refuse to write if the catalog is catastrophically
