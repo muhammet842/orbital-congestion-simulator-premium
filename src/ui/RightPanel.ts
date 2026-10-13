@@ -525,6 +525,7 @@ function renderConjunctionDetail(detailEl: Element, conjunction: ConjunctionEven
       <div class="detail-row"><dt>${t('conj.risk_assessment')}</dt><dd data-field="verification-risk" class="conjunction-risk--monitor">—</dd></div>
     </dl>
     ${colocatedNote}
+    <p class="muted conjunction-accuracy-note">${t('conj.accuracy_note')}</p>
     <p class="muted conjunction-detail-hint" data-field="verification-hint">
       ${t('conj.hint_rewound').replace('{s}', String(Math.round(getVerificationRewindMs(conjunction.relativeVelocityKmS) / 1000)))}
     </p>

@@ -21,10 +21,10 @@ export function createLayout(root: HTMLElement): {
             <span class="header-mark__ring header-mark__ring--inner"></span>
             <span class="header-mark__ring header-mark__ring--outer"></span>
           </span>
-          <div class="header-title">
+          <h1 class="header-title">
             <span class="header-title-full" data-i18n="brand.full">${t('brand.full')}</span>
             <span class="header-title-short" data-i18n="brand.short">${t('brand.short')}</span>
-          </div>
+          </h1>
         </div>
 
         <button id="toggle-right-panel" class="panel-toggle-btn" type="button" aria-label="${t('layout.toggle_right')}" data-i18n-aria="layout.toggle_right" aria-expanded="false">ℹ</button>

@@ -2,6 +2,8 @@
 
 > Real-time 3D visualization of Earth orbit congestion using CelesTrak TLE data and SGP4 orbital propagation.
 
+Created by [Muhammet](https://github.com/muhammet842).
+
 **Live demo:** [https://orbital-congestion-simulator-premiu.vercel.app](https://orbital-congestion-simulator-premiu.vercel.app)
 
 ![Orbital Congestion Simulator — the ISS selected, with its amateur-radio frequencies in the detail panel](docs/screenshot-en.png)
@@ -109,6 +111,7 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 
 ## Limitations (read before demoing)
 
+- **Close approaches are screening estimates, not operational conjunction assessments** — they are computed from public TLEs, which typically carry a kilometre or more of position error and no uncertainty (covariance) data. Treat distances and risk labels as illustrative; real operators use higher-precision tracking.
 - **Not live tracking** — positions are propagated from static TLE snapshots with SGP4; there is no real-time position API.
 - **Educational scale** — in VERIFY close-approach mode, 3D models shrink to stay smaller than the computed miss distance so pairs do not visually overlap at sub-kilometre CPAs.
 - **Projection panel** — Kessler “Future Projection” is a simplified what-if model, not an official debris forecast (see the in-panel disclaimer).
@@ -167,6 +170,10 @@ Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 ## Stardance / NASA
 
 Built for the [Hack Club Stardance](https://stardance.hackclub.com/) competition in collaboration with NASA themes on space sustainability and orbital debris awareness.
+
+## Author
+
+Created by **Muhammet** ([@muhammet842](https://github.com/muhammet842)). Feedback from satellite and amateur-radio operators is very welcome — please [open an issue](https://github.com/muhammet842/orbital-congestion-simulator-premium/issues).
 
 ## License
 

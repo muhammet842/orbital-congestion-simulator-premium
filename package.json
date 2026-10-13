@@ -2,6 +2,17 @@
   "name": "orbital-congestion-simulator-premium",
   "private": true,
   "version": "1.0.0",
+  "description": "Real-time 3D visualization of Earth orbit congestion with close-approach alerts and amateur-radio frequencies.",
+  "author": "Muhammet (https://github.com/muhammet842)",
+  "license": "MIT",
+  "homepage": "https://orbital-congestion-simulator-premiu.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muhammet842/orbital-congestion-simulator-premium.git"
+  },
+  "bugs": {
+    "url": "https://github.com/muhammet842/orbital-congestion-simulator-premium/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
