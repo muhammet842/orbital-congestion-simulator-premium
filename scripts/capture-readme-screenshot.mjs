@@ -1,21 +1,41 @@
 /**
- * Captures docs/screenshot-en.png via Playwright against vite preview.
+ * Captures docs/screenshot-en.png (README, ISS selected so the radio-frequency
+ * table is visible) and public/og-image.png (social link preview) via
+ * Playwright against vite preview.
  * Forces English UI (localStorage + lang select). Requires a prior `npm run build`.
+ *
+ * No Playwright browsers installed? Use a system one:
+ *   PW_CHANNEL=msedge npm run screenshot   (or chrome)
  */
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'docs/screenshot-en.png');
+const ogOut = join(root, 'public/og-image.png');
 mkdirSync(dirname(out), { recursive: true });
 
 const preview = spawn(
   'npx vite preview --host 127.0.0.1 --port 4179 --strictPort',
   { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: true },
 );
+
+// With `shell: true`, preview.kill() only ends the shell wrapper on Windows and
+// leaves the vite server holding the port, so stop the whole process tree.
+function stopPreview() {
+  if (process.platform === 'win32') {
+    try {
+      execSync(`taskkill /pid ${preview.pid} /T /F`, { stdio: 'ignore' });
+    } catch {
+      // already gone
+    }
+  } else {
+    preview.kill('SIGTERM');
+  }
+}
 
 let ready = false;
 const onData = (buf) => {
@@ -37,29 +57,58 @@ for (let i = 0; i < 90 && !ready; i++) {
 }
 
 if (!ready) {
-  preview.kill();
+  stopPreview();
   throw new Error('Preview server did not start on :4179');
 }
 
 try {
-  const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.addInitScript(() => {
+  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const seed = () => {
     localStorage.setItem('orbital-lang', 'en');
     localStorage.setItem('orbital-help-seen-v3', '1');
+  };
+  const open = async (viewport, path) => {
+    const page = await browser.newPage({ viewport });
+    await page.addInitScript(seed);
+    await page.goto(`http://127.0.0.1:4179/${path}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.locator('canvas').waitFor({ state: 'visible', timeout: 45_000 });
+    const select = page.locator('#lang-select');
+    if (await select.count()) await select.selectOption('en');
+    // Wait for the worker-backed catalog to populate the list meta line.
+    await page.locator('#object-list-meta').filter({ hasText: /objects/i }).waitFor({ timeout: 45_000 });
+    await page.locator('#kessler-panel-btn').waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('#help-guide-btn').waitFor({ state: 'visible', timeout: 10_000 });
+    return page;
+  };
+
+  // README: ISS selected, right panel scrolled to its radio-frequency table.
+  const page = await open({ width: 1440, height: 900 }, '?object=25544');
+  await page.locator('.radio-frequency-section').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.evaluate(() => {
+    const panel = document.querySelector('.panel-right');
+    const section = document.querySelector('.radio-frequency-section');
+    if (panel && section) {
+      panel.scrollTop +=
+        section.getBoundingClientRect().top - panel.getBoundingClientRect().top - 12;
+    }
   });
-  await page.goto('http://127.0.0.1:4179/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.locator('canvas').waitFor({ state: 'visible', timeout: 45_000 });
-  const select = page.locator('#lang-select');
-  if (await select.count()) await select.selectOption('en');
-  // Wait for the worker-backed catalog to populate the list meta line.
-  await page.locator('#object-list-meta').filter({ hasText: /objects/i }).waitFor({ timeout: 45_000 });
-  await page.locator('#kessler-panel-btn').waitFor({ state: 'visible', timeout: 10_000 });
-  await page.locator('#help-guide-btn').waitFor({ state: 'visible', timeout: 10_000 });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: out, type: 'png' });
+
+  // Social preview (Open Graph): the plain globe view at 1200x630.
+  const og = await open({ width: 1200, height: 630 }, '');
+  // Panels would crowd a 1200x630 card, so let the globe fill the frame.
+  await og.addStyleTag({
+    content:
+      '.panel-left,.panel-right,.app-header,.time-bar{display:none!important}' +
+      '.app-grid{grid-template:"scene" 1fr / 1fr!important}',
+  });
+  await og.setViewportSize({ width: 1200, height: 631 });
+  await og.setViewportSize({ width: 1200, height: 630 });
+  await og.waitForTimeout(1500);
+  await og.screenshot({ path: ogOut, type: 'png' });
   await browser.close();
-  console.log('Wrote', out);
+  console.log('Wrote', out, 'and', ogOut);
 } finally {
-  preview.kill('SIGTERM');
+  stopPreview();
 }
