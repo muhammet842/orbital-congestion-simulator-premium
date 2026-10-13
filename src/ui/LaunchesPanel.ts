@@ -38,17 +38,36 @@ function formatNet(netIso: string): string {
   return `${text} UTC`;
 }
 
+/** Status chips only where they add information: "Go" and "date TBD" are the quiet default. */
+const CHIP_STATUSES: ReadonlySet<string> = new Set(['tbc', 'hold', 'in_flight', 'success', 'failure', 'partial_failure']);
+
+/** "Cape Canaveral SFS, FL, USA" -> "Cape Canaveral SFS". */
+function shortPlace(launch: Launch): string | null {
+  const full = launch.locationName ?? launch.padName;
+  return full ? full.split(',')[0].trim() : null;
+}
+
 function renderCard(launch: Launch, selectedId: string | null, issAvailable: boolean, nowMs: number): string {
   const selected = launch.id === selectedId;
   const hasPad = launch.latitude != null && launch.longitude != null;
-  const meta = [launch.rocket, launch.provider].filter(Boolean).map((s) => escapeHtml(s as string)).join(' · ');
-  const place = launch.locationName ?? launch.padName;
-  const showNet = launch.status !== 'in_flight' && launch.status !== 'success' && launch.status !== 'failure' && launch.status !== 'partial_failure';
+
+  // "Unknown Payload" says nothing: lead with the rocket instead.
+  const unknownPayload = /^unknown payload$/i.test(launch.name);
+  const title = unknownPayload ? launch.rocket : launch.name;
+  const subtitle = (unknownPayload ? [launch.provider] : [launch.rocket, launch.provider]).filter(Boolean).join(' · ');
+  const route = [shortPlace(launch), launch.destination].filter(Boolean).join(' → ');
+
+  // A placeholder date is not a countdown.
+  const dateTbd = launch.status === 'tbd';
+  const countdown = dateTbd ? t('launch.status.tbd') : formatCountdown(Date.parse(launch.net) - nowMs);
+  const exactTime = `${t('launch.net')} ${formatNet(launch.net)}`;
+  const chip = CHIP_STATUSES.has(launch.status)
+    ? `<span class="launch-status launch-status--${launch.status}">${escapeHtml(t(`launch.status.${launch.status}`))}</span>`
+    : '';
+
   const actions: string[] = [];
   if (launch.toIss && issAvailable) {
-    actions.push(
-      `<button type="button" class="launch-action" data-action="iss">${escapeHtml(t('launch.show_iss'))}</button>`,
-    );
+    actions.push(`<button type="button" class="launch-action" data-action="iss">${escapeHtml(t('launch.show_iss'))}</button>`);
   }
   if (launch.webcastUrl) {
     actions.push(
@@ -59,15 +78,13 @@ function renderCard(launch: Launch, selectedId: string | null, issAvailable: boo
   return `
     <article class="launch-card launch-card--${launch.status}${selected ? ' launch-card--selected' : ''}" data-launch-id="${escapeHtml(launch.id)}">
       <button type="button" class="launch-card-main" data-action="site" aria-pressed="${selected}"${hasPad ? '' : ' disabled'}>
+        ${chip}
         <span class="launch-card-top">
-          <span class="launch-status launch-status--${launch.status}">${escapeHtml(t(`launch.status.${launch.status}`))}</span>
-          <span class="launch-countdown" data-net="${escapeHtml(launch.net)}">${escapeHtml(formatCountdown(Date.parse(launch.net) - nowMs))}</span>
+          <span class="launch-name" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
+          <span class="launch-countdown"${dateTbd ? '' : ` data-net="${escapeHtml(launch.net)}"`} title="${escapeHtml(exactTime)}">${escapeHtml(countdown)}</span>
         </span>
-        <span class="launch-name">${escapeHtml(launch.name)}</span>
-        <span class="launch-meta">${meta}</span>
-        ${place ? `<span class="launch-meta">${escapeHtml(place)}</span>` : ''}
-        ${showNet ? `<span class="launch-meta launch-net">${escapeHtml(t('launch.net'))} ${escapeHtml(formatNet(launch.net))}</span>` : ''}
-        ${launch.destination ? `<span class="launch-destination">→ ${escapeHtml(launch.destination)}</span>` : ''}
+        <span class="launch-meta">${escapeHtml(subtitle)}</span>
+        ${route ? `<span class="launch-meta">${escapeHtml(route)}</span>` : ''}
       </button>
       ${actions.length ? `<div class="launch-actions">${actions.join('')}</div>` : ''}
     </article>

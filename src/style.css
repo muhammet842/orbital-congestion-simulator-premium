@@ -1237,17 +1237,20 @@ body {
 .launch-card {
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
 }
 
-.launch-card--selected { border-color: var(--accent); }
+/* One accent colour: a tint and a bar mark the picked launch. */
+.launch-card--selected {
+  background: rgba(232, 164, 90, 0.07);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
 
 .launch-card-main {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -1261,50 +1264,63 @@ body {
 
 .launch-card-top {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
+.launch-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.launch-countdown {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.launch-card--in_flight .launch-countdown { color: var(--accent); }
+
+.launch-meta { font-size: 0.74rem; color: var(--text-muted); }
+
+/* A small tag only where it adds information (see CHIP_STATUSES). */
 .launch-status {
-  padding: 1px 6px;
+  align-self: flex-start;
+  margin-bottom: 3px;
+  padding: 0 5px;
   border: 1px solid currentColor;
   border-radius: 3px;
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text-muted);
 }
 
-.launch-status--go { color: #4ade80; }
-.launch-status--hold { color: #fbbf24; }
 .launch-status--in_flight { color: var(--accent); }
+.launch-status--hold { color: #fbbf24; }
 .launch-status--failure,
 .launch-status--partial_failure { color: #f87171; }
-
-.launch-countdown {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.launch-name { font-size: 0.9rem; font-weight: 600; line-height: 1.25; }
-.launch-meta { font-size: 0.74rem; color: var(--text-muted); }
-.launch-destination { font-size: 0.78rem; color: var(--accent); }
 
 .launch-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 12px 10px;
+  gap: 14px;
+  padding: 0 12px 9px;
 }
 
 .launch-action {
-  padding: 4px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  background: transparent;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--accent);
   font: inherit;
   font-size: 0.74rem;
@@ -1313,7 +1329,7 @@ body {
 }
 
 .launch-action:hover,
-.launch-action:focus-visible { border-color: var(--accent); }
+.launch-action:focus-visible { text-decoration: underline; }
 
 .launch-credit { margin: 8px 0 0; font-size: 0.7rem; }
 
