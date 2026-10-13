@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initLeftPanel } from './LeftPanel';
 import { setState } from '../state/appState';
 import type { ConjunctionEvent } from '../types';
@@ -23,6 +23,15 @@ describe('initLeftPanel – DOM smoke', () => {
     document.body.appendChild(container);
     initLeftPanel(container);
     expect(container.querySelector('#object-search')).not.toBeNull();
+    document.body.removeChild(container);
+  });
+
+  it('states that close-approach alerts are screening estimates, not operational', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    initLeftPanel(container);
+    const note = container.querySelector('.conjunction-accuracy-note');
+    expect(note?.textContent).toMatch(/not an operational conjunction assessment/i);
     document.body.removeChild(container);
   });
 
@@ -147,6 +156,18 @@ describe('initLeftPanel – DOM smoke', () => {
 });
 
 describe('renderConjunctions — predicted (future) close approaches', () => {
+  // These tests build events relative to "now" and assert on rounded countdown
+  // text. Freeze the clock so a slow or busy machine cannot shift the rounding
+  // (and, through leftover DOM state, fail the tests after it).
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-06-01T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function makeFutureConjunction(msFromNow: number): ConjunctionEvent {
     return {
       objectA: 'STARLINK-1',

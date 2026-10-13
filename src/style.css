@@ -112,6 +112,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  margin: 0;
   min-width: 0;
   font-family: var(--font-display);
   font-weight: 700;
@@ -1215,6 +1216,12 @@ body {
 }
 .radio-frequency-row--other td:first-child { color: var(--text-muted); }
 .radio-frequency-marker { margin-top: 6px; }
+
+.conjunction-accuracy-note {
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
 
 /* Narrow panels (phones): the 5-column table would hide Mode behind a sideways
    scroll, so show each channel as a stacked card with labelled values. */

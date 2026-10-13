@@ -143,7 +143,8 @@ const en: Translations = {
 
   // ── Conjunction panel ─────────────────────────────────────────────────
   'conj.scanning': 'Scanning the next 24 hours for close approaches…',
-  'conj.why_it_matters': 'These alerts are daily operational traffic: operators already fly hundreds of avoidance maneuvers a year so crossings like this do not become Iridium–Cosmos.',
+  'conj.why_it_matters': "Close approaches like these are routine: operators already fly hundreds of avoidance maneuvers a year so crossings do not become Iridium–Cosmos.",
+  'conj.accuracy_note': "Screening estimates from public TLE data (typically a kilometre or more of position error, no uncertainty data). Not an operational conjunction assessment; real operators use higher-precision tracking.",
   'conj.empty': 'No crossing-orbit close approaches predicted in the next 24 hours (LEO, 0.1–3 km, relative speed ≥ 50 m/s). Co-orbiting stacks such as ISS or CSS modules are excluded.',
   'conj.alert':       '{a} vs {b} — {km} km close approach!',
   'conj.alert_in':    '{a} vs {b} — {km} km in {t}',
@@ -562,7 +563,8 @@ const tr: Translations = {
   'unit.s':   '{s}sn',
 
   'conj.scanning': 'Önümüzdeki 24 saat için yakın geçişler taranıyor…',
-  'conj.why_it_matters': 'Bunlar günlük operasyonel trafik: operatörler yılda yüzlerce kaçınma manevrası yapıyor ki böyle geçişler Iridium–Cosmos olmasın.',
+  'conj.why_it_matters': "Bunun gibi yakın geçişler rutindir: operatörler yılda yüzlerce kaçınma manevrası yapıyor ki geçişler Iridium–Cosmos olmasın.",
+  'conj.accuracy_note': "Herkese açık TLE verilerinden elde edilen tarama tahminleri (genellikle bir kilometre veya daha fazla konum hatası, belirsizlik verisi yok). Operasyonel bir yakınlaşma değerlendirmesi değildir; gerçek operatörler daha hassas takip verisi kullanır.",
   'conj.empty': 'Önümüzdeki 24 saat içinde kesişen yörüngeli yakın geçiş öngörülmedi (AYY, 0.1–3 km, göreli hız ≥ 50 m/s). ISS veya CSS gibi eş yörüngeli modüller hariç tutulmuştur.',
   'conj.alert':       '{a} - {b} arası {km} km yakın geçiş!',
   'conj.alert_in':    '{a} - {b} arası {km} km — {t} sonra',
@@ -974,7 +976,8 @@ const de: Translations = {
   'unit.s':   '{s} Sek',
 
   'conj.scanning': 'Nahflüge für die nächsten 24 Stunden werden gesucht…',
-  'conj.why_it_matters': 'Das ist täglicher Betrieb: Betreiber fliegen bereits hunderte Ausweichmanöver pro Jahr, damit Kreuzungen nicht zu Iridium–Cosmos werden.',
+  'conj.why_it_matters': "Solche Annäherungen sind Routine: Betreiber fliegen bereits hunderte Ausweichmanöver pro Jahr, damit Kreuzungen nicht zu Iridium–Cosmos werden.",
+  'conj.accuracy_note': "Screening-Schätzungen aus öffentlichen TLE-Daten (typischerweise ein Kilometer oder mehr Positionsfehler, keine Unsicherheitsangaben). Keine operative Konjunktionsbewertung; Betreiber nutzen präzisere Bahnverfolgung.",
   'conj.empty': 'Für die nächsten 24 Stunden wurden keine kreuzenden Nahflüge vorhergesagt (LEO, 0,1–3 km, Relativgeschwindigkeit ≥ 50 m/s). Ko-orbitale Module wie ISS oder CSS sind ausgeschlossen.',
   'conj.alert':       '{a} vs {b} — {km} km enge Annäherung!',
   'conj.alert_in':    '{a} vs {b} — {km} km in {t}',
@@ -1386,7 +1389,8 @@ const ru: Translations = {
   'unit.s':   '{s} с',
 
   'conj.scanning': 'Идёт поиск сближений на ближайшие 24 часа…',
-  'conj.why_it_matters': 'Это ежедневный операционный трафик: операторы уже делают сотни манёвров в год, чтобы такие пересечения не стали Iridium–Cosmos.',
+  'conj.why_it_matters': "Такие сближения — обычное дело: операторы уже делают сотни манёвров в год, чтобы такие пересечения не стали Iridium–Cosmos.",
+  'conj.accuracy_note': "Оценки скрининга по открытым данным TLE (обычно погрешность положения в километр и более, данных о неопределённости нет). Это не оперативная оценка сближений; реальные операторы используют более точное сопровождение.",
   'conj.empty': 'На ближайшие 24 часа пересекающихся сближений не спрогнозировано (НОО, 0,1–3 км, скорость ≥ 50 м/с). Совместно орбитальные модули, такие как МКС или CSS, исключены.',
   'conj.alert':       '{a} и {b} — сближение на {km} км!',
   'conj.alert_in':    '{a} и {b} — сближение на {km} км через {t}',
@@ -1798,7 +1802,8 @@ const zh: Translations = {
   'unit.s':   '{s}秒',
 
   'conj.scanning': '正在扫描未来24小时的近距离接近…',
-  'conj.why_it_matters': '这些是日常运行交通：运营商每年已实施数百次避碰机动，以免这类交会变成 Iridium–Cosmos。',
+  'conj.why_it_matters': "此类近距离接近属于常态：运营商每年已实施数百次避碰机动，以免这类交会变成 Iridium–Cosmos。",
+  'conj.accuracy_note': "基于公开 TLE 数据的筛查估计（位置误差通常达一公里或更多，无不确定度数据）。并非业务级交会评估；实际运营商使用更高精度的跟踪数据。",
   'conj.empty': '未来24小时内未预测到交叉轨道的近距离接近（低轨道，0.1–3公里，相对速度 ≥ 50米/秒）。国际空间站或CSS等共轨模块已排除。',
   'conj.alert':       '{a} 与 {b} —— 近距离接近 {km} 公里！',
   'conj.alert_in':    '{a} 与 {b} —— {km} 公里，{t} 后',
