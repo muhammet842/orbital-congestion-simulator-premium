@@ -37,6 +37,7 @@ import {
   resetAdvancedFilters,
 } from '../state/appState';
 import { initEventCards } from './EventCards';
+import { initLaunchesPanel } from './LaunchesPanel';
 import { t, applyTranslations, onLangChange } from '../i18n/i18n';
 import { isRecentlyLaunched, hasAnyRecentlyLaunched } from '../data/newLaunches';
 import { escapeHtml } from './escapeHtml';
@@ -128,6 +129,7 @@ export function initLeftPanel(container: HTMLElement): void {
   renderStats(container);
   renderConjunctionFilters(container);
   renderConjunctions(container);
+  initLaunchesPanel(container);
   initEventCards(container);
   initAdvancedFilters(container);
 

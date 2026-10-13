@@ -139,6 +139,15 @@ function setupMobilePanelToggles(
     lastSelectedIndex = selectedIndex;
   });
 
+  // Picking a launch marks its pad on the globe: get the drawer out of the way
+  // so the marker is actually visible.
+  let lastLaunchId: string | null = null;
+  subscribe(() => {
+    const launchId = getState().selectedLaunch?.id ?? null;
+    if (mobileQuery.matches && launchId != null && launchId !== lastLaunchId) closePanels();
+    lastLaunchId = launchId;
+  });
+
   mobileQuery.addEventListener('change', (e) => {
     if (!e.matches) closePanels();
   });

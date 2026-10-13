@@ -41,6 +41,7 @@ import { SatelliteFootprint } from './SatelliteFootprint';
 import { SatelliteGroundTrack } from './SatelliteGroundTrack';
 import { getSubSatelliteScenePoints } from '../orbital/coordinates';
 import { SelectionMarker } from './SelectionMarker';
+import { LaunchPadMarker, padScenePosition } from './LaunchPadMarker';
 import { EARTH_RADIUS_KM, type TrackedObject } from '../types';
 import {
   getState,
@@ -62,6 +63,9 @@ import { EventReplayLabels } from './EventReplayLabels';
 import { getHistoricalEvent } from '../ui/EventCards';
 import { isSpotterOpen } from '../ui/SpotterPanel';
 
+/** Camera distance (as an altitude) when framing a launch pad: a regional view. */
+const LAUNCH_FRAME_ALTITUDE_KM = 3000;
+
 /** Main-thread propagation cadence when no Worker result is available. */
 const SYNC_FALLBACK_QUANTUM_MS = 250;
 
@@ -76,6 +80,7 @@ export class SceneManager {
   private orbitalMeshes: OrbitalMeshes | null = null;
   private propWorker: PropagationWorkerBridge;
   private selectionMarker: SelectionMarker;
+  private launchPadMarker: LaunchPadMarker;
   private orbitTrail: OrbitTrail;
   private satelliteFootprint: SatelliteFootprint;
   private groundTrack: SatelliteGroundTrack;
@@ -99,6 +104,7 @@ export class SceneManager {
   private lastConjunctionRevision = -1;
   private debrisFrameCounter = 0;
   private lastFramedSelectionIndex: number | null = null;
+  private lastFramedLaunchId: string | null = null;
   private clickAnchor: { x: number; y: number } | null = null;
   private pointerDragged = false;
   private readonly clickDragThresholdPx = 5;
@@ -181,6 +187,9 @@ export class SceneManager {
 
     this.selectionMarker = new SelectionMarker();
     this.scene.add(this.selectionMarker.group);
+
+    this.launchPadMarker = new LaunchPadMarker();
+    this.scene.add(this.launchPadMarker.group);
 
     this.orbitTrail = new OrbitTrail();
     this.scene.add(this.orbitTrail.group);
@@ -432,6 +441,20 @@ export class SceneManager {
     } else if (selectedIndex == null) {
       this.lastFramedSelectionIndex = null;
     }
+
+    // --- Launch pad chosen in the Upcoming Launches panel ---
+    const { selectedLaunch } = getState();
+    if (selectedLaunch && selectedLaunch.id !== this.lastFramedLaunchId && !this.cameraFly.isActive()) {
+      const pad = padScenePosition(
+        selectedLaunch.latitudeDeg,
+        selectedLaunch.longitudeDeg,
+        getSimulationTime(),
+      );
+      this.cameraFly.frameSelectedOnGlobe(this.camera, this.controls, pad, LAUNCH_FRAME_ALTITUDE_KM);
+      this.lastFramedLaunchId = selectedLaunch.id;
+    } else if (!selectedLaunch) {
+      this.lastFramedLaunchId = null;
+    }
   }
 
   private applyDayNight(simTime: Date): void {
@@ -653,6 +676,16 @@ export class SceneManager {
       selectionIndexForOverlays,
       currentState.objects,
       simTime,
+    );
+
+    // The pad marker belongs to the global globe view only (not close-approach
+    // verification or a historical-event replay, which zoom somewhere else).
+    this.launchPadMarker.update(
+      currentState.selectedConjunction || currentState.eventReplay || !this.earth.mesh.visible
+        ? null
+        : currentState.selectedLaunch,
+      simTime,
+      performance.now(),
     );
 
     this.orbitTrail.update(

@@ -4,6 +4,7 @@ import {
   setState,
   initState,
   selectObject,
+  selectLaunch,
   clearObjectSelection,
   selectHistoricalEvent,
   setShowOrbitTrail,
@@ -661,5 +662,26 @@ describe('selectConjunctionFromAlert', () => {
     expect(getState().conjunctions).toEqual([alert]);
     expect(getState().conjunctionHiddenCount).toBe(3);
     expect(getState().selectedConjunction).toBeNull();
+  });
+});
+
+describe('selectLaunch', () => {
+  const pad = { id: 'l1', name: 'CRS-35', latitudeDeg: 28.56, longitudeDeg: -80.58, padName: 'SLC-40' };
+
+  it('marks a pad and clears it again, notifying subscribers only on a real change', () => {
+    setState({ selectedLaunch: null });
+    selectLaunch(pad);
+    expect(getState().selectedLaunch).toEqual(pad);
+    selectLaunch(null);
+    expect(getState().selectedLaunch).toBeNull();
+  });
+
+  it('is independent of the object selection', () => {
+    setState({ selectedIndex: 3, selectedLaunch: null });
+    selectLaunch(pad);
+    expect(getState().selectedIndex).toBe(3);
+    expect(getState().selectedLaunch).toEqual(pad);
+    selectLaunch(null);
+    expect(getState().selectedIndex).toBe(3);
   });
 });
