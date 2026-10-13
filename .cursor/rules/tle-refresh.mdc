@@ -1,13 +1,14 @@
 ---
 description: TLE refresh script — fail-closed catalog guards
-globs: scripts/fetch-tle.mjs,scripts/**/*.mjs,public/data/tle.json
+globs: scripts/fetch-tle.mjs,scripts/**/*.mjs,public/data/*.json,.github/workflows/tle-refresh.yml
 alwaysApply: false
 ---
 
 # TLE / catalog refresh
 
-- Run: `npm run fetch-tle` (also GitHub Action Mon/Thu 03:00 UTC)
-- Output: `public/data/tle.json` only — never commit a hand-thinned catalog
+- Run: `npm run fetch-tle` (also the GitHub Action, daily 03:17 UTC)
+- Output: `public/data/tle.json` locally — never commit a hand-thinned catalog, and don't commit refreshed catalogs to `main` at all
 - If CelesTrak returns a partial set, the script **throws** and leaves the previous file unchanged (MIN_TOTAL ≥ 8000, MIN_STATIONS ≥ 5, etc.)
-- After a successful fetch: commit `tle.json` if Actions did not, then check Live Stats on the deployed site
+- The bot publishes the catalog to the single-commit `data` branch and only commits the pointer `public/data/data-ref.json` to `main`; Vercel's build pulls the snapshot by SHA (`scripts/pull-data.mjs`, fails closed). `public/data/tle.json` on `main` is just a seed. See `docs/OPERATIONS.md`
+- After a refresh: check Live Stats on the deployed site
 - `firstSeenAt` is relative to the previous snapshot — cold/empty baselines must not mark the whole catalog as “new”
