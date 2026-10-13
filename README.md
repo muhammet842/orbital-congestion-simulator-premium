@@ -219,7 +219,7 @@ Issues and pull requests are welcome. Before opening a PR, run `npm run build`, 
 
 ## Author
 
-Created by **Muhammet** ([@muhammet842](https://github.com/muhammet842)). Feedback, bug reports and ideas are very welcome — please [open an issue](https://github.com/muhammet842/orbital-congestion-simulator-premium/issues).
+Created by **Muhammet Emin Ballı** ([@muhammet842](https://github.com/muhammet842)). Feedback, bug reports and ideas are very welcome — please [open an issue](https://github.com/muhammet842/orbital-congestion-simulator-premium/issues).
 
 ## License
 
