@@ -135,6 +135,10 @@ Orbit layers are classified by altitude and eccentricity:
 
 `public/models/sat_leo.glb` is the bundled LEO satellite mesh. Stations, cargo craft, cubesats, and debris use **distinct procedural silhouettes** (see `SatelliteModelLoader`) so types stay visually readable without multi‑MB artist GLBs. Dropping additional `.glb` files at the paths in `modelResolver.ts` and marking them as bundled will take priority automatically.
 
+## Fonts
+
+[IBM Plex Sans](https://github.com/IBM/plex), [IBM Plex Mono](https://github.com/IBM/plex) and [Syne](https://github.com/bonjour-monde/Syne) (SIL Open Font License 1.1), self-hosted through [Fontsource](https://fontsource.org/) — the app makes no third-party requests, and the CSP in `vercel.json` only allows fonts from its own origin.
+
 ## Earth texture
 
 Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.gov/) (Blue Marble). Stored locally at `public/textures/earth.jpg` and `public/textures/earth-night.jpg` and blended in a custom shader for the terminator.
