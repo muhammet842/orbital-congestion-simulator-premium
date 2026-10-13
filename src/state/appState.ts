@@ -58,12 +58,23 @@ export interface VerificationTimeState {
   relativeVelocityKmS?: number;
 }
 
+/** A launch chosen in the Upcoming Launches panel: its pad is marked on the globe. */
+export interface SelectedLaunch {
+  id: string;
+  name: string;
+  latitudeDeg: number;
+  longitudeDeg: number;
+  padName: string | null;
+}
+
 export interface AppState {
   objects: TrackedObject[];
   filteredIndices: number[];
   selectedIndex: number | null;
   selectedEventId: string | null;
   selectedConjunction: ConjunctionEvent | null;
+  /** Pad marker + camera target set from the Upcoming Launches panel (independent of object selection). */
+  selectedLaunch: SelectedLaunch | null;
   selectedConjunctionSessionKey: string | null;
   conjunctionRevision: number;
   verificationTime: VerificationTimeState | null;
@@ -108,6 +119,7 @@ let state: AppState = {
   selectedIndex: null,
   selectedEventId: null,
   selectedConjunction: null,
+  selectedLaunch: null,
   selectedConjunctionSessionKey: null,
   conjunctionRevision: 0,
   verificationTime: null,
@@ -328,6 +340,12 @@ export function selectObject(index: number): void {
     eventReplay: null,
     ...(wasVerifying ? { time: restoreGlobalLiveTime() } : {}),
   });
+}
+
+/** Marks a launch pad on the globe and flies the camera there; null clears it. */
+export function selectLaunch(launch: SelectedLaunch | null): void {
+  if (launch == null && state.selectedLaunch == null) return;
+  setState({ selectedLaunch: launch });
 }
 
 export function clearObjectSelection(): void {
@@ -592,6 +610,7 @@ export function initState(
     selectedIndex: null,
     selectedEventId: null,
     selectedConjunction: null,
+    selectedLaunch: null,
     selectedConjunctionSessionKey: null,
     conjunctionRevision: 0,
     verificationTime: null,

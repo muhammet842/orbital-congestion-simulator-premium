@@ -1,7 +1,22 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+import launchesHandler from './api/launches.js';
+
+/**
+ * Serves /api/launches under `vite dev` and `vite preview`, the way Vercel serves
+ * the function in production, so the Upcoming Launches panel works locally.
+ */
+function launchesApi(): Plugin {
+  const mount = (server: { middlewares: { use: (path: string, handler: unknown) => void } }): void => {
+    server.middlewares.use('/api/launches', (req: unknown, res: unknown) => {
+      void launchesHandler(req, res);
+    });
+  };
+  return { name: 'launches-api', configureServer: mount, configurePreviewServer: mount };
+}
 
 export default defineConfig({
   base: './',
+  plugins: [launchesApi()],
   build: {
     // Never inline fonts as data: URIs — the CSP only allows fonts from our own origin.
     assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),

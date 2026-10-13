@@ -21,6 +21,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Object details** — altitude, velocity, country/owner, orbit trail, ground track, footprint, and published radio-frequency metadata
 - **Radio-frequency reference** — verified uplink, downlink, beacon/listening frequencies, modulation modes, operational notes, and direct source links for supported spacecraft and constellations. Channels the sources identify as amateur-radio services carry an **AMATEUR** badge and are listed first
 - **Close-approach alerts** — next-24h scanning with sortable cards and a VERIFY playback mode (T−60s → CPA → T+15s)
+- **Upcoming launches** — the next rocket launches (and any in flight) with rocket, provider, pad, destination and a live countdown; pick one to mark its pad on the globe, or jump to the ISS for resupply missions
 - **Historical event replays** — seven landmark collisions, ASAT tests, and breakups
 - **Kessler “Future Projection”** — header projection panel with live scenario sliders, charts, and narrative (no separate run button)
 - **Satellite Spotter** — mobile sky guide using device sensors and magnetic declination correction
@@ -42,6 +43,7 @@ Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm 
 | Orbital mechanics | satellite.js (SGP4) + Web Worker batch propagation |
 | Testing | Vitest (unit) + Playwright (e2e) |
 | Data | CelesTrak TLE and SATCAT, AMSAT and SatNOGS radio catalogs, and official constellation frequency plans |
+| Server | A single serverless function (`api/launches.js`) that fetches and caches launch data |
 | Deploy | [Vercel](https://orbital-congestion-simulator-premiu.vercel.app) — `vercel.json` sets a Content-Security-Policy and other security headers |
 
 ## Getting started
@@ -85,6 +87,7 @@ CI (GitHub Actions): build + unit tests on every push/PR; Playwright e2e on `mai
 | `src/data/` | Catalog loading and validation, object metadata, radio frequencies |
 | `src/state/`, `src/routing/` | App state store and `?object` / `?event` deep links |
 | `src/i18n/` | Translations (en/tr/de/ru/zh) |
+| `api/` | One Vercel serverless function, `/api/launches`, behind the Upcoming Launches panel |
 | `src/workers/` | Web Workers for batch propagation and the 24 h close-approach sweep |
 | `scripts/` | Catalog refresh and enrichment, snapshot pull, screenshot and i18n tooling |
 | `e2e/` | Playwright tests (desktop and mobile) |
@@ -100,6 +103,8 @@ On phones the side panels open as drawers (the ☰ and ℹ buttons in the header
 
 In the radio table, the **AMATEUR** badge appears only where the source data says a channel is an amateur-radio service. Channels confirmed as other services (weather, navigation, broadband…) are dimmed and listed last. A channel with no badge and no dimming is simply **unclassified** by its source, which is not the same as not being amateur.
 
+In **Upcoming Launches**, click a launch to fly to its pad and mark it on the globe (click again to clear it). For missions to the International Space Station, **Show ISS** selects the station. Countdowns use real time, whatever time the globe is showing. When a webcast is known, **Watch** opens it in a new tab.
+
 Deep links: `?object=<NORAD>` and `?event=<id>`.
 
 ## Data source
@@ -109,6 +114,7 @@ Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.or
 - **TLE / GP** — active satellites (capped at 7,000 — Starlink/OneWeb sub-capped), debris (capped at 5,000 — Cosmos 2251, Fengyun-1C, Iridium 33, Cosmos 1408, analyst objects, then other trackable `DEB` fragments), and stations (ISS, Tiangong, etc.)
 - **SATCAT** — one download of [`satcat.csv`](https://celestrak.org/pub/satcat.csv) joined by NORAD ID so each object can carry a **country** (and organization **owner** when SATCAT’s `OWNER` is an agency/consortium code). Name-based heuristics in `objectMetadata.ts` remain the fallback when SATCAT has no match or only supplies a country code (so operators like SpaceX can still come from the name).
 - **AMSAT and SatNOGS** — published amateur-radio and active transmitter records joined by NORAD ID. Only confirmed, operationally valid SatNOGS transmitter entries are retained.
+- **Launches** — [Launch Library 2](https://thespacedevs.com/llapi) by The Space Devs (free tier, 15 requests per hour per IP). The browser never contacts it: the site’s `/api/launches` function fetches it server-side and caches the result (details in [docs/OPERATIONS.md](docs/OPERATIONS.md#launch-data)).
 - **Official constellation plans** — documented service bands for supported Galileo, GPS, BeiDou, Starlink, and OneWeb spacecraft families.
 
 Output: `tle.json` — up to **12,000 objects**, deduplicated by NORAD ID. (`public/data/tle.json` in the repo is a seed; the live catalog is published by the daily workflow, see below.)
@@ -125,6 +131,7 @@ Radio-frequency enrichment is best-effort: an upstream radio catalog outage does
 
 - **[CelesTrak](https://celestrak.org/)** — orbital elements (GP/TLE) and SATCAT, which CelesTrak makes freely available to the space community.
 - **[SatNOGS DB](https://db.satnogs.org/)** (Libre Space Foundation) — transmitter data, licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Radio-frequency entries derived from it keep that license: credit SatNOGS DB and share any reuse alike.
+- **[The Space Devs](https://thespacedevs.com/)** — launch schedule data (Launch Library 2); please keep the credit shown under the launch list if you reuse it.
 - **AMSAT** amateur-satellite frequency lists, via [palewire/amateur-satellite-database](https://github.com/palewire/amateur-satellite-database) (an MIT-licensed repository).
 - **Constellation frequency plans** (Galileo, GPS, BeiDou, Starlink, OneWeb) come from public specifications and filings; each row links to its source.
 - **3D satellite model** — [NASA Science 3D Resources](https://science.nasa.gov/3d-resources/) (see 3D models below); **Earth textures** — [NASA Visible Earth](https://visibleearth.nasa.gov/); **fonts** — see Fonts below.
@@ -141,7 +148,7 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 
 ## Privacy
 
-- No analytics, cookies, accounts or tracking. After the page loads, the app only talks to its own origin (fonts are self-hosted too).
+- No analytics, cookies, accounts or tracking. After the page loads, the app only talks to its own origin (fonts are self-hosted too). Launch data is fetched from The Space Devs by the site’s server function, so your browser never contacts them and nothing about you is sent.
 - Three small items are kept in your browser's local storage and never sent anywhere: your language, whether you have seen the tour, and — only if you use the Spotter — your last observer location.
 - Location and device-motion permissions are requested only when you use the Spotter, and the browser asks you first.
 
@@ -150,6 +157,7 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 - **Close approaches are screening estimates, not operational conjunction assessments** — they are computed from public TLEs, which typically carry a kilometre or more of position error and no uncertainty (covariance) data. Treat distances and risk labels as illustrative; real operators use higher-precision tracking.
 - **Alert threshold** — the list shows pairs predicted to pass within 3 km in the next 24 hours. On a busy day that is thousands of events, so the app shows the few most relevant and a "+N more" count.
 - **Online only** — there is no offline mode or installable app; the catalog and the page are fetched on each visit.
+- **Launches are schedules, not tracking** — times are “no earlier than” estimates that often slip, and the data can lag by up to ~15 minutes. The globe marks the launch pad only; there is no live position for a rocket in flight, because no public feed provides one.
 - **Not live tracking** — positions are propagated from static TLE snapshots with SGP4; there is no real-time position API.
 - **Educational scale** — in VERIFY close-approach mode, 3D models shrink to stay smaller than the computed miss distance so pairs do not visually overlap at sub-kilometre CPAs.
 - **Projection panel** — Kessler “Future Projection” is a simplified what-if model, not an official debris forecast (see the in-panel disclaimer).
