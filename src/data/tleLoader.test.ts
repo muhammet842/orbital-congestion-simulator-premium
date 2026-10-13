@@ -6,6 +6,7 @@ import {
   filterKnownDeorbitedRecords,
   loadTleDataset,
 } from './tleLoader';
+import { DataUnavailableError } from '../bootErrors';
 import type { TleDataset } from '../types';
 
 const ISS_LINE1 = '1 25544U 98067A   19249.04864348  .00001909  00000-0  40858-4 0  9990';
@@ -38,6 +39,20 @@ describe('loadTleDataset', () => {
   it('throws a helpful error when the response is not ok', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
     await expect(loadTleDataset()).rejects.toThrow(/fetch-tle/i);
+  });
+
+  it('reports every catalog failure as DataUnavailableError', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    await expect(loadTleDataset()).rejects.toBeInstanceOf(DataUnavailableError);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    await expect(loadTleDataset()).rejects.toBeInstanceOf(DataUnavailableError);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ fetchedAt: '2026-01-01T00:00:00Z', objects: 'nope' }) }),
+    );
+    await expect(loadTleDataset()).rejects.toBeInstanceOf(DataUnavailableError);
   });
 });
 
