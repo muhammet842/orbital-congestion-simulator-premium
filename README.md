@@ -4,7 +4,7 @@
 
 **Live demo:** [https://orbital-congestion-simulator.vercel.app](https://orbital-congestion-simulator.vercel.app)
 
-![Orbital Congestion Simulator — English UI at 1440×900](docs/screenshot-en.png)
+![Orbital Congestion Simulator — the ISS selected, with its amateur-radio frequencies in the detail panel](docs/screenshot-en.png)
 
 ## What it does
 
@@ -64,7 +64,8 @@ npm run build        # tsc + production bundle
 npm test             # Vitest unit tests
 npm run test:e2e     # Playwright (Chromium + mobile-chrome)
 npm run check:i18n   # translation key parity (en/tr/de/ru/zh)
-npm run screenshot   # refresh docs/screenshot-en.png after UI changes
+npm run screenshot   # refresh docs/screenshot-en.png and public/og-image.png after UI changes
+                     # (no Playwright browsers? PW_CHANNEL=msedge npm run screenshot)
 ```
 
 CI (GitHub Actions): build + unit tests on every push/PR; Playwright e2e on `main` pushes and PRs into `main`.
