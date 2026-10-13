@@ -28,3 +28,15 @@ The ~5 MB catalog is **not committed to `main`** by the bot any more — every c
 
 - Unit tests + build + i18n key parity (`npm run check:i18n`): every push/PR.
 - Playwright e2e: push to `main` **and** pull requests targeting `main`.
+
+## Launch data
+
+The **Upcoming Launches** panel reads `/api/launches`, a Vercel serverless function (`api/launches.js`, mapping in `api/_launches.mjs`) that calls [Launch Library 2](https://thespacedevs.com/llapi) server-side. Visitors' browsers never contact it.
+
+- **Rate limit:** the free tier allows **15 requests per hour per IP** (check yours: `https://ll.thespacedevs.com/2.3.0/api-throttle/`). Vercel's outbound IPs are shared with other projects, so the function is built to survive being throttled. Each refresh makes at most **two** upstream requests: the list, plus one detailed request only for a launch in flight or within 2 hours (that is the only place a webcast link appears).
+- **Caching, in layers:** the CDN keeps a good response for 15 minutes (`s-maxage=900`) and serves a stale copy for up to an hour while revalidating; each server instance also reuses a good result for 10 minutes; and if the upstream call fails, an instance that has a good copy serves it (with a 60 s CDN life) instead of an error. Errors with nothing to fall back on answer **502 and are never cached**, so the CDN keeps its last good copy.
+- **Client polling:** the panel re-fetches every 5 minutes, or every minute around a launch (these hit the cache, not the upstream API). Countdowns tick locally, using the real clock.
+- **Local development:** `npm run dev` and `npm run preview` serve `/api/launches` through a small Vite plugin using the same handler (this does call the real API).
+- **vercel.json:** the single-page-app rewrite excludes `/api/`, otherwise it would swallow the function.
+
+**If the panel says "Launch data is temporarily unavailable":** open `/api/launches` on the live site. A 502 means the upstream call failed and there was no cached copy: look for `launches: upstream failed` in the function's logs and check the throttle endpoint above. If throttling is constant, The Space Devs offer higher limits to supporters; the function does not currently use an API key.
