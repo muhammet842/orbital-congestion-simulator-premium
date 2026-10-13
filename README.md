@@ -127,7 +127,7 @@ Radio-frequency enrichment is best-effort: an upstream radio catalog outage does
 - **[SatNOGS DB](https://db.satnogs.org/)** (Libre Space Foundation) — transmitter data, licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Radio-frequency entries derived from it keep that license: credit SatNOGS DB and share any reuse alike.
 - **AMSAT** amateur-satellite frequency lists, via [palewire/amateur-satellite-database](https://github.com/palewire/amateur-satellite-database) (an MIT-licensed repository).
 - **Constellation frequency plans** (Galileo, GPS, BeiDou, Starlink, OneWeb) come from public specifications and filings; each row links to its source.
-- **Earth textures** — [NASA Visible Earth](https://visibleearth.nasa.gov/); **fonts** — see Fonts below.
+- **3D satellite model** — [NASA Science 3D Resources](https://science.nasa.gov/3d-resources/) (see 3D models below); **Earth textures** — [NASA Visible Earth](https://visibleearth.nasa.gov/); **fonts** — see Fonts below.
 
 ### “NEW” objects filter
 
@@ -171,7 +171,7 @@ Orbit layers are classified by altitude and eccentricity:
 
 ## 3D models
 
-`public/models/sat_leo.glb` is the bundled LEO satellite mesh. Stations, cargo craft, cubesats, and debris use **distinct procedural silhouettes** (see `SatelliteModelLoader`) so types stay visually readable without multi‑MB artist GLBs. Dropping additional `.glb` files at the paths in `modelResolver.ts` and marking them as bundled will take priority automatically.
+`public/models/sat_leo.glb` is the bundled LEO satellite mesh: NASA’s [Active Cavity Irradiance Monitor Satellite (AcrimSAT) (A)](https://science.nasa.gov/3d-resources/active-cavity-irradiance-monitor-satellite-acrimsat-a/) model from [NASA Science 3D Resources](https://science.nasa.gov/3d-resources/), used unmodified under NASA’s [media usage guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/). Stations, cargo craft, cubesats, and debris use **distinct procedural silhouettes** (see `SatelliteModelLoader`) so types stay visually readable without multi‑MB artist GLBs. Dropping additional `.glb` files at the paths in `modelResolver.ts` and marking them as bundled will take priority automatically.
 
 ## Fonts
 
@@ -211,7 +211,7 @@ Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Stardance / NASA
 
-Built for the [Hack Club Stardance](https://stardance.hackclub.com/) competition in collaboration with NASA themes on space sustainability and orbital debris awareness.
+Built for the [Hack Club Stardance](https://stardance.hackclub.com/) competition in collaboration with NASA themes on space sustainability and orbital debris awareness. This is an independent project and is not affiliated with or endorsed by NASA.
 
 ## Contributing
 
