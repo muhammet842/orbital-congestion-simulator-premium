@@ -80,10 +80,49 @@ describe('initLaunchesPanel', () => {
     const text = cards[0].textContent!.replace(/\s+/g, ' ');
     expect(text).toContain('Dragon CRS-2 SpX-35');
     expect(text).toContain('Falcon 9 Block 5 · SpaceX');
-    expect(text).toContain('Cape Canaveral SFS, FL, USA');
-    expect(text).toContain('→ International Space Station');
+    expect(text).toContain('Cape Canaveral SFS → International Space Station');
+    expect(text).not.toContain('FL, USA');
     expect(text).toContain('T− 5h 00m');
     expect(container.querySelector('.launch-credit')?.textContent).toMatch(/Space Devs/);
+  });
+
+  it('keeps each card simple: one status tag only where it adds information', async () => {
+    stubApi([
+      launch({ id: 'go', status: 'go' }),
+      launch({ id: 'tbd', status: 'tbd' }),
+      launch({ id: 'tbc', status: 'tbc' }),
+      launch({ id: 'hold', status: 'hold' }),
+    ]);
+    await mount();
+    await vi.advanceTimersByTimeAsync(0);
+    const chips = (id: string) => container.querySelector(`[data-launch-id="${id}"] .launch-status`)?.textContent ?? null;
+    expect(chips('go')).toBeNull();
+    expect(chips('tbd')).toBeNull();
+    expect(chips('tbc')).toBe('To be confirmed');
+    expect(chips('hold')).toBe('On hold');
+    // no duplicate "NET" line any more; the exact time lives in the countdown's tooltip
+    expect(container.querySelector('.launch-net')).toBeNull();
+    expect(container.querySelector('.launch-countdown')?.getAttribute('title')).toMatch(/^NET .* UTC$/);
+  });
+
+  it('shows "Date TBD" instead of a countdown for a placeholder date, and does not tick it', async () => {
+    stubApi([launch({ status: 'tbd', net: new Date(NOW + 20 * HOUR).toISOString() })]);
+    await mount();
+    await vi.advanceTimersByTimeAsync(0);
+    const el = container.querySelector('.launch-countdown')!;
+    expect(el.textContent).toBe('Date TBD');
+    expect(el.hasAttribute('data-net')).toBe(false);
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(el.textContent).toBe('Date TBD');
+  });
+
+  it('leads with the rocket when the payload is "Unknown Payload"', async () => {
+    stubApi([launch({ name: 'Unknown Payload', rocket: 'Zhuque-2E', provider: 'LandSpace', destination: null })]);
+    await mount();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(container.querySelector('.launch-name')?.textContent).toBe('Zhuque-2E');
+    const meta = [...container.querySelectorAll('.launch-meta')].map((e) => e.textContent);
+    expect(meta[0]).toBe('LandSpace');
   });
 
   it('keeps countdowns ticking without re-rendering the cards', async () => {
