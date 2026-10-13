@@ -12,6 +12,7 @@ import { propagateObject } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
 import { getRadioFrequencies } from './radioFrequencies';
 import { validateDataset } from './validateDataset';
+import { DataUnavailableError } from '../bootErrors';
 import type { TleDataset, TrackedObject, ObjectCategory } from '../types';
 
 /**
@@ -43,11 +44,22 @@ export async function loadTleDataset(): Promise<TleDataset> {
   // Always revalidate with the server. tle.json is covered by a CDN
   // Cache-Control that can otherwise keep a stale catalog (and its
   // firstSeenAt stamps) in the browser for hours after a deploy.
-  const response = await fetch('/data/tle.json', { cache: 'no-cache' });
-  if (!response.ok) {
-    throw new Error('Orbital data not found. Run: npm run fetch-tle');
+  let response: Response;
+  try {
+    response = await fetch('/data/tle.json', { cache: 'no-cache' });
+  } catch (err) {
+    throw new DataUnavailableError(`Orbital data request failed: ${err instanceof Error ? err.message : String(err)}`);
   }
-  const { dataset, droppedCount, problems } = validateDataset(await response.json());
+  if (!response.ok) {
+    throw new DataUnavailableError('Orbital data not found. Run: npm run fetch-tle');
+  }
+  let validated: ReturnType<typeof validateDataset>;
+  try {
+    validated = validateDataset(await response.json());
+  } catch (err) {
+    throw new DataUnavailableError(err instanceof Error ? err.message : 'Orbital data is unusable.');
+  }
+  const { dataset, droppedCount, problems } = validated;
   if (droppedCount > 0) {
     console.warn(`[tleLoader] Dropped ${droppedCount} invalid record(s):`, problems);
   }

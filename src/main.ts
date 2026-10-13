@@ -10,6 +10,7 @@
  * There is no backend for orbital data; the catalog is the committed JSON
  * refreshed by `npm run fetch-tle` / GitHub Actions. See `.cursor/rules/project-map.mdc`.
  */
+import './fonts';
 import './style.css';
 import { loadTleDataset, createTrackedObjects, computeStats } from './data/tleLoader';
 import { getState, initState } from './state/appState';
@@ -22,6 +23,7 @@ import { initDeepLink } from './routing/deepLink';
 import { initKesslerPanel } from './ui/KesslerPanel';
 import { initHowToGuide } from './ui/HowToGuide';
 import { findConjunctions, setUpcomingConjunctionWorkerFactory } from './orbital/conjunction';
+import { BOOT_ERROR_MESSAGE_KEY, classifyBootError, hasWebGL } from './bootErrors';
 import { applyTranslations, t } from './i18n/i18n';
 import { escapeHtml } from './ui/escapeHtml';
 
@@ -30,6 +32,11 @@ async function main(): Promise<void> {
   if (!app) return;
 
   showLoading(app);
+
+  if (!hasWebGL()) {
+    showError(app, t(BOOT_ERROR_MESSAGE_KEY.webgl));
+    return;
+  }
 
   try {
     showLoading(app, t('boot.loading'));
@@ -89,9 +96,9 @@ async function main(): Promise<void> {
         findConjunctions(getState().objects, isoTime ? new Date(isoTime) : new Date());
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : t('boot.load_failed');
-    showError(app, message);
+    // Developers get the raw error in the console; visitors get a plain explanation.
     console.error(err);
+    showError(app, t(BOOT_ERROR_MESSAGE_KEY[classifyBootError(err)]));
   }
 }
 

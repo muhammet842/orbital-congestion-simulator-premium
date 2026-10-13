@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   base: './',
   build: {
+    // Never inline fonts as data: URIs — the CSP only allows fonts from our own origin.
+    assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
     // vendor-three is a deliberately isolated, long-term-cacheable chunk
     // containing only the three.js core (see manualChunks below) — its size
     // is expected for a WebGL app and not something further splitting can
