@@ -106,7 +106,7 @@ CI (GitHub Actions): build + unit tests on every push/PR; Playwright e2e on `mai
 
 ## How to use
 
-On first visit the app asks you to **choose a language**, then walks through the UI step by step with on-screen highlights (globe, search/filters, details, close approaches, historical events, time bar, Future Projection). Use **Skip** anytime; reopen the tour with the **?** button in the header.
+On first visit the app asks you to **choose a language**, then walks through the UI step by step with on-screen highlights (globe, search/filters, details, close approaches, upcoming launches, historical events, time bar, Radio, Future Projection). Use **Skip** anytime; reopen the tour with the **?** button in the header.
 
 Select a spacecraft to inspect its orbital parameters and, when published data is available, its radio services, uplink and downlink frequencies, receive-only channels, transmission modes, operational notes, and linked reference sources. Frequency details are intentionally omitted for debris objects.
 

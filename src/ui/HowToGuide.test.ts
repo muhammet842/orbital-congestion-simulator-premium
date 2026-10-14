@@ -30,6 +30,7 @@ function mountAppShell(): void {
     <aside id="left-panel" class="panel panel-left" style="overflow-y: auto; height: 200px;">
       <div id="tour-region-search" style="height: 120px;"></div>
       <div id="tour-region-approaches" style="height: 120px;"></div>
+      <div id="tour-region-launches" style="height: 120px;"></div>
       <div class="event-cards" style="height: 120px;"></div>
     </aside>
     <main id="scene-container" class="scene-container"></main>
@@ -38,6 +39,7 @@ function mountAppShell(): void {
     <footer id="time-bar" class="time-bar"></footer>
     <button id="toggle-left-panel" aria-expanded="false"></button>
     <button id="toggle-right-panel" aria-expanded="false"></button>
+    <button id="radio-panel-btn" type="button"></button>
     <button id="kessler-panel-btn" type="button"></button>
   `;
 }
@@ -104,7 +106,7 @@ describe('interactive tour', () => {
 
   it('starts the UI tour immediately from ? after the guide has been seen', () => {
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
     expect(document.getElementById('thesis-collision')).toBeNull();
     expect(document.getElementById('thesis-projection')).toBeNull();
   });
@@ -115,15 +117,15 @@ describe('interactive tour', () => {
     document.querySelector<HTMLButtonElement>('.tour-lang-btn[data-lang="tr"]')?.click();
     expect(getLang()).toBe('tr');
     expect(document.querySelector<HTMLSelectElement>('#lang-select')?.value).toBe('tr');
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
     expect(document.getElementById('thesis-collision')).toBeNull();
   });
 
   it('advances with Next and can be skipped', () => {
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
     document.getElementById('tour-next')?.click();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 9');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 11');
     document.getElementById('tour-skip')?.click();
     expect(isHowToGuideOpen()).toBe(false);
     expect(localStorage.getItem(LS_HELP_SEEN)).toBe('1');
@@ -132,19 +134,50 @@ describe('interactive tour', () => {
   it('skips a step whose target is hidden in this layout (GitHub link on phones)', () => {
     document.querySelector<HTMLElement>('.header-github')!.style.display = 'none';
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 8');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
     document.getElementById('tour-next')?.click(); // language
     document.getElementById('tour-next')?.click(); // would be GitHub
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('3 / 8');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('3 / 10');
     expect(document.querySelector('.tour-title')?.textContent).not.toMatch(/GitHub/);
     // Back returns to the step before, not to the skipped one.
     document.getElementById('tour-back')?.click();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 8');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 10');
   });
 
   it('keeps all steps when every target is visible', () => {
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
+  });
+
+  it('walks through every step in order, including upcoming launches and the radio panel', () => {
+    openHowToGuide();
+    const titles: string[] = [];
+    for (let i = 0; i < 11; i++) {
+      titles.push(document.querySelector('.tour-title')!.textContent!);
+      if (i < 10) document.getElementById('tour-next')!.click();
+    }
+    expect(titles).toEqual([
+      'Explore the globe',
+      'Change the language',
+      'View the source on GitHub',
+      'Search and filter',
+      'Inspect details',
+      'Watch close approaches',
+      'See upcoming launches',
+      'Replay historical events',
+      'Control time',
+      'Find satellites you can hear',
+      'Try a future projection',
+    ]);
+    expect(document.getElementById('tour-next')!.textContent?.trim()).toBe('Done');
+  });
+
+  it('describes close approaches as estimates, not operational alerts', () => {
+    openHowToGuide();
+    for (let i = 0; i < 5; i++) document.getElementById('tour-next')!.click();
+    expect(document.querySelector('.tour-title')?.textContent).toBe('Watch close approaches');
+    expect(document.querySelector('.tour-body')?.textContent).toMatch(/screening estimates/i);
+    expect(document.querySelector('.tour-body')?.textContent).not.toMatch(/every day/i);
   });
 
   it('does not open a second root if already open', () => {
