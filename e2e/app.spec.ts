@@ -163,6 +163,38 @@ test.describe('Left panel filters', () => {
   });
 });
 
+test.describe('Collapsible side panels', () => {
+  test('collapsing the left panel gives the space to the globe, and the choice is remembered', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#left-panel')).toBeVisible();
+    const before = (await page.locator('#scene-container').boundingBox())!.width;
+
+    await page.locator('#toggle-left-panel').click();
+    await expect(page.locator('#left-panel')).toBeHidden();
+    await expect.poll(async () => (await page.locator('canvas').boundingBox())!.width).toBeGreaterThan(before + 150);
+
+    await page.reload();
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#left-panel')).toBeHidden();
+
+    await page.locator('#toggle-left-panel').click();
+    await expect(page.locator('#left-panel')).toBeVisible();
+  });
+
+  test('selecting a satellite re-opens a collapsed details panel', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 15_000 });
+    await page.locator('#toggle-right-panel').click();
+    await expect(page.locator('#right-panel')).toBeHidden();
+
+    await page.locator('#radio-panel-btn').click();
+    await page.locator('.radio-row-main').first().click();
+    await expect(page.locator('#right-panel')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.object-name').first()).toBeVisible();
+  });
+});
+
 test.describe('Radio panel', () => {
   test('opens from the header with the easy VHF/UHF filter and a list of satellites', async ({ page }) => {
     await page.goto('/');

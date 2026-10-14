@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createLayout } from './Layout';
 import { selectLaunch, setState } from '../state/appState';
+import { setTourPanel } from './Layout';
 
 beforeEach(() => {
   // jsdom has no matchMedia; the layout uses it for the mobile breakpoint.
@@ -82,5 +83,142 @@ describe('mobile drawers and launches', () => {
     expect(left.classList.contains('panel--open')).toBe(true);
     selectLaunch(null);
     document.body.removeChild(root);
+  });
+});
+
+describe('collapsible panels on desktop', () => {
+  function stubMedia(mobile: boolean): void {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: (query: string) => ({
+        matches: mobile,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    });
+  }
+
+  function mount(): { root: HTMLElement; grid: HTMLElement; left: HTMLButtonElement; right: HTMLButtonElement } {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    createLayout(root);
+    return {
+      root,
+      grid: root.querySelector<HTMLElement>('.app-grid')!,
+      left: root.querySelector<HTMLButtonElement>('#toggle-left-panel')!,
+      right: root.querySelector<HTMLButtonElement>('#toggle-right-panel')!,
+    };
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    stubMedia(false);
+    setState({ selectedIndex: null, selectedEventId: null, selectedConjunction: null, selectedLaunch: null });
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+    setTourPanel(null);
+  });
+
+  it('starts with both panels open', () => {
+    const { grid, left, right } = mount();
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(false);
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+    expect([left.getAttribute('aria-expanded'), right.getAttribute('aria-expanded')]).toEqual(['true', 'true']);
+  });
+
+  it('collapses and re-opens each panel from its header button, and remembers the choice', () => {
+    const { grid, left, right } = mount();
+
+    left.click();
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(true);
+    expect(left.getAttribute('aria-expanded')).toBe('false');
+    expect(JSON.parse(localStorage.getItem('orbital-panels')!)).toEqual({ left: true, right: false });
+
+    right.click();
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(true);
+    expect(JSON.parse(localStorage.getItem('orbital-panels')!)).toEqual({ left: true, right: true });
+
+    left.click();
+    right.click();
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(false);
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+    expect(JSON.parse(localStorage.getItem('orbital-panels')!)).toEqual({ left: false, right: false });
+  });
+
+  it('restores a remembered choice on the next visit, and shrugs off corrupt storage', () => {
+    localStorage.setItem('orbital-panels', JSON.stringify({ left: true, right: false }));
+    const first = mount();
+    expect(first.grid.classList.contains('app-grid--left-collapsed')).toBe(true);
+    expect(first.grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+    expect(first.left.getAttribute('aria-expanded')).toBe('false');
+
+    document.body.innerHTML = '';
+    localStorage.setItem('orbital-panels', '{not json');
+    const second = mount();
+    expect(second.grid.classList.contains('app-grid--left-collapsed')).toBe(false);
+  });
+
+  it('opens the details panel again when something is selected, without changing the saved choice', () => {
+    localStorage.setItem('orbital-panels', JSON.stringify({ left: false, right: true }));
+    const { grid, right } = mount();
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(true);
+
+    setState({ selectedIndex: 3 });
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+    expect(right.getAttribute('aria-expanded')).toBe('true');
+    expect(JSON.parse(localStorage.getItem('orbital-panels')!)).toEqual({ left: false, right: true });
+
+    // Clearing the selection leaves it as the user now sees it.
+    setState({ selectedIndex: null });
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+  });
+
+  it('also opens it for an event replay, but not for a launch pad (that lives in the left panel)', () => {
+    localStorage.setItem('orbital-panels', JSON.stringify({ left: false, right: true }));
+    const { grid } = mount();
+
+    selectLaunch({ id: 'pad-only', name: 'x', latitudeDeg: 1, longitudeDeg: 2, padName: null });
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(true);
+    selectLaunch(null);
+
+    setState({ selectedEventId: 'iridium-cosmos' });
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+  });
+
+  it('shows a collapsed panel for its tour step and puts it back afterwards', () => {
+    localStorage.setItem('orbital-panels', JSON.stringify({ left: true, right: true }));
+    const { grid } = mount();
+
+    setTourPanel('left');
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(false);
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(true);
+
+    setTourPanel('right');
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(true);
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
+
+    setTourPanel(null);
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(true);
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(true);
+    expect(JSON.parse(localStorage.getItem('orbital-panels')!)).toEqual({ left: true, right: true });
+  });
+
+  it('leaves phones alone: the buttons keep working as drawers and never change the desktop choice', () => {
+    stubMedia(true);
+    const { grid, left } = mount();
+    left.click();
+    expect(grid.classList.contains('app-grid--left-collapsed')).toBe(false);
+    expect(document.querySelector('#left-panel')!.classList.contains('panel--open')).toBe(true);
+    expect(left.getAttribute('aria-expanded')).toBe('true');
+    expect(localStorage.getItem('orbital-panels')).toBeNull();
   });
 });

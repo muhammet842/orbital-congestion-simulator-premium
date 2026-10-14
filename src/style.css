@@ -765,6 +765,32 @@ body {
 }
 
 @media (min-width: 861px) {
+  /* Collapsible side panels (the same ☰ / ℹ buttons the phone drawers use). */
+  .panel-toggle-btn {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+  }
+  /* ℹ sits at the far right, above the panel it controls. */
+  .header-actions { order: 2; }
+  #toggle-right-panel { order: 3; }
+
+  /* "Expanded" is the normal state on desktop: only highlight on hover. */
+  .panel-toggle-btn[aria-expanded='true'] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+  .panel-toggle-btn:hover { background: rgba(var(--accent-rgb), 0.14); border-color: var(--accent); color: var(--accent); }
+  .panel-toggle-btn[aria-expanded='false'] { color: var(--text-muted); }
+
+  .app-grid--left-collapsed { grid-template-columns: 0 1fr 280px; }
+  .app-grid--right-collapsed { grid-template-columns: 260px 1fr 0; }
+  .app-grid--left-collapsed.app-grid--right-collapsed { grid-template-columns: 0 1fr 0; }
+  .app-grid--left-collapsed .panel-left,
+  .app-grid--right-collapsed .panel-right { display: none; }
+
   .time-display {
     min-width: 15.5rem;
   }

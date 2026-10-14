@@ -217,6 +217,10 @@ export class SceneManager {
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('click', (e) => this.onClick(e));
     window.addEventListener('resize', () => this.onResize());
+    // A side panel collapsing changes the canvas size without any window resize.
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => this.onResize()).observe(this.canvasContainer);
+    }
 
     subscribe(() => this.onStateChange());
 
