@@ -30,6 +30,7 @@ import {
   applySatnogsRadioFrequencies,
   fetchAmsatActiveFrequencies,
   fetchSatnogsTransmitters,
+  satnogsAmateurNoradIds,
 } from './enrichRadioFrequencies.mjs';
 
 const STATION_SOURCES = [
@@ -106,6 +107,9 @@ const DEBRIS_NAME_FILL = {
 };
 
 const MAX_SATELLITES = 7_000;
+/** Spacecraft slots the bulk groups leave free for SatNOGS amateur
+ *  satellites that no fetched group contains (~25 as of 2026-10). */
+const AMATEUR_RESERVE = 100;
 const MAX_DEBRIS = 5_000;
 /** Fallback records older than this are not recycled: a local build can be
  *  days old, and its elements would otherwise ship again under today's
@@ -494,8 +498,9 @@ async function main() {
     await sleep(FETCH_DELAY_MS);
   }
 
+  const groupBudget = MAX_SATELLITES - AMATEUR_RESERVE;
   for (const group of ACTIVE_GROUP_SOURCES) {
-    if (spacecraftCount(seen) >= MAX_SATELLITES) break;
+    if (spacecraftCount(seen) >= groupBudget) break;
 
     try {
       const objects = await fetchActiveGroup(group);
@@ -511,7 +516,7 @@ async function main() {
       const newestFirst = [...objects].sort((a, b) => b.noradId - a.noradId);
       let added = 0;
       for (const obj of newestFirst) {
-        if (spacecraftCount(seen) >= MAX_SATELLITES) break;
+        if (spacecraftCount(seen) >= groupBudget) break;
         if (groupCount(seen, group) >= cap) break;
         if (seen.has(obj.noradId)) continue;
         seen.set(obj.noradId, obj);
@@ -524,6 +529,42 @@ async function main() {
       console.warn(`  active/${group}: fetch failed — ${err.message}`);
     }
     await sleep(FETCH_DELAY_MS);
+  }
+
+  // Recent amateur CubeSats are often in none of the groups above, yet they
+  // are what SatNOGS users look up first. Fetch the ones SatNOGS lists with an
+  // active amateur channel by catalog number, into the reserved slots.
+  let satnogsTransmitterRows = null;
+  try {
+    satnogsTransmitterRows = await fetchSatnogsTransmitters(fetch, { headers: REQUEST_HEADERS });
+  } catch (err) {
+    console.warn(`  SatNOGS transmitter fetch failed — ${err.message} (amateur top-up skipped)`);
+  }
+  if (satnogsTransmitterRows) {
+    const missing = [...satnogsAmateurNoradIds(satnogsTransmitterRows)]
+      .filter((noradId) => !seen.has(noradId))
+      .sort((a, b) => b - a);
+    let added = 0;
+    let noTle = 0;
+    for (const noradId of missing) {
+      if (spacecraftCount(seen) >= MAX_SATELLITES) break;
+      try {
+        const obj = await fetchNoradCatalog(noradId);
+        if (obj) {
+          seen.set(obj.noradId, obj);
+          added++;
+        } else {
+          noTle++;
+        }
+      } catch (err) {
+        console.warn(`  amateur/${noradId}: fetch failed — ${err.message}`);
+      }
+      await sleep(FETCH_DELAY_MS);
+    }
+    console.log(
+      `  amateur (SatNOGS): ${missing.length} missing, ${added} added, ${noTle} without a public TLE ` +
+        `(${spacecraftCount(seen)}/${MAX_SATELLITES})`,
+    );
   }
 
   for (const source of DEBRIS_SOURCES) {
@@ -642,7 +683,8 @@ async function main() {
   }
 
   try {
-    const transmitterRows = await fetchSatnogsTransmitters(fetch, { headers: REQUEST_HEADERS });
+    const transmitterRows =
+      satnogsTransmitterRows ?? (await fetchSatnogsTransmitters(fetch, { headers: REQUEST_HEADERS }));
     const { catalogSatellites, matched, channels } = applySatnogsRadioFrequencies(seen, transmitterRows);
     console.log(
       `  satnogs: ${catalogSatellites} catalog satellites -> ${matched} matched, ${channels} transmitter entries`,

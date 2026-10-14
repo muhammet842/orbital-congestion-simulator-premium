@@ -4,6 +4,8 @@ import {
   applyRadioFrequencies,
   buildSatnogsRadioFrequencyMap,
   buildRadioFrequencyMap,
+  isInAmateurBands,
+  satnogsAmateurNoradIds,
 } from './enrichRadioFrequencies.mjs';
 
 describe('radio-frequency enrichment', () => {
@@ -110,6 +112,67 @@ describe('radio-frequency enrichment', () => {
     const seen = new Map([[1, { noradId: 1, name: 'STARLINK-1' }]]);
     applyKnownConstellationFrequencies(seen);
     expect(seen.get(1)!.radioFrequencies![0].amateur).toBe(false);
+  });
+
+  it('keeps the amateur badge only for links inside amateur bands', () => {
+    const amsat = buildRadioFrequencyMap([
+      { norad_id: '46912', downlink: '401.030', mode: 'GFSK', satnogs_id: 'KSM1' },
+      { norad_id: '40055', downlink: '2234.4', mode: 'BPSK', satnogs_id: 'CANX' },
+      { norad_id: '24278', uplink: '145.900-146.000', downlink: '435.900-435.800', mode: 'SSB/CW' },
+      { norad_id: '7530', uplink: '432.125-432.175', downlink: '145.975-145.925', mode: 'SSB/CW' },
+    ]);
+    expect(amsat.get(46912)![0]).not.toHaveProperty('amateur');
+    expect(amsat.get(40055)![0]).not.toHaveProperty('amateur');
+    expect(amsat.get(24278)![0].amateur).toBe(true);
+    // AO-7 mode B uplinks at 432 MHz: outside the satellite sub-band, but
+    // still the amateur service, so the badge stays.
+    expect(amsat.get(7530)![0].amateur).toBe(true);
+
+    const satnogs = buildSatnogsRadioFrequencyMap([{
+      norad_cat_id: 67685, status: 'active', alive: true, service: 'Amateur',
+      downlink_low: 401_140_000, mode: 'GMSK',
+    }]);
+    expect(satnogs.get(67685)![0]).not.toHaveProperty('amateur');
+  });
+
+  it('checks every listed frequency against the band plan', () => {
+    expect(isInAmateurBands({ uplinkMHz: '145.850/145.930', downlinkMHz: '435.225*/435.325' })).toBe(true);
+    expect(isInAmateurBands({ downlinkMHz: '465.988/1703.000/2203.200' })).toBe(false);
+    expect(isInAmateurBands({ listenMHz: '10489.550' })).toBe(true);
+    expect(isInAmateurBands({ downlinkMHz: 'TBD' })).toBeUndefined();
+  });
+
+  it('replaces a SatNOGS description that is only a frequency', () => {
+    const base = { status: 'active', alive: true, downlink_low: 137_932_000, mode: 'FM' };
+    const map = buildSatnogsRadioFrequencyMap([
+      { ...base, norad_cat_id: 1, description: '137.932', service: 'Meteorological' },
+      { ...base, norad_cat_id: 2, description: '2208.722', service: 'Unknown' },
+      { ...base, norad_cat_id: 3, description: 'APT', service: 'Meteorological' },
+    ]);
+    expect(map.get(1)![0].service).toBe('Meteorological');
+    expect(map.get(2)![0].service).toBe('Radio link');
+    expect(map.get(3)![0].service).toBe('APT');
+  });
+
+  it('merges channels that differ only in their name', () => {
+    const base = { norad_cat_id: 6235, status: 'active', alive: true, downlink_low: 136_770_000, mode: 'FM' };
+    const map = buildSatnogsRadioFrequencyMap([
+      { ...base, description: 'Beacon' },
+      { ...base, description: 'Telemetry' },
+    ]);
+    expect(map.get(6235)).toHaveLength(1);
+  });
+
+  it('lists real catalog numbers with an active amateur channel', () => {
+    const base = { status: 'active', alive: true, service: 'Amateur', downlink_low: 437_500_000, mode: 'FM' };
+    const ids = satnogsAmateurNoradIds([
+      { ...base, norad_cat_id: 60238 },
+      { ...base, norad_cat_id: 98268 }, // SatNOGS temporary ID: no public TLE
+      { ...base, norad_cat_id: 62616, unconfirmed: true },
+      { ...base, norad_cat_id: 64535, service: 'Space Operation' },
+      { ...base, norad_cat_id: 46912, downlink_low: 401_030_000 }, // labelled Amateur, but 401 MHz
+    ]);
+    expect([...ids]).toEqual([60238]);
   });
 
   it('applies the official Galileo plan to every Galileo-family object', () => {
