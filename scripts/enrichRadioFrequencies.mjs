@@ -23,6 +23,42 @@ function clean(value) {
   return trimmed && trimmed !== '-' ? trimmed : undefined;
 }
 
+/**
+ * ITU amateur-service allocations in MHz, the union over all three regions
+ * (so AO-7's 432 MHz mode B uplink counts). A source may call a satellite
+ * "amateur" while a given link sits elsewhere, e.g. a 401 MHz space-operation
+ * downlink or a 2.2 GHz S-band telemetry link.
+ */
+const AMATEUR_BANDS_MHZ = [
+  [1.8, 2], [3.5, 4], [7, 7.3], [10.1, 10.15], [14, 14.35], [18.068, 18.168],
+  [21, 21.45], [24.89, 24.99], [28, 29.7], [50, 54], [144, 148], [219, 225],
+  [420, 450], [902, 928], [1240, 1300], [2300, 2450], [3300, 3500], [5650, 5925],
+  [10000, 10500], [24000, 24250], [47000, 47200], [76000, 81000],
+  [122250, 123000], [134000, 141000], [241000, 250000],
+];
+
+/** true when every frequency the channel lists is in an amateur band, false
+ *  when any is not, undefined when none can be parsed. */
+export function isInAmateurBands(frequency) {
+  const values = [frequency.uplinkMHz, frequency.downlinkMHz, frequency.listenMHz]
+    .flatMap((value) => String(value ?? '').match(/\d+(?:\.\d+)?/g) ?? [])
+    .map(Number);
+  if (values.length === 0) return undefined;
+  return values.every((mhz) => AMATEUR_BANDS_MHZ.some(([low, high]) => mhz >= low && mhz <= high));
+}
+
+/** Drops an amateur claim the band plan contradicts (leaves it unclassified). */
+function checkAmateurClaim(frequency) {
+  if (frequency.amateur !== true || isInAmateurBands(frequency) !== false) return frequency;
+  const { amateur: _dropped, ...rest } = frequency;
+  return rest;
+}
+
+/** One channel per frequency set and mode, whatever the sources call it. */
+function channelKey(frequency) {
+  return [frequency.uplinkMHz, frequency.downlinkMHz, frequency.listenMHz, frequency.mode].join('|');
+}
+
 function sourceUrl(row) {
   const satnogsId = clean(row.satnogs_id);
   return satnogsId
@@ -57,7 +93,7 @@ function rowToFrequencies(row) {
     });
   }
 
-  return frequencies;
+  return frequencies.map(checkAmateurClaim);
 }
 
 export function buildRadioFrequencyMap(rows) {
@@ -72,10 +108,8 @@ export function buildRadioFrequencyMap(rows) {
 
     const existing = byNorad.get(noradId) ?? [];
     for (const frequency of frequencies) {
-      const signature = JSON.stringify(frequency);
-      if (!existing.some((candidate) => JSON.stringify(candidate) === signature)) {
-        existing.push(frequency);
-      }
+      const key = channelKey(frequency);
+      if (!existing.some((candidate) => channelKey(candidate) === key)) existing.push(frequency);
     }
     byNorad.set(noradId, existing);
   }
@@ -135,17 +169,34 @@ function satnogsRowToFrequency(row) {
     .filter((value, index, values) => value && values.indexOf(value) === index);
   const baud = Number(row.baud);
   const mode = `${modes.join(' / ') || 'Unknown'}${Number.isFinite(baud) && baud > 0 ? ` · ${baud} baud` : ''}`;
+  // Some SatNOGS descriptions are only the frequency again ("137.932").
   const description = clean(row.description);
-  const service = description ?? (clean(row.service) !== 'Unknown' ? clean(row.service) : undefined) ?? 'Radio link';
+  const label = description && !/^[\d\s.,*/–-]+$/.test(description) ? description : undefined;
+  const service = label ?? (clean(row.service) !== 'Unknown' ? clean(row.service) : undefined) ?? 'Radio link';
 
-  return {
+  return checkAmateurClaim({
     service,
     ...(uplinkMHz ? { uplinkMHz } : {}),
     ...(downlinkMHz ? { downlinkMHz } : {}),
     mode,
     sourceUrl: `https://db.satnogs.org/satellite/${Number(row.norad_cat_id)}/`,
     ...(satnogsAmateurFlag(row) !== undefined ? { amateur: satnogsAmateurFlag(row) } : {}),
-  };
+  });
+}
+
+/**
+ * Real catalog numbers of satellites with a confirmed, active amateur channel
+ * in SatNOGS. Numbers from 80000 up are analyst objects or SatNOGS temporary
+ * IDs, which have no public TLE.
+ */
+export function satnogsAmateurNoradIds(rows) {
+  const ids = new Set();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const noradId = Number(row?.norad_cat_id);
+    if (!Number.isInteger(noradId) || noradId <= 0 || noradId >= 80000) continue;
+    if (satnogsRowToFrequency(row)?.amateur === true) ids.add(noradId);
+  }
+  return ids;
 }
 
 export function buildSatnogsRadioFrequencyMap(rows) {
@@ -157,10 +208,8 @@ export function buildSatnogsRadioFrequencyMap(rows) {
     if (!frequency) continue;
 
     const existing = byNorad.get(noradId) ?? [];
-    const signature = JSON.stringify(frequency);
-    if (!existing.some((candidate) => JSON.stringify(candidate) === signature)) {
-      existing.push(frequency);
-    }
+    const key = channelKey(frequency);
+    if (!existing.some((candidate) => channelKey(candidate) === key)) existing.push(frequency);
     byNorad.set(noradId, existing);
   }
   return byNorad;
