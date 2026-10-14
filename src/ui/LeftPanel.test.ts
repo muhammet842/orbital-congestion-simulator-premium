@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { initLeftPanel } from './LeftPanel';
 import { setState } from '../state/appState';
-import type { ConjunctionEvent } from '../types';
+import type { ConjunctionEvent, TrackedObject } from '../types';
 
 // requestAnimationFrame is not implemented in jsdom — stub it so initLeftPanel
 // can register the live-time refresh loop without throwing.
@@ -33,6 +33,24 @@ describe('initLeftPanel – DOM smoke', () => {
     const note = container.querySelector('.conjunction-accuracy-note');
     expect(note?.textContent).toMatch(/not an operational conjunction assessment/i);
     document.body.removeChild(container);
+  });
+
+  it('says how many LEO objects are left out of screening for old TLEs', () => {
+    const stale = { layer: 'LEO', staleElements: true } as unknown as TrackedObject;
+    const fresh = { layer: 'LEO' } as unknown as TrackedObject;
+    const staleGeo = { layer: 'GEO', staleElements: true } as unknown as TrackedObject;
+    setState({ objects: [stale, stale, fresh, staleGeo] });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    initLeftPanel(container);
+    const note = container.querySelector<HTMLElement>('#conjunction-stale-note')!;
+    expect(note.hidden).toBe(false);
+    expect(note.textContent).toMatch(/^2 low-orbit objects are left out of screening.*more than 7 days old/);
+
+    setState({ objects: [fresh] });
+    expect(note.hidden).toBe(true);
+    document.body.removeChild(container);
+    setState({ objects: [] });
   });
 
   it('creates the #layer-filters section', () => {

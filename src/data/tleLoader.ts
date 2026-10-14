@@ -73,8 +73,24 @@ export async function loadTleDataset(): Promise<TleDataset> {
   };
 }
 
+/**
+ * Elements older (or, for predicted elements, further ahead) than this relative
+ * to the catalog fetch are too uncertain for close-approach screening. CelesTrak
+ * keeps serving debris whose last update is up to ~30 days old.
+ */
+export const STALE_TLE_AGE_DAYS = 7;
+
+const UNIX_EPOCH_JD = 2440587.5;
+
+/** Days between the TLE epoch and `referenceMs`; negative for a future epoch. */
+export function tleAgeDays(satrec: TrackedObject['satrec'], referenceMs: number): number {
+  const epochMs = (satrec.jdsatepoch - UNIX_EPOCH_JD) * 86_400_000;
+  return (referenceMs - epochMs) / 86_400_000;
+}
+
 export function createTrackedObjects(dataset: TleDataset, date = new Date()): TrackedObject[] {
   const tracked: TrackedObject[] = [];
+  const fetchedAtMs = Date.parse(dataset.fetchedAt);
 
   for (const record of dataset.objects) {
     try {
@@ -100,6 +116,10 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
       const semiMajorKm = Math.cbrt(GM_KM3_S2 / (nRadS * nRadS));
       const meanAltitudeKm = Math.max(0, semiMajorKm - 6371);
       const inclinationDeg = satrec.inclo * (180 / Math.PI);
+      // Absolute age: predicted elements (e.g. Chandra) can carry an epoch a
+      // day or so after the fetch, which is fine; far either way is not.
+      const staleElements =
+        Number.isFinite(fetchedAtMs) && Math.abs(tleAgeDays(satrec, fetchedAtMs)) > STALE_TLE_AGE_DAYS;
 
       tracked.push({
         ...enriched,
@@ -110,6 +130,7 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
         functionGroup: inferFunctionGroup(enriched.name, enriched.category),
         meanAltitudeKm,
         inclinationDeg,
+        ...(staleElements ? { staleElements } : {}),
       });
     } catch (err) {
       console.warn(`Skipping invalid TLE for ${record.name}:`, err);

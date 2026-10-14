@@ -41,6 +41,46 @@ export function isValidTlePair(line1, line2) {
   );
 }
 
+/** TLE epoch (line 1, columns 19–32) as Unix ms; NaN when unparseable. */
+export function tleEpochMs(line1) {
+  const yy = Number(line1.slice(18, 20));
+  const dayOfYear = Number(line1.slice(20, 32));
+  if (!Number.isFinite(yy) || !Number.isFinite(dayOfYear) || dayOfYear < 1) return NaN;
+  const year = yy < 57 ? 2000 + yy : 1900 + yy;
+  return Date.UTC(year, 0, 1) + (dayOfYear - 1) * 86_400_000;
+}
+
+/**
+ * Analyst objects (the 80000–89999 range) are uncorrelated tracks with no
+ * international designator: CelesTrak cannot say what they are, so they must
+ * not be presented as debris (or anything else).
+ */
+export function isAnalystObject(line1) {
+  return line1.slice(9, 17).trim() === '';
+}
+
+/** Crewed station modules and the vehicles that visit them. CelesTrak's
+ *  `stations` group also carries ISS-deployed CubeSats, jettisoned hardware
+ *  and stray debris, which are not stations. */
+const STATION_NAME =
+  /^(ISS|CSS)\b|ZARYA|POISK|NAUKA|PRICHAL|TIANHE|WENTIAN|MENGTIAN|TIANGONG|PROGRESS|SOYUZ|DRAGON|CYGNUS|HTV|STARLINER|TIANZHOU|SHENZHOU/i;
+const DEBRIS_OR_ROCKET_BODY_NAME = /\bDEB\b|\bR\/B\b/i;
+
+/**
+ * Category implied by the object itself rather than by the CelesTrak group it
+ * came from. Debris-named or rocket-body objects become debris unless they
+ * have a published radio channel (some upper stages carry live payloads, e.g.
+ * RS-44 on its Breeze-KM). Non-station members of `stations` become active.
+ *
+ * @param {{ name: string, category: string, radioFrequencies?: unknown[] }} obj
+ */
+export function correctedCategory(obj) {
+  const transmits = Array.isArray(obj.radioFrequencies) && obj.radioFrequencies.length > 0;
+  if (obj.category !== 'debris' && DEBRIS_OR_ROCKET_BODY_NAME.test(obj.name) && !transmits) return 'debris';
+  if (obj.category === 'stations' && !STATION_NAME.test(obj.name)) return 'active';
+  return obj.category;
+}
+
 /**
  * Compare category counts with the previous catalog. Returns human-readable
  * problems; empty means OK. Categories absent from the previous catalog (or a
