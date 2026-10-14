@@ -21,6 +21,7 @@ import { initRightPanel } from './ui/RightPanel';
 import { initTimeControls } from './ui/TimeControls';
 import { initDeepLink } from './routing/deepLink';
 import { initKesslerPanel } from './ui/KesslerPanel';
+import { initRadioPanel } from './ui/RadioPanel';
 import { initHowToGuide } from './ui/HowToGuide';
 import { findConjunctions, setUpcomingConjunctionWorkerFactory } from './orbital/conjunction';
 import { BOOT_ERROR_MESSAGE_KEY, classifyBootError, hasWebGL } from './bootErrors';
@@ -87,6 +88,10 @@ async function main(): Promise<void> {
 
     // Future Projection: header button opening the Kessler-syndrome "what if" panel.
     initKesslerPanel();
+
+    // Radio: band/mode filters for satellites you can actually receive; opens from
+    // the header or from a shared ?radio=… link.
+    initRadioPanel();
 
     // First-visit walkthrough + header "?" reopen control.
     initHowToGuide();
