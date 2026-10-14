@@ -3898,3 +3898,7 @@ body {
     max-height: min(88vh, 720px);
   }
 }
+
+.radio-minelev { gap: 8px; }
+.radio-minelev select { font: inherit; padding: 2px 6px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; }
+.radio-hint { font-size: 0.72rem; margin: 2px 0 6px; }

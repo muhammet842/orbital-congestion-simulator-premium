@@ -99,7 +99,7 @@ export function initLaunchesPanel(container: HTMLElement): () => void {
   section.innerHTML = `
     <h2 class="panel-heading" data-i18n="ui.launches">${escapeHtml(t('ui.launches'))}</h2>
     <p class="panel-lede" data-i18n="launch.lede">${escapeHtml(t('launch.lede'))}</p>
-    <div class="launch-list" id="launch-list" aria-live="polite"></div>
+    <div class="launch-list" id="launch-list"></div>
     <p class="muted launch-credit" data-i18n="launch.credit">${escapeHtml(t('launch.credit'))}</p>
   `;
   container.appendChild(section);

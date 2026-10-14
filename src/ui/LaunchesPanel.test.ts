@@ -69,6 +69,14 @@ afterEach(() => {
 });
 
 describe('initLaunchesPanel', () => {
+  it('does not announce the ticking countdowns to screen readers', async () => {
+    stubApi([launch()]);
+    await mount();
+    await vi.advanceTimersByTimeAsync(0);
+    const list = container.querySelector('#launch-list')!;
+    expect(list.closest('[aria-live]')).toBeNull();
+  });
+
   it('shows a loading note, then a card per launch with rocket, pad, destination and countdown', async () => {
     stubApi([launch(), launch({ id: 'l2', name: 'Zhuque-2E mission', rocket: 'Zhuque-2E', destination: null, toIss: false })]);
     await mount();
