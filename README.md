@@ -124,7 +124,7 @@ Deep links: `?object=<NORAD>`, `?event=<id>` and `?radio=<band>` (with optional 
 
 Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.org/):
 
-- **TLE / GP** — active satellites (capped at 7,000 — Starlink/OneWeb sub-capped), debris (capped at 5,000 — Cosmos 2251, Fengyun-1C, Iridium 33, Cosmos 1408, analyst objects, then other trackable `DEB` fragments), and stations (ISS, Tiangong, etc.)
+- **TLE / GP** — active satellites (capped at 7,000 — Starlink/OneWeb sub-capped), debris (capped at 5,000 — Cosmos 2251, Fengyun-1C, Iridium 33, Cosmos 1408, then other trackable `DEB` fragments), and stations (ISS and Tiangong modules plus visiting vehicles). Objects are re-categorised by name, so rocket bodies listed in active groups count as debris unless they transmit; unidentified analyst tracks are left out
 - **SATCAT** — one download of [`satcat.csv`](https://celestrak.org/pub/satcat.csv) joined by NORAD ID so each object can carry a **country** (and organization **owner** when SATCAT’s `OWNER` is an agency/consortium code). Name-based heuristics in `objectMetadata.ts` remain the fallback when SATCAT has no match or only supplies a country code (so operators like SpaceX can still come from the name).
 - **AMSAT and SatNOGS** — published amateur-radio and active transmitter records joined by NORAD ID. Only confirmed, operationally valid SatNOGS transmitter entries are retained.
 - **Launches** — [Launch Library 2](https://thespacedevs.com/llapi) by The Space Devs (free tier, 15 requests per hour per IP). The browser never contacts it: the site’s `/api/launches` function fetches it server-side and caches the result (details in [docs/OPERATIONS.md](docs/OPERATIONS.md#launch-data)).

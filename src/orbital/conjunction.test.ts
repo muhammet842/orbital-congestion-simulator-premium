@@ -582,6 +582,14 @@ describe('findConjunctions — narrow high-speed window detection', () => {
     expect(result.alerts[0].distanceKm).toBeCloseTo(MIN_SEPARATION_KM, 1);
   });
 
+  it('skips objects whose TLE is too old to screen', () => {
+    const objects = makeFastPair();
+    objects[1].staleElements = true;
+    const result = findConjunctions(objects, new Date(CPA_MS + 700));
+
+    expect(result.alerts).toHaveLength(0);
+  });
+
   it('does not fabricate an alert once the pair is well outside the detection net', () => {
     const objects = makeFastPair();
     // At dt=3s the pair is ~48km apart — outside even the widened
@@ -674,6 +682,17 @@ describe('findUpcomingConjunctions — forward-looking 24h screen', () => {
     // This is the whole point of the feature: the predicted event is in the
     // future relative to the scan's start time, not "happening right now".
     expect(result.alerts[0].time.getTime()).toBeGreaterThan(startMs);
+  });
+
+  it('leaves objects with stale elements out of the 24h sweep', () => {
+    const objects = makeSlowPair();
+    objects[0].staleElements = true;
+    const startMs = Date.now();
+    mockLinearApproach(startMs + 3 * SAMPLE_STEP_MS);
+
+    const result = findUpcomingConjunctions(objects, new Date(startMs), HORIZON_MS, SAMPLE_STEP_MS);
+
+    expect(result.alerts).toHaveLength(0);
   });
 
   it('reports nothing when the pair never comes within the detection radius', () => {

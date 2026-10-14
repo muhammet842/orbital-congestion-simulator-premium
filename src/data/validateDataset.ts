@@ -30,6 +30,19 @@ function isHttpUrl(value: unknown): boolean {
   }
 }
 
+/** TLE line checksum (column 69): digits summed, '-' counts as 1, mod 10.
+ *  Mirrors scripts/catalogGuard.mjs so a file that bypassed the fetch script
+ *  (hand edit, fallback merge) cannot feed a corrupted digit to SGP4. */
+export function hasValidTleChecksum(line: string): boolean {
+  let sum = 0;
+  for (let i = 0; i < 68; i++) {
+    const c = line.charCodeAt(i);
+    if (c >= 48 && c <= 57) sum += c - 48;
+    else if (c === 45) sum += 1;
+  }
+  return sum % 10 === line.charCodeAt(68) - 48;
+}
+
 /** Returns a reason string when `record` is unusable, otherwise null. */
 export function recordProblem(record: unknown): string | null {
   if (typeof record !== 'object' || record === null) return 'not an object';
@@ -38,6 +51,7 @@ export function recordProblem(record: unknown): string | null {
   if (typeof r.name !== 'string') return 'bad name';
   if (typeof r.line1 !== 'string' || r.line1.length !== 69 || !r.line1.startsWith('1 ')) return 'bad line1';
   if (typeof r.line2 !== 'string' || r.line2.length !== 69 || !r.line2.startsWith('2 ')) return 'bad line2';
+  if (!hasValidTleChecksum(r.line1) || !hasValidTleChecksum(r.line2)) return 'TLE checksum mismatch';
   if (Number(r.line1.slice(2, 7)) !== r.noradId || Number(r.line2.slice(2, 7)) !== r.noradId) {
     return 'noradId does not match TLE lines';
   }

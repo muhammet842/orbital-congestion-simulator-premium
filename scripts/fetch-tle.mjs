@@ -11,7 +11,13 @@
  * to production; fail closed and leave the previous tle.json on disk.
  */
 import { applyFirstSeenAt } from './applyFirstSeenAt.mjs';
-import { findCatalogRegressions, isValidTlePair } from './catalogGuard.mjs';
+import {
+  correctedCategory,
+  findCatalogRegressions,
+  isAnalystObject,
+  isValidTlePair,
+  tleEpochMs,
+} from './catalogGuard.mjs';
 import {
   applySatcatOwners,
   fetchSatcatMetadataMap,
@@ -91,7 +97,6 @@ const DEBRIS_SOURCES = [
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=fengyun-1c-debris&FORMAT=tle', category: 'debris' },
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle', category: 'debris' },
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=cosmos-1408-debris&FORMAT=tle', category: 'debris' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=analyst&FORMAT=tle', category: 'debris' },
 ];
 
 /** Trackable fragments whose name contains DEB — fills leftover debris budget after named clouds. */
@@ -102,6 +107,10 @@ const DEBRIS_NAME_FILL = {
 
 const MAX_SATELLITES = 7_000;
 const MAX_DEBRIS = 5_000;
+/** Fallback records older than this are not recycled: a local build can be
+ *  days old, and its elements would otherwise ship again under today's
+ *  fetchedAt with nothing marking them as stale. */
+const MAX_FALLBACK_EPOCH_AGE_DAYS = 7;
 const FETCH_DELAY_MS = 450;
 const OUTPUT_PATH = new URL('../public/data/tle.json', import.meta.url);
 const FALLBACK_PATHS = [
@@ -151,6 +160,12 @@ function parseTleText(text, category) {
     // Truncated or corrupted responses must not reach SGP4 in the browser.
     if (!isValidTlePair(line1, line2)) {
       rejected++;
+      i += 2;
+      continue;
+    }
+
+    // Uncorrelated analyst tracks: unknown objects, not debris or spacecraft.
+    if (isAnalystObject(line1)) {
       i += 2;
       continue;
     }
@@ -322,8 +337,20 @@ async function loadFallbackDataset() {
       const raw = await readFile(path, 'utf8');
       const data = JSON.parse(raw);
       if (Array.isArray(data.objects) && data.objects.length > 1000) {
-        console.log(`  fallback: ${path} (${data.objects.length} objects)`);
-        return data.objects;
+        const nowMs = Date.now();
+        const usable = data.objects.filter(
+          (obj) =>
+            typeof obj.line1 === 'string' &&
+            typeof obj.line2 === 'string' &&
+            isValidTlePair(obj.line1, obj.line2) &&
+            !isAnalystObject(obj.line1) &&
+            Math.abs(nowMs - tleEpochMs(obj.line1)) <= MAX_FALLBACK_EPOCH_AGE_DAYS * 86_400_000,
+        );
+        console.log(
+          `  fallback: ${path} (${usable.length} of ${data.objects.length} objects usable; ` +
+            `rest invalid, analyst tracks or epoch > ${MAX_FALLBACK_EPOCH_AGE_DAYS} d old)`,
+        );
+        return usable;
       }
     } catch {
       // try next fallback
@@ -641,6 +668,32 @@ async function main() {
   const knownDeorbited = filterKnownDeorbitedObjects(seen, new Date(fetchedAt));
   if (knownDeorbited > 0) {
     console.log(`  overrides: removed ${knownDeorbited} confirmed de-orbited object(s)`);
+  }
+
+  // CelesTrak groups are not categories: `stations` also lists ISS-deployed
+  // CubeSats and stray debris, and some active groups include rocket bodies.
+  // Radio enrichment runs first so transmitting upper stages stay active.
+  const recategorized = {};
+  for (const obj of seen.values()) {
+    const category = correctedCategory(obj);
+    if (category === obj.category) continue;
+    const key = `${obj.category}→${category}`;
+    recategorized[key] = (recategorized[key] ?? 0) + 1;
+    obj.category = category;
+  }
+  if (Object.keys(recategorized).length > 0) {
+    console.log(`  recategorized by name: ${JSON.stringify(recategorized)}`);
+  }
+  // Objects moved into debris can push it past the cap. Drop the excess from
+  // the end of insertion order, i.e. the lowest-priority fill.
+  let debrisExcess = debrisCount(seen) - MAX_DEBRIS;
+  if (debrisExcess > 0) {
+    for (const [noradId, obj] of Array.from(seen.entries()).reverse()) {
+      if (debrisExcess <= 0) break;
+      if (obj.category !== 'debris') continue;
+      seen.delete(noradId);
+      debrisExcess--;
+    }
   }
 
   const allObjects = Array.from(seen.values()).sort((a, b) => {

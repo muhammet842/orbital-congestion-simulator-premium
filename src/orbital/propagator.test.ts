@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { twoline2satrec } from 'satellite.js';
-import { propagateObject, toObjectSnapshot } from './propagator';
+import { propagateObject, propagateState, toObjectSnapshot } from './propagator';
 
 /** Classic ISS sample TLE (epoch mid-2019). */
 const ISS_LINE1 = '1 25544U 98067A   19249.04864348  .00001909  00000-0  40858-4 0  9990';
@@ -30,6 +30,28 @@ describe('propagateObject', () => {
     } else {
       expect(result).toBeNull();
     }
+  });
+});
+
+describe('re-entry floor', () => {
+  // 2022-019D, decaying from ~165 km perigee (catalog snapshot 2026-10-14).
+  // SGP4 keeps returning positions down to ~35 km for about two days before
+  // it reports decay; those must not be drawn or screened.
+  const L1 = '1 51827U 22019D   26287.20857623  .06495378  24979-5  59255-3 0  9992';
+  const L2 = '2 51827  97.3352  28.8205 0010980 271.7537  88.2505 16.38802744258566';
+  const epochMs = Date.UTC(2026, 0, 1) + 286.20857623 * 86_400_000;
+
+  it('still propagates the object while it is in orbit', () => {
+    const satrec = twoline2satrec(L1, L2);
+    expect(propagateObject(satrec, new Date(epochMs))).not.toBeNull();
+    expect(propagateState(satrec, new Date(epochMs))).not.toBeNull();
+  });
+
+  it('returns null once SGP4 puts it below the re-entry altitude', () => {
+    const satrec = twoline2satrec(L1, L2);
+    const reentered = new Date(epochMs + 3 * 86_400_000);
+    expect(propagateObject(satrec, reentered)).toBeNull();
+    expect(propagateState(satrec, reentered)).toBeNull();
   });
 });
 

@@ -62,6 +62,10 @@ export interface TrackedObject extends TleRecord {
   meanAltitudeKm: number;
   /** Orbital inclination in degrees from TLE. */
   inclinationDeg: number;
+  /** TLE epoch is more than STALE_TLE_AGE_DAYS from the catalog fetch time
+   *  (either direction). Such objects are drawn but not screened for close
+   *  approaches: their positions can be off by tens of km or more. */
+  staleElements?: boolean;
 }
 
 export interface ObjectSnapshot {

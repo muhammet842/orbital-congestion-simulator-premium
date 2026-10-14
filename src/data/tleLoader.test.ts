@@ -5,6 +5,8 @@ import {
   createTrackedObjects,
   filterKnownDeorbitedRecords,
   loadTleDataset,
+  STALE_TLE_AGE_DAYS,
+  tleAgeDays,
 } from './tleLoader';
 import { DataUnavailableError } from '../bootErrors';
 import type { TleDataset } from '../types';
@@ -92,6 +94,37 @@ describe('createTrackedObjects', () => {
     expect(objects[0].radioFrequencies).toEqual(expect.arrayContaining([
       expect.objectContaining({ service: 'APRS digipeater', uplinkMHz: '145.825' }),
     ]));
+  });
+
+  it.each([
+    ['fresh', '2019-09-07T00:00:00.000Z', false],
+    ['a day-ahead predicted epoch', '2019-09-05T00:00:00.000Z', false],
+    ['older than the screening limit', '2019-09-20T00:00:00.000Z', true],
+    ['far in the future', '2019-08-20T00:00:00.000Z', true],
+  ])('flags staleElements for %s elements', (_label, fetchedAt, stale) => {
+    const dataset: TleDataset = {
+      fetchedAt,
+      source: 'test',
+      count: 1,
+      objects: [{ noradId: 25544, name: 'ISS (ZARYA)', line1: ISS_LINE1, line2: ISS_LINE2, category: 'stations' }],
+    };
+    const [object] = createTrackedObjects(dataset, new Date(Date.UTC(2019, 8, 6, 1, 10, 0)));
+    expect(Boolean(object.staleElements)).toBe(stale);
+  });
+
+  it('measures TLE age from the satrec epoch', () => {
+    const [object] = createTrackedObjects(
+      {
+        fetchedAt: '2019-09-06T00:00:00.000Z',
+        source: 'test',
+        count: 1,
+        objects: [{ noradId: 25544, name: 'ISS (ZARYA)', line1: ISS_LINE1, line2: ISS_LINE2, category: 'stations' }],
+      },
+      new Date(Date.UTC(2019, 8, 6, 1, 10, 0)),
+    );
+    // Epoch 19249.04864348 = 2019-09-06T01:10:02Z.
+    const epochMs = Date.UTC(2019, 8, 6) + 0.04864348 * 86_400_000;
+    expect(tleAgeDays(object.satrec, epochMs + STALE_TLE_AGE_DAYS * 86_400_000)).toBeCloseTo(STALE_TLE_AGE_DAYS, 6);
   });
 
   it('skips records when propagation fails at the requested date', () => {

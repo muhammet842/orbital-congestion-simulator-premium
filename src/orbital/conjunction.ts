@@ -7,7 +7,8 @@
  *
  * VERIFY mode: click an alert → dedicated verificationTime clock (T− adaptive
  * to relative speed → CPA → T+15s). Does not rewrite the global sim clock.
- * Co-orbiting stacks (ISS/CSS modules) are excluded from alerts.
+ * Co-orbiting stacks (ISS/CSS modules) are excluded from alerts, and so are
+ * objects whose TLE is too old to screen (`staleElements`, set by tleLoader).
  *
  * invalidateUpcomingConjunctionScan() when catalog/time mode changes so a
  * stale idle callback cannot wipe cards mid-rescan.
@@ -340,6 +341,18 @@ function midpointScene(
     y: (sceneA.y + sceneB.y) / 2,
     z: (sceneA.z + sceneB.z) / 2,
   };
+}
+
+/** LEO objects with elements fresh enough to trust for close approaches. */
+export function isScreenable(obj: TrackedObject): boolean {
+  return obj.layer === SUBSET && !obj.staleElements;
+}
+
+/** LEO objects left out of screening only because their TLE is too old. */
+export function countStaleScreeningExclusions(objects: readonly TrackedObject[]): number {
+  let count = 0;
+  for (const obj of objects) if (obj.layer === SUBSET && obj.staleElements) count++;
+  return count;
 }
 
 function findObjectIndex(objects: TrackedObject[], name: string): number {
@@ -737,7 +750,7 @@ export function findConjunctions(objects: TrackedObject[], date: Date): Conjunct
 
   for (let i = 0; i < objects.length; i++) {
     const obj = objects[i];
-    if (obj.layer !== SUBSET) continue;
+    if (!isScreenable(obj)) continue;
     const propagation = propagateObject(obj.satrec, date);
     if (!propagation) continue;
     leoEntries.push({ index: i, name: obj.name, position: propagation.positionEci });
@@ -1027,7 +1040,7 @@ export class UpcomingConjunctionSweep {
     this.radiusKm = upcomingDetectionRadiusKm(sampleStepMs);
     this.leoIndices = [];
     for (let i = 0; i < objects.length; i++) {
-      if (objects[i].layer === SUBSET) this.leoIndices.push(i);
+      if (isScreenable(objects[i])) this.leoIndices.push(i);
     }
     const n = this.leoIndices.length;
     this.entryIndex = new Int32Array(n);
@@ -1241,6 +1254,7 @@ export interface UpcomingWorkerObject {
   line2: string;
   category: TrackedObject['category'];
   layer: OrbitLayer;
+  staleElements?: boolean;
 }
 
 export type UpcomingWorkerRequest =
@@ -1364,6 +1378,7 @@ function startWorkerSweep(w: Worker, objects: TrackedObject[], startMs: number):
       line2: o.line2,
       category: o.category,
       layer: o.layer,
+      staleElements: o.staleElements,
     }));
     workerCatalog = objects;
   }

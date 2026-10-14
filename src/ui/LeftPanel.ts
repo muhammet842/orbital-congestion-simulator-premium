@@ -10,6 +10,7 @@ import { LAYER_HEX, type ObjectCategory, type OrbitLayer } from '../types';
 import {
   conjunctionSessionKey,
   countConjunctionOverflow,
+  countStaleScreeningExclusions,
   hasUpcomingConjunctionScanCompleted,
   isUpcomingConjunctionScanPending,
   selectConjunctionAlertsForDisplay,
@@ -41,6 +42,7 @@ import { initLaunchesPanel } from './LaunchesPanel';
 import { t, applyTranslations, onLangChange } from '../i18n/i18n';
 import { isRecentlyLaunched, hasAnyRecentlyLaunched } from '../data/newLaunches';
 import { escapeHtml } from './escapeHtml';
+import { STALE_TLE_AGE_DAYS } from '../data/tleLoader';
 
 const LAYERS: OrbitLayer[] = ['LEO', 'MEO', 'GEO', 'HEO'];
 const CATEGORY_FILTERS: Array<ObjectCategory | 'all'> = ['all', 'active', 'stations', 'debris'];
@@ -117,6 +119,7 @@ export function initLeftPanel(container: HTMLElement): void {
       <h2 class="panel-heading panel-heading--alert" data-i18n="ui.close_approach">Close Approach Alerts (Next 24h)</h2>
       <p class="panel-lede" data-i18n="conj.why_it_matters">${t('conj.why_it_matters')}</p>
       <p class="muted conjunction-accuracy-note" data-i18n="conj.accuracy_note">${t('conj.accuracy_note')}</p>
+      <p class="muted conjunction-accuracy-note" id="conjunction-stale-note" hidden></p>
       <div class="conjunction-filters" id="conjunction-filters"></div>
       <div class="conjunction-list" id="conjunction-list"></div>
     </div>
@@ -129,6 +132,7 @@ export function initLeftPanel(container: HTMLElement): void {
   renderStats(container);
   renderConjunctionFilters(container);
   renderConjunctions(container);
+  renderStaleNote(container);
   initLaunchesPanel(container);
   initEventCards(container);
   initAdvancedFilters(container);
@@ -178,6 +182,7 @@ export function initLeftPanel(container: HTMLElement): void {
     renderStats(container);
     renderConjunctionFilters(container);
     renderConjunctions(container);
+    renderStaleNote(container);
     renderAdvancedFilters(container);
   });
 
@@ -189,6 +194,7 @@ export function initLeftPanel(container: HTMLElement): void {
     renderStats(container);
     renderConjunctionFilters(container);
     renderConjunctions(container);
+    renderStaleNote(container);
 
     const state = getState();
     const filterUiKey = [
@@ -459,6 +465,22 @@ function renderDisplayOptions(container: HTMLElement): void {
   if (!showRecentToggle && getState().showOnlyRecentLaunches) {
     setShowOnlyRecentLaunches(false);
   }
+}
+
+/** Says how many LEO objects the close-approach screen skips for old TLEs. */
+function renderStaleNote(container: HTMLElement): void {
+  const el = container.querySelector<HTMLElement>('#conjunction-stale-note');
+  if (!el) return;
+  const { objects } = getState();
+  const count = countStaleScreeningExclusions(objects);
+  const text =
+    count === 0
+      ? ''
+      : t(count === 1 ? 'conj.stale_excluded_one' : 'conj.stale_excluded_other')
+          .replace('{n}', count.toLocaleString())
+          .replace('{days}', String(STALE_TLE_AGE_DAYS));
+  if (el.textContent !== text) el.textContent = text;
+  el.hidden = count === 0;
 }
 
 function renderStats(container: HTMLElement): void {
