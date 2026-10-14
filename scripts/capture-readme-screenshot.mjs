@@ -1,6 +1,7 @@
 /**
  * Captures docs/screenshot-en.png (README, ISS selected so the radio-frequency
- * table is visible) and public/og-image.png (social link preview) via
+ * table is visible), docs/screenshot-radio.png (the Radio panel on 70 cm) and
+ * public/og-image.png (social link preview) via
  * Playwright against vite preview.
  * Forces English UI (localStorage + lang select). Requires a prior `npm run build`.
  *
@@ -15,6 +16,7 @@ import { execSync, spawn } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'docs/screenshot-en.png');
+const radioOut = join(root, 'docs/screenshot-radio.png');
 const ogOut = join(root, 'public/og-image.png');
 mkdirSync(dirname(out), { recursive: true });
 
@@ -95,6 +97,14 @@ try {
   await page.waitForTimeout(1500);
   await page.screenshot({ path: out, type: 'png' });
 
+  // README: the Radio panel, narrowed to the 70 cm band.
+  const radio = await open({ width: 1440, height: 900 }, '');
+  await radio.locator('#radio-panel-btn').click();
+  await radio.locator('.radio-row').first().waitFor({ state: 'visible', timeout: 15_000 });
+  await radio.locator('[data-band="ham70cm"]').click();
+  await radio.waitForTimeout(800);
+  await radio.screenshot({ path: radioOut, type: 'png' });
+
   // Social preview (Open Graph): the plain globe view at 1200x630.
   const og = await open({ width: 1200, height: 630 }, '');
   // Panels would crowd a 1200x630 card, so let the globe fill the frame.
@@ -108,7 +118,7 @@ try {
   await og.waitForTimeout(1500);
   await og.screenshot({ path: ogOut, type: 'png' });
   await browser.close();
-  console.log('Wrote', out, 'and', ogOut);
+  console.log('Wrote', out, radioOut, 'and', ogOut);
 } finally {
   stopPreview();
 }

@@ -1,16 +1,26 @@
 # Orbital Congestion Simulator
 
-> Real-time 3D visualization of Earth orbit congestion using CelesTrak TLE data and SGP4 orbital propagation.
+> An open-source, real-time 3D view of Earth’s orbital traffic: about 12,000 satellites and debris, close-approach screening, upcoming launches, and a filterable radio panel for amateur-radio operators.
 
 **Live demo:** [https://orbital-congestion-simulator-premiu.vercel.app](https://orbital-congestion-simulator-premiu.vercel.app)
 
 ![Orbital Congestion Simulator — the ISS selected, with its amateur-radio frequencies in the detail panel](docs/screenshot-en.png)
 
+![The Radio panel narrowed to the 70 cm band: satellites you can receive, with frequencies, modes and the AMATEUR badge](docs/screenshot-radio.png)
+
 ## What it does
 
-Orbital Congestion Simulator renders thousands of satellites and debris fragments orbiting Earth in real time. It uses Two-Line Element (TLE) data from CelesTrak and propagates each object with the SGP4 algorithm via [satellite.js](https://github.com/shashwatak/satellite-js).
+Orbital Congestion Simulator renders thousands of satellites and debris fragments orbiting Earth in real time. It uses Two-Line Element (TLE) data from CelesTrak, refreshed daily by an automated pipeline, and propagates each object with the SGP4 algorithm via [satellite.js](https://github.com/shashwatak/satellite-js) in your browser.
 
 Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any object to inspect its orbital parameters, scrub through time, replay historical collisions, and inspect close-approach pairs in a dedicated verification view.
+
+### Highlights
+
+- **A radio panel for amateur-radio operators** — filter the satellites you can actually receive by band (starting with *Easy · VHF/UHF*, the ~425 satellites a handheld radio or small Yagi can hear, out of ~5,900 with published frequencies), mode, and amateur-only. **Above my horizon now** lists what is up at your location with next-pass times. Export the list as CSV or share a link that carries your filters. Frequencies come from SatNOGS DB and AMSAT, and amateur channels carry an **AMATEUR** badge.
+- **Upcoming launches** — the next rocket launches (and any in flight) with rocket, pad, destination and a live countdown; pick one to mark its pad on the globe or jump to the ISS for resupply missions.
+- **Honest about accuracy** — close approaches are screening estimates from public TLEs, not operational conjunction assessments, and the app says so wherever they appear. Launches are schedules, not live tracking.
+- **Private by design** — no analytics, cookies, accounts or third-party requests: fonts are self-hosted, and launch data is fetched by the site’s own server function.
+- **Works on a phone** — responsive layout, a guided tour, and a Spotter mode that points you at a satellite using your phone’s sensors. Available in English, Turkish, German, Russian and Chinese.
 
 ## Features
 
@@ -28,8 +38,8 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Satellite Spotter** — mobile sky guide using device sensors and magnetic declination correction
 - **Interactive how-to tour** — language gate + spotlight walkthrough (header `?`)
 - **i18n** — English, Turkish, German, Russian, Chinese
-- **Deep links** — `?object=<NORAD>` / `?event=<id>`
-- **Automated TLE refresh** — daily GitHub Actions update (TLE + SATCAT country join)
+- **Deep links** — `?object=<NORAD>` / `?event=<id>` / `?radio=<band>&mode=<mode>&amateur=1` (shareable radio filters)
+- **Automated TLE refresh** — daily GitHub Actions update (TLE + SATCAT country join + radio data), published without growing the repository
 
 ## Why it matters
 
@@ -72,7 +82,7 @@ npm run test:all     # unit + e2e
 npm run check:i18n   # translation key parity (en/tr/de/ru/zh)
 npm run pull-data    # fetch the latest published catalog snapshot (see Data source)
 npm run fetch-tle    # fresh pull from CelesTrak into your local public/data/tle.json
-npm run screenshot   # refresh docs/screenshot-en.png and public/og-image.png after UI changes
+npm run screenshot   # refresh docs/screenshot-en.png, docs/screenshot-radio.png and public/og-image.png after UI changes
                      # (no Playwright browsers? PW_CHANNEL=msedge npm run screenshot)
 ```
 
@@ -108,7 +118,7 @@ The **Radio** button (📻) in the header opens the radio panel. It starts on **
 
 In **Upcoming Launches**, click a launch to fly to its pad and mark it on the globe (click again to clear it). For missions to the International Space Station, **Show ISS** selects the station. Countdowns use real time, whatever time the globe is showing. When a webcast is known, **Watch** opens it in a new tab.
 
-Deep links: `?object=<NORAD>` and `?event=<id>`.
+Deep links: `?object=<NORAD>`, `?event=<id>` and `?radio=<band>` (with optional `mode`, `amateur=1` and `rq` search), for example `?radio=ham70cm&mode=fm&amateur=1`.
 
 ## Data source
 
