@@ -35,3 +35,17 @@ test.describe('Mobile object list', () => {
     await expect(page.locator('.object-list-item--selected')).toHaveCount(1, { timeout: 5_000 });
   });
 });
+
+test.describe('Radio panel on a phone', () => {
+  test('fits the screen and picking a satellite opens its details', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#radio-panel-btn').click();
+    await expect(page.locator('.radio-row').first()).toBeVisible({ timeout: 15_000 });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+
+    await page.locator('.radio-row-main').first().click();
+    await expect(page.locator('#radio-panel')).toHaveCount(0);
+    await expect(page.locator('#right-panel')).toHaveClass(/panel--open/, { timeout: 10_000 });
+  });
+});
