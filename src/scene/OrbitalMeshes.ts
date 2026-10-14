@@ -285,8 +285,10 @@ export class OrbitalMeshes {
 
       let wrapper = this.detailWrappers.get(index);
       if (!wrapper) {
-        const modelKey =
-          conjunctionFocus && obj.category === 'debris' ? 'sat_leo' : resolveModelKey(obj);
+        // Debris keeps its fragment model in close-approach focus too: a
+        // satellite silhouette would make a debris crossing look like two
+        // working spacecraft.
+        const modelKey = resolveModelKey(obj);
         void satelliteModelLoader.ensureLoaded(modelKey).then(() => {
           if (this.detailWrappers.has(index)) return;
           const created = satelliteModelLoader.clone(modelKey);
