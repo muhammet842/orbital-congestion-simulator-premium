@@ -46,6 +46,9 @@ let opener: HTMLElement | null = null;
 
 let filters: RadioFilters = { ...DEFAULT_RADIO_FILTERS };
 let visibleNow = false;
+/** Minimum elevation (degrees) for "above my horizon"; 5° is a realistic hobby antenna. */
+let minElevDeg = 5;
+const MIN_ELEVATION_CHOICES = [0, 5, 10, 15];
 let locationState: LocationState = 'idle';
 let index: RadioEntry[] = [];
 
@@ -96,7 +99,7 @@ function computeMatches(): void {
     }
     if (visibleNow) {
       result = result
-        .filter((m) => (elevations.get(m.entry.noradId) ?? -90) > 0)
+        .filter((m) => (elevations.get(m.entry.noradId) ?? -90) >= minElevDeg)
         .sort((a, b) => (elevations.get(b.entry.noradId) ?? -90) - (elevations.get(a.entry.noradId) ?? -90));
     }
   }
@@ -105,7 +108,7 @@ function computeMatches(): void {
 
 function whenText(entry: RadioEntry): string {
   const elevation = elevations.get(entry.noradId);
-  if (elevation != null && elevation > 0) return `▲ ${Math.round(elevation)}°`;
+  if (elevation != null && elevation >= minElevDeg && elevation > 0) return `▲ ${Math.round(elevation)}°`;
   const cached = passCache.get(entry.noradId);
   const rise = cached?.pass?.rise?.time;
   if (rise) {
@@ -127,7 +130,7 @@ function schedulePasses(): void {
   const objects = getState().objects;
   const todo = matches
     .slice(0, MAX_ROWS)
-    .filter((m) => (elevations.get(m.entry.noradId) ?? -90) <= 0)
+    .filter((m) => (elevations.get(m.entry.noradId) ?? -90) < Math.max(minElevDeg, 0.001))
     .filter((m) => {
       const cached = passCache.get(m.entry.noradId);
       return !cached || now - cached.at > PASS_CACHE_MS;
@@ -269,6 +272,10 @@ function renderShell(): void {
         <label class="radio-check"><input type="checkbox" id="radio-amateur"${filters.amateurOnly ? ' checked' : ''} /> ${escapeHtml(t('radio.amateur_only'))}</label>
         <label class="radio-check"><input type="checkbox" id="radio-visible"${visibleNow ? ' checked' : ''} /> ${escapeHtml(t('radio.visible_now'))}</label>
       </div>
+      <label class="radio-check radio-minelev"><span>${escapeHtml(t('radio.minelev'))}</span>
+        <select id="radio-minelev" aria-describedby="radio-minelev-hint">${MIN_ELEVATION_CHOICES.map((d) => `<option value="${d}"${d === minElevDeg ? ' selected' : ''}>${d === 0 ? escapeHtml(t('radio.minelev_any')) : d + '°'}</option>`).join('')}</select>
+      </label>
+      <p class="muted radio-hint" id="radio-minelev-hint">${escapeHtml(t('radio.minelev_hint'))}</p>
       <div id="radio-location"></div>
 
       <input type="search" id="radio-search" class="radio-search" placeholder="${escapeHtml(t('radio.search'))}" aria-label="${escapeHtml(t('radio.search'))}" value="${escapeHtml(searchValue)}" autocomplete="off" />
@@ -394,6 +401,12 @@ function onPanelInput(event: Event): void {
 
 function onPanelChange(event: Event): void {
   const target = event.target as HTMLInputElement;
+  if (target.id === 'radio-minelev') {
+    minElevDeg = Number(target.value);
+    computeMatches();
+    renderResults();
+    return;
+  }
   if (target.id === 'radio-amateur') setFilters({ amateurOnly: target.checked });
   if (target.id === 'radio-visible') {
     visibleNow = target.checked;
@@ -469,6 +482,7 @@ export function resetRadioPanelForTests(): void {
   closeRadioPanel();
   filters = { ...DEFAULT_RADIO_FILTERS };
   visibleNow = false;
+  minElevDeg = 5;
   locationState = 'idle';
   passCache.clear();
   matches = [];

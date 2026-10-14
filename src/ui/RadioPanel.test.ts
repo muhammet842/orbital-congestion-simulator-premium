@@ -280,6 +280,20 @@ describe('above my horizon now', () => {
     expect([...document.querySelectorAll('.radio-row-when')].map((e) => e.textContent)).toEqual(['▲ 40°', '▲ 10°']);
   });
 
+  it('applies the minimum elevation to "above my horizon" (default 5°, adjustable)', () => {
+    sensors.location = { latitudeDeg: 41, longitudeDeg: 29 };
+    openRadioPanel();
+    toggle($('#radio-visible'), true);
+    const select = $('#radio-minelev') as unknown as HTMLSelectElement;
+    expect(select.value).toBe('5');
+    expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'NOAA 19']); // 40° and 10°
+
+    select.value = '15';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(rowNames()).toEqual(['ISS (ZARYA) Amateur']);
+    expect($('#radio-minelev-hint').textContent).toContain('15°');
+  });
+
   it('explains a blocked location without breaking the list', () => {
     stubGeolocation('denied');
     openRadioPanel();
