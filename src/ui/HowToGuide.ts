@@ -26,8 +26,10 @@ const STEPS = [
   'search',
   'details',
   'approaches',
+  'launches',
   'events',
   'time',
+  'radio',
   'projection',
 ] as const;
 
@@ -48,8 +50,10 @@ const STEP_CONFIG: StepConfig[] = [
   { id: 'search', target: '#tour-region-search', panel: 'left' },
   { id: 'details', target: '#right-panel', panel: 'right' },
   { id: 'approaches', target: '#tour-region-approaches', panel: 'left' },
+  { id: 'launches', target: '#tour-region-launches', panel: 'left' },
   { id: 'events', target: '.event-cards', panel: 'left' },
   { id: 'time', target: '#time-bar', panel: null },
+  { id: 'radio', target: '#radio-panel-btn', panel: null },
   // Open the projection modal and spotlight the panel itself (not the tiny
   // header button). The tooltip docks beside it in the free space.
   { id: 'projection', target: '#kessler-panel', panel: null, openKessler: true },
@@ -214,8 +218,12 @@ function scrollTargetIntoView(target: HTMLElement): void {
 
   const parentRect = parent.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
-  const delta =
-    targetRect.top - parentRect.top - (parentRect.height - targetRect.height) / 2;
+  // A target taller than the panel cannot be centred without cutting off its
+  // heading, so line its top edge up with the panel instead.
+  const tall = targetRect.height > parentRect.height - 16;
+  const delta = tall
+    ? targetRect.top - parentRect.top - 8
+    : targetRect.top - parentRect.top - (parentRect.height - targetRect.height) / 2;
   parent.scrollTop += delta;
 }
 

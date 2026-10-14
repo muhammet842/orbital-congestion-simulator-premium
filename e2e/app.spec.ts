@@ -98,7 +98,7 @@ test.describe('How-to guide', () => {
 
   test('opens the UI tour spotlight from the help button', async ({ page }) => {
     await page.locator('#help-guide-btn').click();
-    await expect(page.locator('.tour-progress')).toHaveText('1 / 9');
+    await expect(page.locator('.tour-progress')).toHaveText('1 / 11');
     await expect(page.locator('#tour-highlight')).toBeVisible();
     await expect(page.locator('#tour-skip')).toBeVisible();
     await expect(page.locator('#thesis-collision')).toHaveCount(0);
