@@ -20,6 +20,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **New to this catalog** — filter objects first seen in this app’s TLE list within the last 14 days (`firstSeenAt`)
 - **Object details** — altitude, velocity, country/owner, orbit trail, ground track, footprint, and published radio-frequency metadata
 - **Radio-frequency reference** — verified uplink, downlink, beacon/listening frequencies, modulation modes, operational notes, and direct source links for supported spacecraft and constellations. Channels the sources identify as amateur-radio services carry an **AMATEUR** badge and are listed first
+- **Radio panel** — the header **Radio** button opens a filterable list of the satellites you can actually receive: bands (Easy VHF/UHF up to 500 MHz, 2 m, 70 cm, 400 MHz, 137 MHz weather, or the dish bands), modes (FM, CW, SSB, digital), amateur-only, and **above my horizon now** with next-pass times. Export the list as CSV or copy a link that carries your filters
 - **Close-approach alerts** — next-24h scanning with sortable cards and a VERIFY playback mode (T−60s → CPA → T+15s)
 - **Upcoming launches** — the next rocket launches (and any in flight) with rocket, provider, pad, destination and a live countdown; pick one to mark its pad on the globe, or jump to the ISS for resupply missions
 - **Historical event replays** — seven landmark collisions, ASAT tests, and breakups
@@ -103,6 +104,8 @@ On phones the side panels open as drawers (the ☰ and ℹ buttons in the header
 
 In the radio table, the **AMATEUR** badge appears only where the source data says a channel is an amateur-radio service. Channels confirmed as other services (weather, navigation, broadband…) are dimmed and listed last. A channel with no badge and no dimming is simply **unclassified** by its source, which is not the same as not being amateur.
 
+The **Radio** button (📻) in the header opens the radio panel. It starts on **Easy · VHF/UHF** (about 425 satellites a simple handheld radio or small Yagi can hear); narrow it with a band chip such as **70 cm**, a mode such as **CW**, **Amateur only**, or a name / NORAD search. **Above my horizon now** lists what is up at your location, highest first, with next-pass times for the rest; it uses the location saved by the Spotter, or **Use my location** (one request, not tracking). Click a row to open that satellite, **Export CSV** to download the list, or **Copy link** to share the exact filters (e.g. `?radio=ham70cm&mode=fm&amateur=1`).
+
 In **Upcoming Launches**, click a launch to fly to its pad and mark it on the globe (click again to clear it). For missions to the International Space Station, **Show ISS** selects the station. Countdowns use real time, whatever time the globe is showing. When a webcast is known, **Watch** opens it in a new tab.
 
 Deep links: `?object=<NORAD>` and `?event=<id>`.
@@ -149,12 +152,13 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 ## Privacy
 
 - No analytics, cookies, accounts or tracking. After the page loads, the app only talks to its own origin (fonts are self-hosted too). Launch data is fetched from The Space Devs by the site’s server function, so your browser never contacts them and nothing about you is sent.
-- Three small items are kept in your browser's local storage and never sent anywhere: your language, whether you have seen the tour, and — only if you use the Spotter — your last observer location.
-- Location and device-motion permissions are requested only when you use the Spotter, and the browser asks you first.
+- Three small items are kept in your browser's local storage and never sent anywhere: your language, whether you have seen the tour, and — only if you use the Spotter or the Radio panel’s **Use my location** — your last observer location.
+- Location and device-motion permissions are requested only when you use the Spotter (or press **Use my location** in the Radio panel), and the browser asks you first. The Radio panel asks once; it never tracks you.
 
 ## Limitations (read before demoing)
 
 - **Close approaches are screening estimates, not operational conjunction assessments** — they are computed from public TLEs, which typically carry a kilometre or more of position error and no uncertainty (covariance) data. Treat distances and risk labels as illustrative; real operators use higher-precision tracking.
+- **Radio bands are typical ranges, not allocations** — amateur band edges differ by region, so the presets are a search aid. “Above my horizon now” depends on TLE accuracy and your location; frequencies come from published sources and can be retuned, and Doppler shift moves a signal by several kHz during a pass. A channel with no AMATEUR badge may simply be unclassified by its source.
 - **Alert threshold** — the list shows pairs predicted to pass within 3 km in the next 24 hours. On a busy day that is thousands of events, so the app shows the few most relevant and a "+N more" count.
 - **Online only** — there is no offline mode or installable app; the catalog and the page are fetched on each visit.
 - **Launches are schedules, not tracking** — times are “no earlier than” estimates that often slip, and the data can lag by up to ~15 minutes. The globe marks the launch pad only; there is no live position for a rocket in flight, because no public feed provides one.
@@ -202,7 +206,8 @@ Open the [live demo](https://orbital-congestion-simulator-premiu.vercel.app) (de
 3. **Historical Events** — start with Iridium 33 ↔ Cosmos 2251; scrub or Exit when done.
 4. **Close Approach Alerts** — if cards appear, open one for VERIFY playback (may take a minute to scan).
 5. **Future Projection** — open the projection panel from the header and move the sliders (no separate Run).
-6. **Phone** — select a bright target → **Spot from here**; allow location/motion. Outside + figure-eight if the compass drifts.
+6. **Radio** — tap the 📻 header button; try **70 cm** + **CW**, **Amateur only**, then **Above my horizon now** (allow location) and **Export CSV**.
+7. **Phone** — select a bright target → **Spot from here**; allow location/motion. Outside + figure-eight if the compass drifts.
 
 Positions are SGP4 from a periodic TLE snapshot, not a live tracking API.
 

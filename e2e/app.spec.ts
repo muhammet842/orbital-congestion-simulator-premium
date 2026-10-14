@@ -163,6 +163,55 @@ test.describe('Left panel filters', () => {
   });
 });
 
+test.describe('Radio panel', () => {
+  test('opens from the header with the easy VHF/UHF filter and a list of satellites', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#radio-panel-btn').click();
+    const dialog = page.getByRole('dialog', { name: 'Satellite radio' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.radio-row').first()).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByRole('button', { name: /Easy/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.locator('#radio-summary')).toContainText(/\d+ satellites/);
+  });
+
+  test('narrows the list with a band and a mode chip, and closes with Escape', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#radio-panel-btn').click();
+    const summary = page.locator('#radio-summary');
+    await expect(summary).toContainText(/satellites/, { timeout: 15_000 });
+    const easy = Number((await summary.innerText()).match(/(\d+) satellites/)![1]);
+
+    await page.locator('[data-band="ham70cm"]').click();
+    const ham = Number((await summary.innerText()).match(/(\d+) satellites/)![1]);
+    expect(ham).toBeGreaterThan(0);
+    expect(ham).toBeLessThan(easy);
+
+    await page.locator('[data-mode="cw"]').click();
+    const cw = Number((await summary.innerText()).match(/(\d+) satellites/)![1]);
+    expect(cw).toBeLessThanOrEqual(ham);
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#radio-panel')).toHaveCount(0);
+  });
+
+  test('a shared link opens the panel with its filters', async ({ page }) => {
+    await page.goto('/?radio=ham70cm&mode=fm&amateur=1');
+    const dialog = page.getByRole('dialog', { name: 'Satellite radio' });
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByRole('button', { name: '70 cm' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.getByRole('button', { name: 'FM', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#radio-amateur')).toBeChecked();
+  });
+
+  test('picking a satellite closes the panel and selects it', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#radio-panel-btn').click();
+    await page.locator('.radio-row-main').first().click();
+    await expect(page.locator('#radio-panel')).toHaveCount(0);
+    await expect(page).toHaveURL(/object=\d+/, { timeout: 10_000 });
+  });
+});
+
 test.describe('Deep links', () => {
   test('?event=iridium-cosmos selects the featured historical event card', async ({ page }) => {
     await page.goto('/?event=iridium-cosmos');
