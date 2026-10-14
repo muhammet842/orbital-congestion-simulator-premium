@@ -337,6 +337,15 @@ describe('computeFilteredIndices with categoryFilter', () => {
 
   const layerFilters = { LEO: true, MEO: true, GEO: true, HEO: true };
 
+  it('finds a docked stack by the name or NORAD id of one of its modules', () => {
+    const objects = [
+      makeObj({ noradId: 25544, name: 'ISS (ZARYA)', dockedComponents: [{ noradId: 49044, name: 'ISS (NAUKA)' }] }),
+      makeObj({ noradId: 2, name: 'OTHER' }),
+    ];
+    expect(computeFilteredIndices(objects, layerFilters, 'nauka', null, null, false, 'all')).toEqual([0]);
+    expect(computeFilteredIndices(objects, layerFilters, '49044', null, null, false, 'all')).toEqual([0]);
+  });
+
   it('includes all categories when filter is all', () => {
     const objects = [
       makeObj({ noradId: 1, category: 'active' }),

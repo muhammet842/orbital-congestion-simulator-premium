@@ -1,7 +1,8 @@
 /**
  * Name/NORAD heuristics that fill country + owner when SATCAT join is missing.
- * Prefer NORAD overrides (e.g. ISS 25544) over regex so catalog quirks like
- * ISS (NAUKA) / separate modules stay intentional. Keep TURKISH_NORAD_IDS in
+ * Prefer NORAD overrides (e.g. ISS 25544) over regex. Docked modules such as
+ * ISS (NAUKA) are merged into their stack before this runs (dockedStacks.ts),
+ * but the patterns still cover them when undocked. Keep TURKISH_NORAD_IDS in
  * sync with scripts/fetch-tle.mjs PRIORITY_NORAD_IDS.
  */
 import type { ObjectCategory } from '../types';

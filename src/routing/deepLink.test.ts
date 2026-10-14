@@ -43,6 +43,14 @@ describe('initDeepLink — restoring selection from the URL', () => {
     expect(getState().selectedIndex).toBe(1);
   });
 
+  it('opens the docked stack for the NORAD id of one of its modules', () => {
+    const objects = makeObjects();
+    (objects[0] as { dockedComponents?: unknown }).dockedComponents = [{ noradId: 49044, name: 'ISS (NAUKA)' }];
+    goto('/?object=49044');
+    initDeepLink(objects);
+    expect(getState().selectedIndex).toBe(0);
+  });
+
   it('selects the matching historical event when ?event=<id> is present', () => {
     goto('/?event=iridium-cosmos');
     initDeepLink(makeObjects());

@@ -294,7 +294,11 @@ export function objectMatchesQuery(obj: TrackedObject, queryLower: string): bool
     obj.name.toLowerCase().includes(normalized) ||
     String(obj.noradId).includes(normalized) ||
     obj.country.toLowerCase().includes(normalized) ||
-    obj.owner.toLowerCase().includes(normalized)
+    obj.owner.toLowerCase().includes(normalized) ||
+    // "Nauka" or 49044 finds the ISS stack it is docked to.
+    (obj.dockedComponents?.some(
+      (part) => part.name.toLowerCase().includes(normalized) || String(part.noradId).includes(normalized),
+    ) ?? false)
   );
 }
 

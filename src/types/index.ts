@@ -42,6 +42,14 @@ export interface TleRecord {
   /** ISO timestamp of the first automated fetch that observed this NORAD ID.
    *  Absent for objects that were already known before this field existed. */
   firstSeenAt?: string;
+  /** Other catalog objects docked to this one (same published elements),
+   *  merged into it by mergeDockedStacks. */
+  dockedComponents?: DockedComponent[];
+}
+
+export interface DockedComponent {
+  noradId: number;
+  name: string;
 }
 
 export interface TleDataset {
