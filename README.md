@@ -20,7 +20,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Upcoming launches** — the next rocket launches (and any in flight) with rocket, pad, destination and a live countdown; pick one to mark its pad on the globe or jump to the ISS for resupply missions.
 - **Honest about accuracy** — close approaches are screening estimates from public TLEs, not operational conjunction assessments, and the app says so wherever they appear. Launches are schedules, not live tracking.
 - **Private by design** — no analytics, cookies, accounts or third-party requests: fonts are self-hosted, and launch data is fetched by the site’s own server function.
-- **Works on a phone** — responsive layout, a guided tour, and a Spotter mode that points you at a satellite using your phone’s sensors. Available in English, Turkish, German, Russian and Chinese.
+- **Works on a phone** — responsive layout (side panels slide in as drawers; on a computer they collapse to give the globe more room), a guided tour, and a Spotter mode that points you at a satellite using your phone’s sensors. Available in English, Turkish, German, Russian and Chinese.
 
 ## Features
 
@@ -110,7 +110,7 @@ On first visit the app asks you to **choose a language**, then walks through the
 
 Select a spacecraft to inspect its orbital parameters and, when published data is available, its radio services, uplink and downlink frequencies, receive-only channels, transmission modes, operational notes, and linked reference sources. Frequency details are intentionally omitted for debris objects.
 
-On phones the side panels open as drawers (the ☰ and ℹ buttons in the header), and the radio table switches to a stacked card layout.
+On phones the side panels open as drawers and the radio table switches to a stacked card layout. On a computer the same ☰ and ℹ buttons in the header **collapse** the side panels so the globe fills the space; your choice is remembered, and picking a satellite re-opens the details panel.
 
 In the radio table, the **AMATEUR** badge appears only where the source data says a channel is an amateur-radio service. Channels confirmed as other services (weather, navigation, broadband…) are dimmed and listed last. A channel with no badge and no dimming is simply **unclassified** by its source, which is not the same as not being amateur.
 

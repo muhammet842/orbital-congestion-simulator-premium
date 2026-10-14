@@ -4,6 +4,34 @@ import { getLang, setLang, SUPPORTED_LANGS, t } from '../i18n/i18n';
 /** Must match the max-width used for `.app-grid`'s mobile layout in style.css. */
 export const MOBILE_BREAKPOINT_PX = 860;
 
+/** Remembered between visits: which side panels the user collapsed on desktop. */
+const LS_PANELS_KEY = 'orbital-panels';
+
+interface CollapsedPanels {
+  left: boolean;
+  right: boolean;
+}
+
+function loadCollapsed(): CollapsedPanels {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LS_PANELS_KEY) ?? 'null');
+    return { left: parsed?.left === true, right: parsed?.right === true };
+  } catch {
+    return { left: false, right: false };
+  }
+}
+
+function saveCollapsed(state: CollapsedPanels): void {
+  try {
+    localStorage.setItem(LS_PANELS_KEY, JSON.stringify(state));
+  } catch {
+    // storage blocked: the choice just won't survive a reload
+  }
+}
+
+/** Set by createLayout so the guided tour can reveal a collapsed panel temporarily. */
+let desktopPanels: { setTour: (side: 'left' | 'right' | null) => void } | null = null;
+
 export function createLayout(root: HTMLElement): {
   leftPanel: HTMLElement;
   rightPanel: HTMLElement;
@@ -65,6 +93,7 @@ export function createLayout(root: HTMLElement): {
   const timeBar = root.querySelector<HTMLElement>('#time-bar')!;
 
   setupMobilePanelToggles(root, leftPanel, rightPanel);
+  setupDesktopPanelToggles(root);
   setupLangSelect(root);
 
   return { leftPanel, rightPanel, sceneContainer, timeBar };
@@ -116,8 +145,12 @@ function setupMobilePanelToggles(
     }
   };
 
-  toggleLeftBtn.addEventListener('click', () => togglePanel(leftPanel, toggleLeftBtn));
-  toggleRightBtn.addEventListener('click', () => togglePanel(rightPanel, toggleRightBtn));
+  toggleLeftBtn.addEventListener('click', () => {
+    if (mobileQuery.matches) togglePanel(leftPanel, toggleLeftBtn);
+  });
+  toggleRightBtn.addEventListener('click', () => {
+    if (mobileQuery.matches) togglePanel(rightPanel, toggleRightBtn);
+  });
   backdrop.addEventListener('click', closePanels);
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closePanels();
@@ -153,6 +186,69 @@ function setupMobilePanelToggles(
   });
 }
 
+/**
+ * Desktop: the ☰ and ℹ header buttons collapse the left and right panels so the
+ * globe can take the space. The choice is remembered. Showing something in the
+ * details panel (selecting a satellite, replaying an event, verifying a close
+ * approach) opens it again for that visit, so a click never seems to do nothing.
+ * Phones keep their slide-in drawers (setupMobilePanelToggles).
+ */
+function setupDesktopPanelToggles(root: HTMLElement): void {
+  const grid = root.querySelector<HTMLElement>('.app-grid')!;
+  const toggleLeft = root.querySelector<HTMLButtonElement>('#toggle-left-panel')!;
+  const toggleRight = root.querySelector<HTMLButtonElement>('#toggle-right-panel')!;
+  const mobileQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`);
+
+  let collapsed = loadCollapsed();
+  let tourSide: 'left' | 'right' | null = null;
+
+  const apply = (): void => {
+    const left = collapsed.left && tourSide !== 'left';
+    const right = collapsed.right && tourSide !== 'right';
+    grid.classList.toggle('app-grid--left-collapsed', left);
+    grid.classList.toggle('app-grid--right-collapsed', right);
+    if (!mobileQuery.matches) {
+      toggleLeft.setAttribute('aria-expanded', String(!left));
+      toggleRight.setAttribute('aria-expanded', String(!right));
+    }
+  };
+
+  const toggle = (side: keyof CollapsedPanels): void => {
+    if (mobileQuery.matches) return;
+    collapsed = { ...collapsed, [side]: !collapsed[side] };
+    saveCollapsed(collapsed);
+    apply();
+  };
+  toggleLeft.addEventListener('click', () => toggle('left'));
+  toggleRight.addEventListener('click', () => toggle('right'));
+
+  // Something to show in the details panel: open it again (not remembered).
+  const selectionKey = (): string => {
+    const s = getState();
+    return [s.selectedIndex, s.selectedEventId, s.selectedConjunction ? 'c' : null].join('|');
+  };
+  let lastSelection = selectionKey();
+  subscribe(() => {
+    const key = selectionKey();
+    if (key === lastSelection) return;
+    lastSelection = key;
+    const hasSelection = key !== '||';
+    if (hasSelection && collapsed.right && !mobileQuery.matches) {
+      collapsed = { ...collapsed, right: false };
+      apply();
+    }
+  });
+
+  mobileQuery.addEventListener('change', apply);
+  desktopPanels = {
+    setTour: (side) => {
+      tourSide = side;
+      apply();
+    },
+  };
+  apply();
+}
+
 export function isMobileLayout(): boolean {
   return (
     typeof window.matchMedia === 'function' &&
@@ -174,6 +270,9 @@ export function setTourPanel(side: 'left' | 'right' | null): void {
   backdrop.classList.remove('mobile-backdrop--visible');
   toggleLeftBtn.setAttribute('aria-expanded', 'false');
   toggleRightBtn.setAttribute('aria-expanded', 'false');
+
+  // Desktop: show a collapsed panel for its tour step, restore the user's choice otherwise.
+  desktopPanels?.setTour(isMobileLayout() ? null : side);
 
   if (!isMobileLayout() || side == null) return;
 
