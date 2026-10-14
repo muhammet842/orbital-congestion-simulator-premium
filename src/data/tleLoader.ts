@@ -12,6 +12,7 @@ import { propagateObject } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
 import { getRadioFrequencies } from './radioFrequencies';
 import { validateDataset } from './validateDataset';
+import { mergeDockedStacks } from './dockedStacks';
 import { DataUnavailableError } from '../bootErrors';
 import type { TleDataset, TrackedObject, ObjectCategory } from '../types';
 
@@ -63,7 +64,8 @@ export async function loadTleDataset(): Promise<TleDataset> {
   if (droppedCount > 0) {
     console.warn(`[tleLoader] Dropped ${droppedCount} invalid record(s):`, problems);
   }
-  const objects = filterKnownDeorbitedRecords(dataset.objects);
+  // Docked modules share one published orbit: show each stack as one object.
+  const objects = mergeDockedStacks(filterKnownDeorbitedRecords(dataset.objects));
   return {
     ...dataset,
     objects,

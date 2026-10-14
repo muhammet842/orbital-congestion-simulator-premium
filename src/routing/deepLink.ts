@@ -50,6 +50,12 @@ let noradToIndex: Map<number, number> = new Map();
 
 function buildLookup(objects: TrackedObject[]): void {
   noradToIndex = new Map(objects.map((o, i) => [o.noradId, i]));
+  // ?object=49044 (Nauka) opens the ISS stack it is docked to.
+  objects.forEach((o, i) => {
+    for (const part of o.dockedComponents ?? []) {
+      if (!noradToIndex.has(part.noradId)) noradToIndex.set(part.noradId, i);
+    }
+  });
 }
 
 // ── URL ↔ state sync ──────────────────────────────────────────────────────────

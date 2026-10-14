@@ -75,6 +75,32 @@ describe('initRightPanel – DOM smoke', () => {
     expect(container.querySelector('#btn-ground-track')).not.toBeNull();
   });
 
+  it('lists the docked parts of a stack', () => {
+    const obj = {
+      ...makeFakeObject('ISS (ZARYA)'),
+      dockedComponents: [
+        { noradId: 36086, name: 'POISK' },
+        { noradId: 49044, name: 'ISS (NAUKA)' },
+      ],
+    };
+    setState({ objects: [obj], filteredIndices: [0] });
+    selectObject(0);
+
+    const container = document.createElement('div');
+    initRightPanel(container);
+
+    const items = Array.from(container.querySelectorAll('.docked-parts li')).map((li) => li.textContent);
+    expect(items).toEqual(['POISK NORAD 36086', 'ISS (NAUKA) NORAD 49044']);
+  });
+
+  it('shows no docked-parts row for a single object', () => {
+    setState({ objects: [makeFakeObject()], filteredIndices: [0] });
+    selectObject(0);
+    const container = document.createElement('div');
+    initRightPanel(container);
+    expect(container.querySelector('.docked-parts')).toBeNull();
+  });
+
   it('shows a dashed radio-frequency row when no verified data exists', () => {
     const obj = makeFakeObject();
     setState({ objects: [obj], filteredIndices: [0] });

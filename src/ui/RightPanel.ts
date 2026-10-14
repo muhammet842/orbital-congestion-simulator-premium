@@ -13,7 +13,7 @@ import {
   isCoOrbitingPair,
 } from '../orbital/conjunction';
 import { propagateObject, toObjectSnapshot } from '../orbital/propagator';
-import type { ConjunctionEvent } from '../types';
+import type { ConjunctionEvent, DockedComponent } from '../types';
 import {
   formatUtcDateTime,
   getSimulationTime,
@@ -422,6 +422,7 @@ function render(container: HTMLElement): void {
     <dl class="detail-list detail-list--meta">
       <div class="detail-row"><dt>${t('sat.country')}</dt><dd>${escapeHtml(snapshot.country)}</dd></div>
       <div class="detail-row"><dt>${t('sat.operator_owner')}</dt><dd>${escapeHtml(snapshot.owner)}</dd></div>
+      ${renderDockedComponents(obj.dockedComponents)}
     </dl>
     <hr class="detail-divider" />
     <dl class="detail-list">
@@ -451,6 +452,15 @@ function render(container: HTMLElement): void {
  */
 function radioCell(label: string, value: string | undefined): string {
   return `<td data-label="${escapeHtml(label)}"${value ? '' : ' class="radio-cell-empty"'}>${escapeHtml(value ?? '—')}</td>`;
+}
+
+/** Modules and vehicles merged into this object (see data/dockedStacks). */
+function renderDockedComponents(parts: DockedComponent[] | undefined): string {
+  if (!parts || parts.length === 0) return '';
+  const items = parts
+    .map((part) => `<li>${escapeHtml(part.name)} <span class="muted">NORAD ${part.noradId}</span></li>`)
+    .join('');
+  return `<div class="detail-row detail-row--docked"><dt>${t('sat.docked_parts')}</dt><dd><ul class="docked-parts">${items}</ul></dd></div>`;
 }
 
 function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined): string {
