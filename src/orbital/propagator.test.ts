@@ -20,6 +20,17 @@ describe('propagateObject', () => {
     expect(result!.positionEci.x).toBeTypeOf('number');
   });
 
+  it('reports the point beneath the object, within the orbit inclination', () => {
+    const satrec = twoline2satrec(ISS_LINE1, ISS_LINE2);
+    const result = propagateObject(satrec, new Date(Date.UTC(2019, 8, 6, 1, 10, 0)))!;
+    expect(Math.abs(result.latitudeDeg!)).toBeLessThanOrEqual(51.7);
+    expect(result.longitudeDeg!).toBeGreaterThanOrEqual(-180);
+    expect(result.longitudeDeg!).toBeLessThanOrEqual(180);
+    // It moves: ~10 minutes later the ground point is far away.
+    const later = propagateObject(satrec, new Date(Date.UTC(2019, 8, 6, 1, 20, 0)))!;
+    expect(Math.abs(later.longitudeDeg! - result.longitudeDeg!)).toBeGreaterThan(5);
+  });
+
   it('returns null for a date far outside a valid epoch window', () => {
     const satrec = twoline2satrec(ISS_LINE1, ISS_LINE2);
     // Decades away — SGP4 typically fails / returns bad state.

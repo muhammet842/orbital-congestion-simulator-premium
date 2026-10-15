@@ -6,12 +6,17 @@ import {
   type SatRec,
 } from 'satellite.js';
 import { classifyOrbit } from './classify';
+import { normalizeLongitudeDeg } from './groundPosition';
 import type { ObjectSnapshot, OrbitLayer } from '../types';
 
 export interface PropagationResult {
   positionEci: { x: number; y: number; z: number };
   velocityEci: { x: number; y: number; z: number };
   altitudeKm: number;
+  /** Point on Earth directly beneath the object (degrees, longitude -180..180).
+   *  Set by propagateObject; the worker's bulk buffer does not carry it. */
+  latitudeDeg?: number;
+  longitudeDeg?: number;
   velocityKmS: number;
   inclinationDeg: number;
   layer: OrbitLayer;
@@ -71,6 +76,8 @@ export function propagateObject(satrec: SatRec, date: Date): PropagationResult |
     positionEci: { x: position.x, y: position.y, z: position.z },
     velocityEci: { x: vx, y: vy, z: vz },
     altitudeKm,
+    latitudeDeg: (geodetic.latitude * 180) / Math.PI,
+    longitudeDeg: normalizeLongitudeDeg((geodetic.longitude * 180) / Math.PI),
     velocityKmS,
     inclinationDeg: satrec.inclo != null ? (satrec.inclo * 180) / Math.PI : 0,
     layer,
@@ -89,6 +96,8 @@ export function toObjectSnapshot(
     noradId,
     name,
     altitudeKm: propagation.altitudeKm,
+    latitudeDeg: propagation.latitudeDeg ?? Number.NaN,
+    longitudeDeg: propagation.longitudeDeg ?? Number.NaN,
     velocityKmS: propagation.velocityKmS,
     layer: propagation.layer,
     category,

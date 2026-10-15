@@ -80,6 +80,8 @@ export interface ObjectSnapshot {
   noradId: number;
   name: string;
   altitudeKm: number;
+  latitudeDeg: number;
+  longitudeDeg: number;
   velocityKmS: number;
   layer: OrbitLayer;
   category: ObjectCategory;
