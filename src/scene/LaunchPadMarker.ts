@@ -85,8 +85,15 @@ export class LaunchPadMarker {
     this.staticRing.lookAt(this.outward);
     this.pulseRing.lookAt(this.outward);
 
-    const phase = (nowMs % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
+    // A still ring for people who asked their device for less motion.
+    const phase = prefersReducedMotion() ? 0.35 : (nowMs % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
     this.pulseRing.scale.setScalar(1 + phase * 2.2);
     (this.pulseRing.material as MeshBasicMaterial).opacity = 0.6 * (1 - phase);
   }
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
 }

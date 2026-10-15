@@ -73,8 +73,10 @@ function rangeTitle(band: BandId): string {
 
 function formatIn(ms: number): string {
   const minutes = Math.max(0, Math.round(ms / 60_000));
-  if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
-  return `${minutes}m`;
+  const h = (n: number | string): string => t('dur.h').replace('{n}', String(n));
+  const m = (n: number | string): string => t('dur.m').replace('{n}', String(n));
+  if (minutes >= 60) return `${h(Math.floor(minutes / 60))} ${m(String(minutes % 60).padStart(2, '0'))}`;
+  return m(minutes);
 }
 
 function fill(template: string, values: Record<string, string | number>): string {

@@ -1,6 +1,7 @@
 import type { PerspectiveCamera, Vector3, WebGLRenderer } from 'three';
 import type { EventType } from '../ui/EventCards';
 import { escapeHtml } from '../ui/escapeHtml';
+import { t } from '../i18n/i18n';
 
 const GM = 398600;           // km³ s⁻²
 const EARTH_RADIUS_KM = 6371;
@@ -33,10 +34,11 @@ function orbitalVelocityKmS(altKm: number): number {
 }
 
 const EVENT_TYPE_META: Record<EventType, { typeA: string; typeB: string; iconA: string; iconB: string }> = {
-  collision: { typeA: 'Satellite', typeB: 'Satellite',    iconA: '🛰', iconB: '🛰' },
-  asat:      { typeA: 'Satellite', typeB: 'Interceptor',  iconA: '🛰', iconB: '⚡' },
-  docking:   { typeA: 'Spacecraft', typeB: 'Target',      iconA: '🚀', iconB: '🛰' },
-  breakup:   { typeA: 'Satellite', typeB: '',             iconA: '🛰', iconB: '' },
+  // typeA / typeB are translation keys ('' = no second object).
+  collision: { typeA: 'replay.kind.satellite',  typeB: 'replay.kind.satellite',   iconA: '🛰', iconB: '🛰' },
+  asat:      { typeA: 'replay.kind.satellite',  typeB: 'replay.kind.interceptor', iconA: '🛰', iconB: '⚡' },
+  docking:   { typeA: 'replay.kind.spacecraft', typeB: 'replay.kind.target',      iconA: '🚀', iconB: '🛰' },
+  breakup:   { typeA: 'replay.kind.satellite',  typeB: '',                        iconA: '🛰', iconB: '' },
 };
 
 function buildPanelHTML(
@@ -52,15 +54,15 @@ function buildPanelHTML(
       <span class="era-lp__name">${escapeHtml(name)}</span>
     </div>
     <div class="era-lp__row">
-      <span class="era-lp__key">Type</span>
-      <span class="era-lp__val">${escapeHtml(type)}</span>
+      <span class="era-lp__key">${escapeHtml(t('replay.type'))}</span>
+      <span class="era-lp__val">${escapeHtml(type ? t(type) : '')}</span>
     </div>
     <div class="era-lp__row">
-      <span class="era-lp__key">Altitude</span>
+      <span class="era-lp__key">${escapeHtml(t('sat.altitude'))}</span>
       <span class="era-lp__val">${Math.round(altKm)} km</span>
     </div>
     <div class="era-lp__row">
-      <span class="era-lp__key">Velocity</span>
+      <span class="era-lp__key">${escapeHtml(t('sat.velocity'))}</span>
       <span class="era-lp__val">${velKmS.toFixed(1)} km/s</span>
     </div>
   `;
@@ -177,7 +179,7 @@ export class EventReplayLabels {
         const velB   = eventType === 'asat'
           ? Math.min(9.5, orbitalVelocityKmS(altB) * 1.2)
           : orbitalVelocityKmS(altB);
-        const label  = nameB ?? (eventType === 'asat' ? 'ASAT MISSILE' : 'OBJECT B');
+        const label  = nameB ?? (eventType === 'asat' ? t('replay.asat_missile') : t('replay.object_b'));
 
         this.panelB.innerHTML = buildPanelHTML(label, icon, type, altB, velB);
         this.panelB.hidden = false;

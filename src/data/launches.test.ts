@@ -93,6 +93,13 @@ describe('formatCountdown', () => {
   ])('%i ms -> %s', (ms, expected) => {
     expect(formatCountdown(ms)).toBe(expected);
   });
+
+  it('uses the unit templates it is given', () => {
+    const tr = { d: '{n}g', h: '{n}sa', m: '{n}dk', s: '{n}sn' };
+    expect(formatCountdown(3 * 24 * HOUR + 5 * HOUR, tr)).toBe('T− 3g 5sa');
+    expect(formatCountdown(12 * MIN + 8_000, tr)).toBe('T− 12dk 08sn');
+    expect(formatCountdown(-(HOUR + 2 * MIN), tr)).toBe('T+ 1sa 02dk');
+  });
 });
 
 describe('launchPollIntervalMs', () => {

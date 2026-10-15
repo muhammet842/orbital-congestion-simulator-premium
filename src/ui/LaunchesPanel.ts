@@ -14,6 +14,7 @@ import {
   ISS_NORAD_ID,
   fetchLaunches,
   formatCountdown,
+  type DurationUnits,
   launchPollIntervalMs,
   type Launch,
 } from '../data/launches';
@@ -24,6 +25,11 @@ type LoadState = 'loading' | 'ready' | 'error';
 
 const RETRY_AFTER_ERROR_MS = 60_000;
 const LOCALES: Record<string, string> = { en: 'en-GB', tr: 'tr-TR', de: 'de-DE', ru: 'ru-RU', zh: 'zh-CN' };
+
+/** Countdown units in the current language ("3d 5h", "3g 5sa", …). */
+function durationUnits(): DurationUnits {
+  return { d: t('dur.d'), h: t('dur.h'), m: t('dur.m'), s: t('dur.s') };
+}
 
 function formatNet(netIso: string): string {
   const locale = LOCALES[getLang()] ?? 'en-GB';
@@ -59,7 +65,7 @@ function renderCard(launch: Launch, selectedId: string | null, issAvailable: boo
 
   // A placeholder date is not a countdown.
   const dateTbd = launch.status === 'tbd';
-  const countdown = dateTbd ? t('launch.status.tbd') : formatCountdown(Date.parse(launch.net) - nowMs);
+  const countdown = dateTbd ? t('launch.status.tbd') : formatCountdown(Date.parse(launch.net) - nowMs, durationUnits());
   const exactTime = `${t('launch.net')} ${formatNet(launch.net)}`;
   const chip = CHIP_STATUSES.has(launch.status)
     ? `<span class="launch-status launch-status--${launch.status}">${escapeHtml(t(`launch.status.${launch.status}`))}</span>`
@@ -131,7 +137,7 @@ export function initLaunchesPanel(container: HTMLElement): () => void {
   const tickCountdowns = (): void => {
     const now = Date.now();
     listEl.querySelectorAll<HTMLElement>('.launch-countdown[data-net]').forEach((el) => {
-      const text = formatCountdown(Date.parse(el.dataset.net ?? '') - now);
+      const text = formatCountdown(Date.parse(el.dataset.net ?? '') - now, durationUnits());
       if (el.textContent !== text) el.textContent = text;
     });
   };
