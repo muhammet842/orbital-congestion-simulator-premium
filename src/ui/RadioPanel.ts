@@ -30,6 +30,7 @@ import {
 import { computeLookAngles, findNextPass, type ObserverLocation, type PassEvent } from '../orbital/lookAngles';
 import { closeKesslerPanel } from './KesslerPanel';
 import { getSensorSnapshot, setManualLocation } from './observerSensors';
+import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
 
 const MAX_ROWS = 150;
@@ -210,6 +211,7 @@ function rowHtml(m: RadioMatch): string {
     ? ` <span class="radio-badge">${escapeHtml(t('sat.radio_amateur'))}</span>`
     : '';
   const sourceUrl = channels.map((c) => safeHttpUrl(c.sourceUrl)).find((u) => u !== '#');
+  const obsUrl = satnogsLikelyObserved(channels) ? satnogsObservationsUrl(entry.noradId) : null;
   return `
     <li class="radio-row">
       <button type="button" class="radio-row-main" data-index="${entry.index}">
@@ -217,6 +219,7 @@ function rowHtml(m: RadioMatch): string {
         ${lines.join('')}
       </button>
       <span class="radio-row-when" data-when="${entry.noradId}">${escapeHtml(whenText(entry))}</span>
+      ${obsUrl ? `<a class="radio-row-obs" href="${escapeHtml(obsUrl)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(t('radio.observations_title'))}" aria-label="${escapeHtml(t('radio.observations_title'))}: ${escapeHtml(entry.name)}">SatNOGS</a>` : ''}
       ${sourceUrl ? `<a class="radio-row-src" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(t('sat.radio_source'))}" title="${escapeHtml(t('sat.radio_source'))}">↗</a>` : ''}
     </li>`;
 }
@@ -292,6 +295,7 @@ function renderShell(): void {
 
       <ul class="radio-list" id="radio-list"></ul>
 
+      <p class="radio-note muted">${escapeHtml(t('radio.active_only'))}</p>
       <p class="radio-note muted">${escapeHtml(t('radio.note'))}</p>
       <p class="radio-note muted">${escapeHtml(t('radio.credit'))}</p>
     </div>

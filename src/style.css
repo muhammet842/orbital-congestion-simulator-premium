@@ -3959,3 +3959,15 @@ summary:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+
+.radio-row-obs {
+  flex: none;
+  padding: 10px 2px 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.radio-row-obs:hover,
+.radio-row-obs:focus-visible { color: var(--accent); text-decoration: underline; }
+.radio-observations { margin: 8px 0 0; font-size: 0.8rem; }
+.radio-observations a { color: var(--accent); }
