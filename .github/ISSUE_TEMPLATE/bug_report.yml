@@ -1,0 +1,29 @@
+name: Bug report
+description: Something on the site doesn't work or looks wrong.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we reproduce it?
+      description: Steps, or a link from the site (the address bar keeps the selected object, event or radio filters).
+      placeholder: |
+        1. Open …
+        2. Click …
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. Android 15, Chrome 141 / Windows 11, Edge
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: Drag an image here.

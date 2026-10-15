@@ -1,0 +1,28 @@
+name: Wrong or missing radio data
+description: A frequency, mode or "amateur" label in the Radio panel is wrong, outdated or missing.
+labels: ["radio-data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Frequencies come from the [SatNOGS DB](https://db.satnogs.org/), the AMSAT amateur-satellite list and a few hand-checked sources.
+        If the source itself is wrong, please also report it there so every tool using it benefits.
+  - type: input
+    id: satellite
+    attributes:
+      label: Satellite name and NORAD ID
+      placeholder: e.g. RS-44, 44909
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+      description: e.g. the transmitter is no longer active, the downlink is 435.640 MHz not 435.610 MHz, the mode is wrong.
+    validations:
+      required: true
+  - type: input
+    id: evidence
+    attributes:
+      label: Source or evidence
+      description: A link to an operator page, SatNOGS observation or your own recent reception.

@@ -145,23 +145,35 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 
+/** Unit templates for countdowns: "{n}" is replaced by the number. */
+export interface DurationUnits {
+  d: string;
+  h: string;
+  m: string;
+  s: string;
+}
+
+export const EN_DURATION_UNITS: DurationUnits = { d: '{n}d', h: '{n}h', m: '{n}m', s: '{n}s' };
+
+const unit = (template: string, n: number | string): string => template.replace('{n}', String(n));
+
 /** "T− 22h 41m" before liftoff, "T+ 04:12" after. `msUntil` is net minus now. */
-export function formatCountdown(msUntil: number): string {
+export function formatCountdown(msUntil: number, u: DurationUnits = EN_DURATION_UNITS): string {
   if (msUntil > 0) {
     const total = Math.ceil(msUntil / 1000) * 1000;
     const days = Math.floor(total / (24 * HOUR));
     const hours = Math.floor((total % (24 * HOUR)) / HOUR);
     const minutes = Math.floor((total % HOUR) / MINUTE);
     const seconds = Math.floor((total % MINUTE) / 1000);
-    if (days >= 2) return `T− ${days}d ${hours}h`;
-    if (total >= HOUR) return `T− ${Math.floor(total / HOUR)}h ${pad2(minutes)}m`;
-    return `T− ${minutes}m ${pad2(seconds)}s`;
+    if (days >= 2) return `T− ${unit(u.d, days)} ${unit(u.h, hours)}`;
+    if (total >= HOUR) return `T− ${unit(u.h, Math.floor(total / HOUR))} ${unit(u.m, pad2(minutes))}`;
+    return `T− ${unit(u.m, minutes)} ${unit(u.s, pad2(seconds))}`;
   }
   const since = Math.floor(-msUntil / 1000) * 1000;
   const hours = Math.floor(since / HOUR);
   const minutes = Math.floor((since % HOUR) / MINUTE);
   const seconds = Math.floor((since % MINUTE) / 1000);
-  return hours >= 1 ? `T+ ${hours}h ${pad2(minutes)}m` : `T+ ${pad2(minutes)}:${pad2(seconds)}`;
+  return hours >= 1 ? `T+ ${unit(u.h, hours)} ${unit(u.m, pad2(minutes))}` : `T+ ${pad2(minutes)}:${pad2(seconds)}`;
 }
 
 /** Poll quickly around a launch, slowly otherwise (the server caches either way). */

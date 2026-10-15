@@ -239,7 +239,7 @@ Built for the [Hack Club Stardance](https://stardance.hackclub.com/) competition
 
 ## Contributing
 
-Issues and pull requests are welcome. Before opening a PR, run `npm run build`, `npm test` and `npm run check:i18n`. New UI text must be added to all five languages in `src/i18n/translations.ts` (parity is checked in CI), and PRs into `main` also run the Playwright suite. Please don't commit refreshed catalogs by hand — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md); security problems go through [SECURITY.md](SECURITY.md). Before opening a PR, run `npm run build`, `npm test` and `npm run check:i18n`. New UI text must be added to all five languages in `src/i18n/translations.ts` (parity is checked in CI), and PRs into `main` also run the Playwright suite. Please don't commit refreshed catalogs by hand — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Author
 
