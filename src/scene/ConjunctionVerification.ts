@@ -160,6 +160,8 @@ export function getConjunctionLabelPositions(
   screenB: { x: number; y: number; visible: boolean };
   labelA: { x: number; y: number };
   labelB: { x: number; y: number };
+  /** True 3D distance between the two objects right now, in km. */
+  distanceKm: number;
 } | null {
   const objA = objects[conjunction.indexA];
   const objB = objects[conjunction.indexB];
@@ -169,6 +171,9 @@ export function getConjunctionLabelPositions(
   const propB = propagateObject(objB.satrec, date);
   if (!propA || !propB) return null;
 
+  const dx = propA.positionEci.x - propB.positionEci.x;
+  const dy = propA.positionEci.y - propB.positionEci.y;
+  const dz = propA.positionEci.z - propB.positionEci.z;
   const posA = eciToScene(propA.positionEci.x, propA.positionEci.y, propA.positionEci.z);
   const posB = eciToScene(propB.positionEci.x, propB.positionEci.y, propB.positionEci.z);
 
@@ -197,5 +202,6 @@ export function getConjunctionLabelPositions(
     screenB,
     labelA: { x: screenA.x - 90, y: screenA.y - 52 },
     labelB: { x: screenB.x + 24, y: screenB.y - 52 },
+    distanceKm: Math.sqrt(dx * dx + dy * dy + dz * dz),
   };
 }

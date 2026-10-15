@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getConjunctionCameraPose,
   getConjunctionViewDistance,
   getVisualConjunctionLayout,
   PAIR_FOCUS_NEAR,
@@ -39,5 +40,18 @@ describe('getVisualConjunctionLayout', () => {
     expect(layout.visualA.x).toBeCloseTo(a.x, 8);
     expect(layout.visualB.x).toBeCloseTo(b.x, 8);
     expect(layout.separationScene).toBeCloseTo(0.00001, 8);
+  });
+});
+
+describe('getConjunctionCameraPose', () => {
+  const dirTo = (p: { cameraPos: { clone(): any }; target: { clone(): any } }) => p.cameraPos.clone().sub(p.target).normalize();
+
+  it('views the pair side-on, never along the line that joins them', () => {
+    // Pair separated along the radial direction: the worst case for overlap.
+    const radialPair = getConjunctionCameraPose({ x: 1.1, y: 0, z: 0 }, { x: 1.1 + 0.0003, y: 0, z: 0 }, 2);
+    // Pair separated sideways.
+    const sidePair = getConjunctionCameraPose({ x: 1.1, y: 0, z: 0 }, { x: 1.1, y: 0.0003, z: 0 }, 2);
+    expect(Math.abs(dirTo(radialPair).dot({ x: 1, y: 0, z: 0 } as never))).toBeLessThan(0.01);
+    expect(Math.abs(dirTo(sidePair).y)).toBeLessThan(0.01);
   });
 });

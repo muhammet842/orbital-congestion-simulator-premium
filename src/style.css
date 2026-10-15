@@ -3915,3 +3915,22 @@ body {
 .radio-minelev { gap: 8px; }
 .radio-minelev select { font: inherit; padding: 2px 6px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; }
 .radio-hint { font-size: 0.72rem; margin: 2px 0 6px; }
+
+.conjunction-labels__gap {
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.conjunction-gap-label {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  padding: 2px 7px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(8, 12, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+}
