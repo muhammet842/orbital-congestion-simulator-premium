@@ -82,15 +82,17 @@ export function getConjunctionCameraPose(
   }
   offsetDir.normalize();
 
-  const side = new Vector3().crossVectors(radial, offsetDir);
-  if (side.lengthSq() < 1e-6) side.crossVectors(radial, new Vector3(0, 0, 1));
-  side.normalize();
+  // Look at the pair from the side (view direction perpendicular to the line
+  // joining them), so neither object can sit in front of the other on screen.
+  // The Earth-facing direction is used as far as that allows.
+  const view = radial.clone().sub(offsetDir.clone().multiplyScalar(radial.dot(offsetDir)));
+  if (view.lengthSq() < 0.04) {
+    view.crossVectors(offsetDir, new Vector3(0, 1, 0));
+    if (view.lengthSq() < 1e-6) view.crossVectors(offsetDir, new Vector3(0, 0, 1));
+  }
+  view.normalize();
 
-  const cameraPos = mid
-    .clone()
-    .add(radial.clone().multiplyScalar(viewDistance))
-    .add(side.multiplyScalar(separationScene * 0.8 + 0.025))
-    .add(new Vector3(0, separationScene * 0.35 + 0.015, 0));
+  const cameraPos = mid.clone().add(view.multiplyScalar(viewDistance));
 
   return { cameraPos, target: mid.clone(), fov: 38 };
 }

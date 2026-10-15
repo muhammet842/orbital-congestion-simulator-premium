@@ -2,6 +2,12 @@ import type { PerspectiveCamera, WebGLRenderer } from 'three';
 import { getConjunctionLabelPositions } from './ConjunctionVerification';
 import type { ConjunctionEvent, TrackedObject } from '../types';
 
+/** "2.67 km", or metres once the pair is under a kilometre apart. */
+export function formatGap(km: number): string {
+  if (!Number.isFinite(km)) return '';
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(2)} km`;
+}
+
 export class ConjunctionLabels {
   readonly root: HTMLElement;
   private readonly svg: SVGSVGElement;
@@ -9,6 +15,8 @@ export class ConjunctionLabels {
   private readonly lineB: SVGLineElement;
   private readonly labelA: HTMLDivElement;
   private readonly labelB: HTMLDivElement;
+  private readonly gapLine: SVGLineElement;
+  private readonly gapLabel: HTMLDivElement;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -22,14 +30,19 @@ export class ConjunctionLabels {
     this.lineB = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     this.lineA.classList.add('conjunction-labels__leader', 'conjunction-labels__leader--a');
     this.lineB.classList.add('conjunction-labels__leader', 'conjunction-labels__leader--b');
-    this.svg.append(this.lineA, this.lineB);
+    this.gapLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    this.gapLine.classList.add('conjunction-labels__gap');
+    this.svg.append(this.gapLine, this.lineA, this.lineB);
 
     this.labelA = document.createElement('div');
     this.labelB = document.createElement('div');
     this.labelA.className = 'conjunction-label conjunction-label--a';
     this.labelB.className = 'conjunction-label conjunction-label--b';
 
-    this.root.append(this.svg, this.labelA, this.labelB);
+    this.gapLabel = document.createElement('div');
+    this.gapLabel.className = 'conjunction-gap-label';
+
+    this.root.append(this.svg, this.labelA, this.labelB, this.gapLabel);
     container.appendChild(this.root);
   }
 
@@ -72,12 +85,26 @@ export class ConjunctionLabels {
     this.lineB.setAttribute('y1', String(anchorB.y));
     this.lineB.setAttribute('x2', String(layout.screenB.x));
     this.lineB.setAttribute('y2', String(layout.screenB.y));
+
+    // The true gap, drawn between the two objects whatever the camera angle.
+    this.gapLine.setAttribute('x1', String(layout.screenA.x));
+    this.gapLine.setAttribute('y1', String(layout.screenA.y));
+    this.gapLine.setAttribute('x2', String(layout.screenB.x));
+    this.gapLine.setAttribute('y2', String(layout.screenB.y));
+    this.gapLabel.textContent = formatGap(layout.distanceKm);
+    this.gapLabel.style.left = `${(layout.screenA.x + layout.screenB.x) / 2}px`;
+    this.gapLabel.style.top = `${(layout.screenA.y + layout.screenB.y) / 2}px`;
   }
 
   reset(): void {
     this.root.hidden = true;
     this.labelA.textContent = '';
     this.labelB.textContent = '';
+    this.gapLabel.textContent = '';
+    this.gapLine.setAttribute('x1', '0');
+    this.gapLine.setAttribute('y1', '0');
+    this.gapLine.setAttribute('x2', '0');
+    this.gapLine.setAttribute('y2', '0');
     this.lineA.setAttribute('x1', '0');
     this.lineA.setAttribute('y1', '0');
     this.lineA.setAttribute('x2', '0');
