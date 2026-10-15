@@ -37,6 +37,7 @@ import { t, onLangChange } from '../i18n/i18n';
 import { openSpotterPanel } from './SpotterPanel';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
 import { prepareRadioRows } from '../data/radioDisplay';
+import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
 
 /**
  * Compute the 3-D separation in km between the two collision objects at T-5min,
@@ -423,7 +424,7 @@ function render(container: HTMLElement): void {
   // for fragments and rocket bodies.
   const radioSection = obj.category === 'debris'
     ? ''
-    : renderRadioFrequencies(obj.radioFrequencies);
+    : renderRadioFrequencies(obj.radioFrequencies, obj.noradId);
 
   detailEl.innerHTML = `
     <div class="detail-header">
@@ -475,7 +476,8 @@ function renderDockedComponents(parts: DockedComponent[] | undefined): string {
   return `<div class="detail-row detail-row--docked"><dt>${t('sat.docked_parts')}</dt><dd><ul class="docked-parts">${items}</ul></dd></div>`;
 }
 
-function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined): string {
+function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined, noradId: number): string {
+  const obsUrl = satnogsLikelyObserved(frequencies) ? satnogsObservationsUrl(noradId) : null;
   const prepared = frequencies?.length ? prepareRadioRows(frequencies) : [];
   const hasMarker = prepared.some((row) => row.hasMarker);
   const rows = prepared.length ? prepared.map((frequency) => `
@@ -511,6 +513,7 @@ function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[]
         </table>
       </div>
       ${hasMarker ? `<p class="muted radio-frequency-disclaimer radio-frequency-marker">${t('sat.radio_marker_note')}</p>` : ''}
+      ${obsUrl ? `<p class="radio-observations"><a href="${escapeHtml(obsUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t('sat.radio_observations'))} ↗</a></p>` : ''}
     </section>
   `;
 }

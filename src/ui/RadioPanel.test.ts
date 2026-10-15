@@ -124,6 +124,17 @@ describe('opening the panel', () => {
     expect(summary()).toBe('4 satellites · 4 channels');
   });
 
+  it('links amateur satellites to their SatNOGS observations, but not other services', () => {
+    openRadioPanel();
+    $('[data-band="all"]').click();
+    const obsFor = (name: string) =>
+      [...document.querySelectorAll('.radio-row')].find((r) => r.querySelector('.radio-row-name')?.textContent?.includes(name))?.querySelector<HTMLAnchorElement>('.radio-row-obs');
+    expect(obsFor('RS-44')?.href).toBe('https://network.satnogs.org/observations/?norad=44909');
+    expect(obsFor('RS-44')?.rel).toBe('noopener noreferrer');
+    expect(obsFor('NOAA 19')).toBeNull();
+    expect(document.querySelector('#radio-panel')?.textContent).toContain('Only transmitters listed as active');
+  });
+
   it('adds a header button before the projection button, and opens from it', () => {
     initRadioPanel();
     const btn = $('#radio-panel-btn');
