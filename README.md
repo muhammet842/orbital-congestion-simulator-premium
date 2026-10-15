@@ -19,7 +19,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **A radio panel for amateur-radio operators** — filter the satellites you can actually receive by band (starting with *Easy · VHF/UHF*, the ~425 satellites a handheld radio or small Yagi can hear, out of ~5,900 with published frequencies), mode, and amateur-only. **Above my horizon now** lists what is up at your location with next-pass times. Export the list as CSV or share a link that carries your filters. Frequencies come from SatNOGS DB and AMSAT, and amateur channels carry an **AMATEUR** badge.
 - **Upcoming launches** — the next rocket launches (and any in flight) with rocket, pad, destination and a live countdown; pick one to mark its pad on the globe or jump to the ISS for resupply missions.
 - **Honest about accuracy** — close approaches are screening estimates from public TLEs, not operational conjunction assessments, and the app says so wherever they appear. Launches are schedules, not live tracking.
-- **Private by design** — no analytics, cookies, accounts or third-party requests: fonts are self-hosted, and launch data is fetched by the site’s own server function.
+- **Private by design** — no cookies, accounts, ads or third-party requests; only anonymous, cookieless visit counts. Fonts are self-hosted, and launch data is fetched by the site’s own server function.
 - **Works on a phone** — responsive layout (side panels slide in as drawers; on a computer they collapse to give the globe more room), a guided tour, and a Spotter mode that points you at a satellite using your phone’s sensors. Available in English, Turkish, German, Russian and Chinese.
 
 ## Features
@@ -162,7 +162,7 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 
 ## Privacy
 
-- No analytics, cookies, accounts or tracking. After the page loads, the app only talks to its own origin (fonts are self-hosted too). Launch data is fetched from The Space Devs by the site’s server function, so your browser never contacts them and nothing about you is sent.
+- No cookies, accounts, ads or cross-site tracking. The live site counts visits anonymously with [Vercel Web Analytics](https://vercel.com/docs/analytics/privacy-policy): no cookies, anonymous (visitors are counted with a hash that resets every day, so nobody can be followed across days or sites), and served from the site’s own origin. It shows page views, referring sites, countries and device types; your Spotter or Radio-panel location is never sent. After the page loads, the app only talks to its own origin (fonts are self-hosted too). Launch data is fetched from The Space Devs by the site’s server function, so your browser never contacts them and nothing about you is sent.
 - Three small items are kept in your browser's local storage and never sent anywhere: your language, whether you have seen the tour, and — only if you use the Spotter or the Radio panel’s **Use my location** — your last observer location.
 - Location and device-motion permissions are requested only when you use the Spotter (or press **Use my location** in the Radio panel), and the browser asks you first. The Radio panel asks once; it never tracks you.
 
