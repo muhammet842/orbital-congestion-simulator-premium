@@ -563,6 +563,26 @@ export function setInclinationFilter(filter: { minDeg: number; maxDeg: number } 
   setState({ inclinationFilter: filter });
 }
 
+/** How many objects match a search when no filter is applied (for "N hidden by filters"). */
+export function countAllQueryMatches(searchQuery: string): number {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return state.objects.length;
+  let n = 0;
+  for (const obj of state.objects) if (objectMatchesQuery(obj, q)) n++;
+  return n;
+}
+
+/** Every list/globe filter back to "show everything" (the search text stays). */
+export function clearListFilters(): void {
+  setState({
+    layerFilters: { ...defaultLayerFilters },
+    categoryFilter: 'all',
+    altitudeFilter: null,
+    inclinationFilter: null,
+    showOnlyRecentLaunches: false,
+  });
+}
+
 export function resetAdvancedFilters(): void {
   setState({ altitudeFilter: null, inclinationFilter: null });
 }

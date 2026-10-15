@@ -152,13 +152,31 @@ export function isTurkishSatellite(country: string): boolean {
   return country.includes('Türkiye') || country.includes('Turkey');
 }
 
+/** "Norway 🇳🇴" -> "norway": compare countries without flags or spacing. */
+function countryKey(country: string): string {
+  return country.replace(/[^\p{L}\s]/gu, '').trim().toLowerCase();
+}
+
+/** Honest placeholder when no reliable operator is known. */
+function unknownOwner(category: ObjectCategory): string {
+  if (category === 'debris') return 'Catalogued debris fragment';
+  if (category === 'active') return 'Commercial / state operator (unclassified)';
+  return 'Unknown operator';
+}
+
 export function enrichRecord<T extends { name: string; category: ObjectCategory; noradId: number; country?: string; owner?: string }>(
   record: T,
 ): T & { country: string; owner: string } {
   const meta = inferMetadata(record.name, record.category, record.noradId);
+  const country = hasValue(record.country) ? record.country.trim() : meta.country;
+  // A name rule's operator is a guess. When the catalogue (SATCAT) gives a
+  // different country, the guess matched the wrong satellite (FUNCUBE-1 is not
+  // Norwegian, COSMO-SkyMed is not Australian), so don't show it.
+  const guessContradictsCatalog =
+    hasValue(record.country) && !/^unknown/i.test(meta.country) && countryKey(record.country) !== countryKey(meta.country);
   return {
     ...record,
-    country: hasValue(record.country) ? record.country.trim() : meta.country,
-    owner: hasValue(record.owner) ? record.owner.trim() : meta.owner,
+    country,
+    owner: hasValue(record.owner) ? record.owner.trim() : guessContradictsCatalog ? unknownOwner(record.category) : meta.owner,
   };
 }

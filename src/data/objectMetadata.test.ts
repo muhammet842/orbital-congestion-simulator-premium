@@ -125,3 +125,23 @@ describe('enrichRecord', () => {
     expect(enriched.owner).toBe('Amateur radio (OM9MAR)');
   });
 });
+
+describe('enrichRecord operator guesses', () => {
+  it('does not show a guessed operator whose country contradicts the catalogue', () => {
+    // "FUNCUBE" contains "NCUBE" (a Norwegian satellite family): the UK satellite must not get a Norwegian operator.
+    const funcube = enrichRecord({ name: 'FUNCUBE-1 (AO-73)', category: 'active', noradId: 39444, country: 'United Kingdom 🇬🇧' });
+    expect(funcube.owner).not.toMatch(/Norwegian/);
+    expect(funcube.owner).toBe('Commercial / state operator (unclassified)');
+    const skymed = enrichRecord({ name: 'COSMO-SKYMED 1', category: 'active', noradId: 31598, country: 'Italy 🇮🇹' });
+    expect(skymed.owner).not.toMatch(/Optus/);
+  });
+
+  it('keeps a guessed operator when the countries agree, ignoring flags', () => {
+    expect(enrichRecord({ name: 'NORSAT 2', category: 'active', noradId: 42828, country: 'Norway 🇳🇴' }).owner).toBe('Norwegian Space Agency');
+    expect(enrichRecord({ name: 'STARLINK-3100', category: 'active', noradId: 1, country: 'USA' }).owner).toBe('SpaceX');
+  });
+
+  it('keeps the guess when the catalogue has no country', () => {
+    expect(enrichRecord({ name: 'NORSAT 2', category: 'active', noradId: 42828 }).owner).toBe('Norwegian Space Agency');
+  });
+});

@@ -36,6 +36,8 @@ import {
   setAltitudeFilter,
   setInclinationFilter,
   resetAdvancedFilters,
+  countAllQueryMatches,
+  clearListFilters,
 } from '../state/appState';
 import { initEventCards } from './EventCards';
 import { initLaunchesPanel } from './LaunchesPanel';
@@ -54,6 +56,18 @@ const LIST_OVERSCAN = 6;
 /** Finger movement beyond this cancels list-item selection so the viewport can scroll. */
 const LIST_TAP_SLOP_PX = 10;
 const SORT_MODES: ConjunctionSortMode[] = ['time', 'criticality'];
+
+/** "● Starlink  ● Stations …": one coloured dot before each name, in the order of ui.cbf_hint. */
+function functionLegendHtml(): string {
+  const groups = ['starlink', 'station', 'active', 'debris', 'amateur'];
+  return t('ui.cbf_hint')
+    .split(' · ')
+    .map(
+      (label, i) =>
+        `<span class="function-legend-item"><span class="function-dot function-dot--${groups[i] ?? 'active'}" aria-hidden="true"></span>${escapeHtml(label)}</span>`,
+    )
+    .join('');
+}
 
 function matchesMedia(query: string): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia(query).matches;
@@ -90,6 +104,7 @@ export function initLeftPanel(container: HTMLElement): void {
         />
       </div>
       <div class="object-list-meta" id="object-list-meta"></div>
+      <div class="object-list-hidden" id="object-list-hidden" hidden></div>
       <div class="object-list-viewport" id="object-list-viewport">
         <div class="object-list-spacer" id="object-list-spacer"></div>
         <div class="object-list-items" id="object-list-items"></div>
@@ -296,6 +311,32 @@ function initSearchAndList(container: HTMLElement): void {
   renderObjectList(container);
 }
 
+let hiddenKey = '';
+/**
+ * A search only looks inside the current filters. When filters hide some
+ * matches (e.g. "ISS" while only Satellites are shown — the ISS is a Station),
+ * say how many and offer to show them, instead of a silent "0 matches".
+ */
+function renderHiddenByFilters(container: HTMLElement, query: string, shown: number): void {
+  const el = container.querySelector<HTMLElement>('#object-list-hidden');
+  if (!el) return;
+  const key = `${query}|${shown}|${getState().filteredIndices.length}`;
+  if (key === hiddenKey) return; // the list re-renders on every scroll
+  hiddenKey = key;
+  const hidden = query.trim() ? countAllQueryMatches(query) - shown : 0;
+  el.hidden = hidden <= 0;
+  if (hidden <= 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `<span>${escapeHtml(t('ui.list_hidden_by_filters').replace('{n}', hidden.toLocaleString()))}</span>
+    <button type="button" class="object-list-show-all" id="object-list-show-all">${escapeHtml(t('ui.list_show_all'))}</button>`;
+  el.querySelector('#object-list-show-all')?.addEventListener('click', () => {
+    hiddenKey = '';
+    clearListFilters();
+  });
+}
+
 function renderObjectList(container: HTMLElement): void {
   const state = getState();
   const indices = getListIndices();
@@ -309,6 +350,7 @@ function renderObjectList(container: HTMLElement): void {
   metaEl.textContent = state.searchQuery.trim()
     ? t(total === 1 ? 'ui.list_match_one' : 'ui.list_match_other').replace('{n}', n)
     : t('ui.list_objects_az').replace('{n}', n);
+  renderHiddenByFilters(container, state.searchQuery, total);
 
   const itemHeight = listItemHeight();
   spacer.style.height = `${total * itemHeight}px`;
@@ -420,15 +462,9 @@ function renderDisplayOptions(container: HTMLElement): void {
       id="color-by-function"
       aria-pressed="${colorByFunction}"
     >
-      <span class="function-legend" aria-hidden="true">
-        <span class="function-dot function-dot--starlink"></span>
-        <span class="function-dot function-dot--station"></span>
-        <span class="function-dot function-dot--active"></span>
-        <span class="function-dot function-dot--debris"></span>
-      </span>
       <span class="filter-toggle-copy">
         <strong>${t('ui.color_by_function')}</strong>
-        <span class="muted">${t('ui.cbf_hint')}</span>
+        <span class="muted function-legend-list">${functionLegendHtml()}</span>
       </span>
     </button>
     ${
