@@ -219,8 +219,19 @@ body {
   box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.16);
 }
 
-.lang-select option {
+/* Every dropdown opens as a dark list: color-scheme makes the browser draw its
+   native popup dark, and the option colours cover browsers that ignore it. */
+select {
+  color-scheme: dark;
+}
+
+select option {
   background: #121316;
+  color: var(--text-primary);
+}
+
+select option:checked {
+  background: rgba(var(--accent-rgb), 0.28);
   color: var(--text-primary);
 }
 
