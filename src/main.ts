@@ -27,8 +27,10 @@ import { findConjunctions, setUpcomingConjunctionWorkerFactory } from './orbital
 import { BOOT_ERROR_MESSAGE_KEY, classifyBootError, hasWebGL } from './bootErrors';
 import { applyTranslations, t } from './i18n/i18n';
 import { escapeHtml } from './ui/escapeHtml';
+import { initAnalytics } from './analytics';
 
 async function main(): Promise<void> {
+  initAnalytics();
   const app = document.querySelector<HTMLDivElement>('#app');
   if (!app) return;
 
