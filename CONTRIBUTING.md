@@ -10,7 +10,7 @@ Thanks for helping! Bug reports, data corrections and pull requests are all welc
 
 ## Running it locally
 
-Node.js 20 or newer:
+Node.js 22.22 or newer:
 
 ```bash
 npm install
