@@ -45,6 +45,6 @@
     "@fontsource/syne": "^5.3.0",
     "magvar": "^2.0.1",
     "satellite.js": "^5.0.0",
-    "three": "^0.170.0"
+    "three": "^0.186.1"
   }
 }
