@@ -13,6 +13,8 @@ import {
   isCoOrbitingPair,
 } from '../orbital/conjunction';
 import { propagateObject, toObjectSnapshot } from '../orbital/propagator';
+import { formatGroundPosition, formatSlot } from '../orbital/groundPosition';
+import type { ObjectSnapshot } from '../types';
 import type { ConjunctionEvent, DockedComponent } from '../types';
 import {
   formatUtcDateTime,
@@ -41,6 +43,13 @@ import { prepareRadioRows } from '../data/radioDisplay';
  * using the same orbital back-tracking geometry as EventReplayVisuals.setup().
  * This mirrors the slerp model so the displayed distance decreases to 0 at T=0.
  */
+/** Where the object is above the Earth: lat/lon, or just the longitude slot for GEO. */
+function groundPositionText(snapshot: ObjectSnapshot): string {
+  return snapshot.layer === 'GEO'
+    ? formatSlot(snapshot.longitudeDeg)
+    : formatGroundPosition(snapshot.latitudeDeg, snapshot.longitudeDeg);
+}
+
 function computeInitialSeparationKm(event: HistoricalEvent, _startMs: number): number {
   if (!event.approachB) return 0;
   const { collisionGeo, approachA, approachB } = event;
@@ -289,6 +298,8 @@ export function initRightPanel(container: HTMLElement): void {
     const velocity = detailEl.querySelector('[data-field="velocity"]');
     if (altitude) altitude.textContent = `${snapshot.altitudeKm.toFixed(0)} km`;
     if (velocity) velocity.textContent = `${snapshot.velocityKmS.toFixed(2)} km/s`;
+    const position = detailEl.querySelector('[data-field="position"]');
+    if (position) position.textContent = groundPositionText(snapshot);
   };
 
   const tick = (): void => {
@@ -428,6 +439,7 @@ function render(container: HTMLElement): void {
     <dl class="detail-list">
       <div class="detail-row"><dt>${t('sat.altitude')}</dt><dd data-field="altitude">${snapshot.altitudeKm.toFixed(0)} km</dd></div>
       <div class="detail-row"><dt>${t('sat.velocity')}</dt><dd data-field="velocity">${snapshot.velocityKmS.toFixed(2)} km/s</dd></div>
+      <div class="detail-row"><dt>${t(snapshot.layer === 'GEO' ? 'sat.slot' : 'sat.position')}</dt><dd data-field="position">${groundPositionText(snapshot)}</dd></div>
       <div class="detail-row"><dt>${t('sat.layer')}</dt><dd>${snapshot.layer}</dd></div>
       <div class="detail-row"><dt>${t('sat.category')}</dt><dd>${t(`cat.${snapshot.category}`)}</dd></div>
       <div class="detail-row"><dt>${t('sat.inclination')}</dt><dd>${snapshot.inclinationDeg.toFixed(1)}°</dd></div>

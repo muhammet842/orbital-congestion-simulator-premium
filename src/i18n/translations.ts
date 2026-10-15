@@ -288,6 +288,8 @@ const en: Translations = {
 
   // ── Satellite detail labels ───────────────────────────────────────────
   'sat.altitude':    'Altitude',
+  'sat.position': "Position",
+  'sat.slot': "GEO slot",
   'sat.velocity':    'Velocity',
   'sat.inclination': 'Inclination',
   'sat.latitude':    'Latitude',
@@ -770,6 +772,8 @@ const tr: Translations = {
   'replay.asat_missile':      'ASAT Füzesi',
 
   'sat.altitude':    'İrtifa',
+  'sat.position': "Konum",
+  'sat.slot': "GEO yuvası",
   'sat.velocity':    'Hız',
   'sat.inclination': 'Eğim',
   'sat.latitude':    'Enlem',
@@ -1250,6 +1254,8 @@ const de: Translations = {
   'replay.asat_missile':      'ASAT-Rakete',
 
   'sat.altitude':    'Höhe',
+  'sat.position': "Position",
+  'sat.slot': "GEO-Slot",
   'sat.velocity':    'Geschwindigkeit',
   'sat.inclination': 'Neigung',
   'sat.latitude':    'Breitengrad',
@@ -1730,6 +1736,8 @@ const ru: Translations = {
   'replay.asat_missile':      'АСПО-ракета',
 
   'sat.altitude':    'Высота',
+  'sat.position': "Позиция",
+  'sat.slot': "Слот GEO",
   'sat.velocity':    'Скорость',
   'sat.inclination': 'Наклонение',
   'sat.latitude':    'Широта',
@@ -2210,6 +2218,8 @@ const zh: Translations = {
   'replay.asat_missile':      '反卫星导弹',
 
   'sat.altitude':    '高度',
+  'sat.position': "位置",
+  'sat.slot': "GEO 轨位",
   'sat.velocity':    '速度',
   'sat.inclination': '倾角',
   'sat.latitude':    '纬度',
