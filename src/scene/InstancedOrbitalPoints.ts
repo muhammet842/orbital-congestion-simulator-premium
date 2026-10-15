@@ -11,6 +11,7 @@ import {
   getCategoryColor,
   getCategoryPulse,
   getCategoryScale,
+  AMATEUR_POINT_SCALE,
   getFunctionGroupColor,
   getFunctionGroupPulse,
 } from '../orbital/classify';
@@ -157,6 +158,7 @@ export class InstancedOrbitalPoints {
       );
 
       let scale = isSelected ? 3 : getCategoryScale(obj.category, obj.country);
+      if (!isSelected && colorByFunction && obj.functionGroup === 'amateur') scale = AMATEUR_POINT_SCALE;
       if (isConjunction) scale = conjunctionModelScale(conjunctionLiveDistanceKm);
       scale *= isConjunction ? 1 : getCategoryPulse(obj.category, pulseTimeMs, obj.country);
 

@@ -1,22 +1,28 @@
 import type { ObjectCategory, ObjectFunctionGroup, OrbitLayer } from '../types';
 
-export function inferFunctionGroup(name: string, category: ObjectCategory): ObjectFunctionGroup {
+/** `hasAmateurRadio`: the satellite carries a channel the sources mark as amateur. */
+export function inferFunctionGroup(name: string, category: ObjectCategory, hasAmateurRadio = false): ObjectFunctionGroup {
   if (category === 'debris') return 'debris';
   if (category === 'stations') return 'station';
   if (/STARLINK/i.test(name)) return 'starlink';
+  if (hasAmateurRadio) return 'amateur';
   return 'active';
 }
 
 export function getFunctionGroupColor(group: ObjectFunctionGroup): [number, number, number] {
   switch (group) {
+    // Okabe–Ito colours: told apart with red–green colour blindness too, and
+    // also by brightness (blue / orange / yellow / pink / white).
     case 'starlink':
-      return [0.12, 0.82, 1.0];
+      return [0.34, 0.71, 0.91]; // sky blue  #56B4E9
     case 'debris':
-      return [0.82, 0.38, 0.38];
+      return [0.8, 0.47, 0.65]; // reddish purple  #CC79A7
     case 'station':
-      return [1.0, 0.9, 0.52];
+      return [0.94, 0.89, 0.26]; // yellow  #F0E442
     case 'active':
-      return [0.32, 0.9, 0.45];
+      return [0.9, 0.62, 0.0]; // orange  #E69F00
+    case 'amateur':
+      return [0.95, 0.97, 1.0]; // near-white, drawn larger (see AMATEUR_POINT_SCALE)
   }
 }
 
@@ -88,3 +94,6 @@ export function getCategoryPulse(category: ObjectCategory, timeMs: number, _coun
   }
   return 1;
 }
+
+/** Amateur-radio satellites are drawn larger in Color by Function, so they stand out by size as well as colour. */
+export const AMATEUR_POINT_SCALE = 2.3;

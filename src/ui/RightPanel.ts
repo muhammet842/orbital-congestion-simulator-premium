@@ -148,6 +148,7 @@ export function initRightPanel(container: HTMLElement): void {
   container.innerHTML = `<div id="object-detail" class="object-detail"></div>`;
 
   let renderKey = '';
+  let subjectKey = '';
 
   const maybeRender = (): void => {
     const state = getState();
@@ -155,6 +156,13 @@ export function initRightPanel(container: HTMLElement): void {
     if (key === renderKey) return;
     renderKey = key;
     render(container);
+    // Something new to show (not just a trail toggle): start at its name, not
+    // halfway down the previous object's details.
+    const subject = `${state.selectedIndex}|${state.selectedEventId}|${state.selectedConjunctionSessionKey}`;
+    if (subject !== subjectKey) {
+      subjectKey = subject;
+      container.scrollTop = 0;
+    }
   };
 
   maybeRender();

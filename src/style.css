@@ -930,19 +930,19 @@ select option:checked {
 }
 
 .filter-segment-swatch--all {
-  background: conic-gradient(#52e673, #ffe684, #d16161, #1fd1ff, #52e673);
+  background: conic-gradient(#e69f00, #f0e442, #cc79a7, #56b4e9, #e69f00);
 }
 
 .filter-segment-swatch--active {
-  background: #52e673;
+  background: #e69f00;
 }
 
 .filter-segment-swatch--stations {
-  background: #ffe684;
+  background: #f0e442;
 }
 
 .filter-segment-swatch--debris {
-  background: #d16161;
+  background: #cc79a7;
 }
 
 .display-options {
@@ -1036,19 +1036,38 @@ select option:checked {
 }
 
 .function-dot--starlink {
-  background: #1fd1ff;
+  background: #56b4e9;
 }
 
 .function-dot--station {
-  background: #ffe684;
+  background: #f0e442;
 }
 
 .function-dot--active {
-  background: #52e673;
+  background: #e69f00;
 }
 
 .function-dot--debris {
-  background: #d16161;
+  background: #cc79a7;
+}
+
+.function-dot--amateur {
+  background: #f2f7ff;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+}
+
+/* Legend under "Color by Function": each colour next to its name. */
+.function-legend-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 3px;
+}
+.function-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .display-options-hint {
@@ -3748,9 +3767,9 @@ select option:checked {
   height: 7px;
   border-radius: 50%;
 }
-.spotter-legend-dot--station { background: rgb(255, 230, 133); }
-.spotter-legend-dot--active { background: rgb(82, 230, 115); }
-.spotter-legend-dot--starlink { background: rgb(31, 209, 255); }
+.spotter-legend-dot--station { background: #f0e442; }
+.spotter-legend-dot--active { background: #e69f00; }
+.spotter-legend-dot--starlink { background: #56b4e9; }
 .spotter-compass-hint {
   font-size: 0.68rem;
   color: var(--text-muted);
@@ -3982,3 +4001,23 @@ summary:focus-visible,
 .radio-row-obs:focus-visible { color: var(--accent); text-decoration: underline; }
 .radio-observations { margin: 8px 0 0; font-size: 0.8rem; }
 .radio-observations a { color: var(--accent); }
+
+.object-list-hidden {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 2px 0 6px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+.object-list-hidden[hidden] { display: none; }
+.object-list-show-all {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

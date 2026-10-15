@@ -129,7 +129,11 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
         satrec,
         layer: propagation.layer,
         color: getCategoryColor(enriched.category, propagation.layer, enriched.country),
-        functionGroup: inferFunctionGroup(enriched.name, enriched.category),
+        functionGroup: inferFunctionGroup(
+          enriched.name,
+          enriched.category,
+          radioFrequencies?.some((f) => f.amateur === true) ?? false,
+        ),
         meanAltitudeKm,
         inclinationDeg,
         ...(staleElements ? { staleElements } : {}),

@@ -21,6 +21,8 @@ import {
   setColorByFunction,
   setShowOnlyRecentLaunches,
   setCategoryFilter,
+  countAllQueryMatches,
+  clearListFilters,
   computeFilteredIndices,
   getListIndices,
   selectConjunctionFromAlert,
@@ -692,5 +694,25 @@ describe('selectLaunch', () => {
     expect(getState().selectedLaunch).toEqual(pad);
     selectLaunch(null);
     expect(getState().selectedIndex).toBe(3);
+  });
+});
+
+// ── Search vs filters ─────────────────────────────────────────────────────────
+
+describe('search hidden by filters', () => {
+  const obj = (name: string, category: TrackedObject['category'], noradId: number) =>
+    ({ name, category, noradId, country: '', owner: '', layer: 'LEO', meanAltitudeKm: 420, inclinationDeg: 51 }) as unknown as TrackedObject;
+
+  it('counts matches regardless of filters, and clearListFilters shows them again', () => {
+    setState({ objects: [obj('ISS (ZARYA)', 'stations', 25544), obj('SWISSCUBE', 'active', 35932), obj('FUNCUBE-1', 'active', 39444)] });
+    setSearchQuery('iss');
+    setCategoryFilter('active');
+    expect(getListIndices()).toHaveLength(1); // only SWISSCUBE: the ISS is a station
+    expect(countAllQueryMatches('iss')).toBe(2);
+
+    clearListFilters();
+    expect(getState().categoryFilter).toBe('all');
+    expect(getState().searchQuery).toBe('iss'); // the search text stays
+    expect(getListIndices()).toHaveLength(2);
   });
 });

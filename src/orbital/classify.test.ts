@@ -85,6 +85,13 @@ describe('inferFunctionGroup', () => {
     expect(inferFunctionGroup('STARLINK-3938', 'active')).toBe('starlink');
   });
 
+  it('puts satellites with an amateur-radio channel in their own group', () => {
+    expect(inferFunctionGroup('FUNCUBE-1 (AO-73)', 'active', true)).toBe('amateur');
+    // Stations and Starlink keep their group even with amateur equipment (the ISS has an amateur station).
+    expect(inferFunctionGroup('ISS (ZARYA)', 'stations', true)).toBe('station');
+    expect(inferFunctionGroup('FUNCUBE-1 (AO-73)', 'active')).toBe('active');
+  });
+
   it('falls back to "active" for other operational satellites', () => {
     expect(inferFunctionGroup('GOKTURK-1', 'active')).toBe('active');
   });
@@ -92,7 +99,7 @@ describe('inferFunctionGroup', () => {
 
 describe('getFunctionGroupColor', () => {
   it('returns a distinct color per function group', () => {
-    const groups = ['starlink', 'debris', 'station', 'active'] as const;
+    const groups = ['starlink', 'debris', 'station', 'active', 'amateur'] as const;
     const colors = groups.map((group) => getFunctionGroupColor(group).join(','));
     expect(new Set(colors).size).toBe(groups.length);
   });

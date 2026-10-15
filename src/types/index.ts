@@ -27,7 +27,7 @@ export interface RadioFrequency {
 }
 
 /** Visual grouping for color-by-function mode (derived from TLE name + category). */
-export type ObjectFunctionGroup = 'starlink' | 'debris' | 'station' | 'active';
+export type ObjectFunctionGroup = 'starlink' | 'debris' | 'station' | 'active' | 'amateur';
 
 export interface TleRecord {
   noradId: number;
