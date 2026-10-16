@@ -60,3 +60,10 @@ describe('validateDataset', () => {
     expect(() => validateDataset({ fetchedAt: '2026-01-01', objects: 'x' })).toThrow(/object list/);
   });
 });
+
+describe('tleSource', () => {
+  it('accepts SatNOGS-sourced elements and rejects anything else', () => {
+    expect(recordProblem({ ...good, tleSource: 'satnogs' })).toBeNull();
+    expect(recordProblem({ ...good, tleSource: 'somewhere' })).toBe('bad tleSource');
+  });
+});

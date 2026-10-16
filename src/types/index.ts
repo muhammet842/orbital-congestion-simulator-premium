@@ -42,6 +42,8 @@ export interface TleRecord {
   /** ISO timestamp of the first automated fetch that observed this NORAD ID.
    *  Absent for objects that were already known before this field existed. */
   firstSeenAt?: string;
+  /** Set when the elements come from the SatNOGS DB because CelesTrak has none. */
+  tleSource?: 'satnogs';
   /** Other catalog objects docked to this one (same published elements),
    *  merged into it by mergeDockedStacks. */
   dockedComponents?: DockedComponent[];
