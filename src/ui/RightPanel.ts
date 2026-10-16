@@ -14,7 +14,8 @@ import {
 } from '../orbital/conjunction';
 import { propagateObject, toObjectSnapshot } from '../orbital/propagator';
 import { formatGroundPosition, formatSlot } from '../orbital/groundPosition';
-import type { ObjectSnapshot } from '../types';
+import type { ObjectSnapshot, TrackedObject } from '../types';
+import { tleAgeDays } from '../data/tleLoader';
 import type { ConjunctionEvent, DockedComponent } from '../types';
 import {
   formatUtcDateTime,
@@ -453,6 +454,7 @@ function render(container: HTMLElement): void {
       <div class="detail-row"><dt>${t('sat.category')}</dt><dd>${t(`cat.${snapshot.category}`)}</dd></div>
       <div class="detail-row"><dt>${t('sat.inclination')}</dt><dd>${snapshot.inclinationDeg.toFixed(1)}°</dd></div>
     </dl>
+    ${orbitDataNote(obj)}
     ${radioSection}
     <button type="button" id="btn-spotter" class="btn-orbit-trail btn-spotter">
       ${t('spotter.open')}
@@ -482,6 +484,24 @@ function renderDockedComponents(parts: DockedComponent[] | undefined): string {
     .map((part) => `<li>${escapeHtml(part.name)} <span class="muted">NORAD ${part.noradId}</span></li>`)
     .join('');
   return `<div class="detail-row detail-row--docked"><dt>${t('sat.docked_parts')}</dt><dd><ul class="docked-parts">${items}</ul></dd></div>`;
+}
+
+/** Orbit data older than this gets a note: positions and passes drift. */
+const ORBIT_DATA_NOTE_AGE_DAYS = 7;
+
+/**
+ * Says where the orbit comes from when it isn't the usual fresh CelesTrak TLE:
+ * SatNOGS DB elements (e.g. LAPAN-A2 / IO-86), or any elements over a week old.
+ */
+function orbitDataNote(obj: TrackedObject): string {
+  const days = Math.max(0, Math.round(tleAgeDays(obj.satrec, Date.now())));
+  if (obj.tleSource === 'satnogs') {
+    return `<p class="muted orbit-data-note">${escapeHtml(t('sat.orbit_satnogs').replace('{d}', String(days)))}</p>`;
+  }
+  if (days > ORBIT_DATA_NOTE_AGE_DAYS) {
+    return `<p class="muted orbit-data-note">${escapeHtml(t('sat.orbit_old').replace('{d}', String(days)))}</p>`;
+  }
+  return '';
 }
 
 function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined, noradId: number): string {

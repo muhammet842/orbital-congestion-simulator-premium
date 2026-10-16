@@ -32,6 +32,12 @@ import {
   fetchSatnogsTransmitters,
   satnogsAmateurNoradIds,
 } from './enrichRadioFrequencies.mjs';
+import {
+  MAX_SATNOGS_TLE_AGE_DAYS,
+  fetchSatnogsSatellites,
+  fetchSatnogsTles,
+  satnogsTleObjects,
+} from './satnogsTle.mjs';
 
 const STATION_SOURCES = [
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', category: 'stations' },
@@ -545,7 +551,7 @@ async function main() {
       .filter((noradId) => !seen.has(noradId))
       .sort((a, b) => b - a);
     let added = 0;
-    let noTle = 0;
+    const noTle = [];
     for (const noradId of missing) {
       if (spacecraftCount(seen) >= MAX_SATELLITES) break;
       try {
@@ -554,17 +560,43 @@ async function main() {
           seen.set(obj.noradId, obj);
           added++;
         } else {
-          noTle++;
+          noTle.push(noradId);
         }
       } catch (err) {
-        console.warn(`  amateur/${noradId}: fetch failed — ${err.message}`);
+        // CelesTrak answers 404 when it has no elements for a catalog number.
+        if (/HTTP 404\b/.test(err.message)) noTle.push(noradId);
+        else console.warn(`  amateur/${noradId}: fetch failed — ${err.message}`);
       }
       await sleep(FETCH_DELAY_MS);
     }
     console.log(
-      `  amateur (SatNOGS): ${missing.length} missing, ${added} added, ${noTle} without a public TLE ` +
+      `  amateur (SatNOGS): ${missing.length} missing, ${added} added, ${noTle.length} without a public TLE ` +
         `(${spacecraftCount(seen)}/${MAX_SATELLITES})`,
     );
+
+    // No CelesTrak elements at all: use the SatNOGS DB's own, if recent.
+    if (noTle.length > 0 && spacecraftCount(seen) < MAX_SATELLITES) {
+      try {
+        const [tleRows, satellites] = await Promise.all([
+          fetchSatnogsTles(fetch, { headers: REQUEST_HEADERS }),
+          fetchSatnogsSatellites(fetch, { headers: REQUEST_HEADERS }).catch(() => []),
+        ]);
+        const { objects, tooOld } = satnogsTleObjects(tleRows, noTle, Date.now(), { satellites });
+        let fromSatnogs = 0;
+        for (const obj of objects) {
+          if (spacecraftCount(seen) >= MAX_SATELLITES) break;
+          seen.set(obj.noradId, obj);
+          fromSatnogs++;
+        }
+        console.log(
+          `  amateur (SatNOGS DB elements): ${fromSatnogs} added (${objects.map((o) => o.name).join(', ') || 'none'}), ` +
+            `${tooOld.length} older than ${MAX_SATNOGS_TLE_AGE_DAYS} d skipped, ` +
+            `${noTle.length - fromSatnogs - tooOld.length} with no elements anywhere`,
+        );
+      } catch (err) {
+        console.warn(`  SatNOGS TLE fallback failed — ${err.message}`);
+      }
+    }
   }
 
   for (const source of DEBRIS_SOURCES) {

@@ -4021,3 +4021,9 @@ summary:focus-visible,
   text-decoration: underline;
   cursor: pointer;
 }
+
+.orbit-data-note {
+  margin: 6px 0 10px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}

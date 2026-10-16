@@ -61,6 +61,7 @@ export function recordProblem(record: unknown): string | null {
   if (r.firstSeenAt !== undefined && !Number.isFinite(Date.parse(String(r.firstSeenAt)))) {
     return 'bad firstSeenAt';
   }
+  if (r.tleSource !== undefined && r.tleSource !== 'satnogs') return 'bad tleSource';
   if (r.radioFrequencies !== undefined) {
     if (!Array.isArray(r.radioFrequencies)) return 'bad radioFrequencies';
     for (const f of r.radioFrequencies as Record<string, unknown>[]) {
