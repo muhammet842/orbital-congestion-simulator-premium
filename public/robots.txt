@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://orbital-congestion-simulator-premiu.vercel.app/sitemap.xml
+Sitemap: https://orbital-congestion.vercel.app/sitemap.xml

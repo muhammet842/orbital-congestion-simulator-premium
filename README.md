@@ -2,7 +2,7 @@
 
 > An open-source, real-time 3D view of Earth’s orbital traffic: about 12,000 satellites and debris, close-approach screening, upcoming launches, and a filterable radio panel for amateur-radio operators.
 
-**Live demo:** [https://orbital-congestion-simulator-premiu.vercel.app](https://orbital-congestion-simulator-premiu.vercel.app)
+**Live demo:** [https://orbital-congestion.vercel.app](https://orbital-congestion.vercel.app)
 
 ![Orbital Congestion Simulator — the ISS selected, with its amateur-radio frequencies in the detail panel](docs/screenshot-en.png)
 
@@ -56,7 +56,7 @@ Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm 
 | Testing | Vitest (unit) + Playwright (e2e) |
 | Data | CelesTrak TLE and SATCAT, AMSAT and SatNOGS radio catalogs, and official constellation frequency plans |
 | Server | A single serverless function (`api/launches.js`) that fetches and caches launch data |
-| Deploy | [Vercel](https://orbital-congestion-simulator-premiu.vercel.app) — `vercel.json` sets a Content-Security-Policy and other security headers |
+| Deploy | [Vercel](https://orbital-congestion.vercel.app) — `vercel.json` sets a Content-Security-Policy and other security headers |
 
 ## Getting started
 
@@ -210,7 +210,7 @@ Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.g
 
 ## Quick test guide (reviewers)
 
-Open the [live demo](https://orbital-congestion-simulator-premiu.vercel.app) (desktop first). Skip or finish the short tour, then try:
+Open the [live demo](https://orbital-congestion.vercel.app) (desktop first). Skip or finish the short tour, then try:
 
 1. **Color by Function** (Display Options) — Starlink / stations / active / debris become readable at a glance.
 2. **Search** `ISS` or `25544`, select it, inspect the sourced radio-frequency table, and toggle orbit trail / ground track on the right.
