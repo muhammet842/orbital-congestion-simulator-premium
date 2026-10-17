@@ -4027,3 +4027,9 @@ summary:focus-visible,
   font-size: 0.74rem;
   line-height: 1.4;
 }
+
+.moved-screen .moved-link {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--accent);
+}

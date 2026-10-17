@@ -28,11 +28,14 @@ import { BOOT_ERROR_MESSAGE_KEY, classifyBootError, hasWebGL } from './bootError
 import { applyTranslations, t } from './i18n/i18n';
 import { escapeHtml } from './ui/escapeHtml';
 import { initAnalytics } from './analytics';
+import { showMovedNotice } from './movedNotice';
 
 async function main(): Promise<void> {
   initAnalytics();
   const app = document.querySelector<HTMLDivElement>('#app');
   if (!app) return;
+  // Old address: say where the site went, then open the same page there.
+  if (showMovedNotice(app)) return;
 
   showLoading(app);
 
