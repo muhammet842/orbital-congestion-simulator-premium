@@ -1334,6 +1334,17 @@ select option:checked {
 
 .radio-location-note { margin: 0; font-size: 0.78rem; }
 #radio-location:empty { display: none; }
+.radio-manual { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; font-size: 0.78rem; }
+.radio-manual-label { color: var(--text-muted); }
+.radio-manual input {
+  width: 8.5rem;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+}
 
 .radio-search {
   width: 100%;
