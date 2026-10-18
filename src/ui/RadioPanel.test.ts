@@ -37,6 +37,7 @@ import {
   initRadioPanel,
   isRadioPanelOpen,
   openRadioPanel,
+  parseCoordinates,
   resetRadioPanelForTests,
 } from './RadioPanel';
 import type { RadioFrequency, TrackedObject } from '../types';
@@ -267,28 +268,25 @@ describe('picking a satellite', () => {
 });
 
 describe('above my horizon now', () => {
-  function stubGeolocation(result: 'ok' | 'denied') {
-    const getCurrentPosition = vi.fn((success: (p: unknown) => void, failure: () => void) => {
+  /** 'ok', or a GeolocationPositionError code: 1 blocked, 2 unavailable, 3 timeout. */
+  function stubGeolocation(result: 'ok' | 1 | 2 | 3) {
+    const getCurrentPosition = vi.fn((success: (p: unknown) => void, failure: (e: { code: number }) => void) => {
       if (result === 'ok') success({ coords: { latitude: 41, longitude: 29, altitude: null } });
-      else failure();
+      else failure({ code: result });
     });
     Object.defineProperty(navigator, 'geolocation', { value: { getCurrentPosition }, configurable: true });
     return getCurrentPosition;
   }
 
-  it('asks for a location when none is stored, then lists what is up, highest first', () => {
+  it('asks for the location as soon as the box is ticked, then lists what is up, highest first', () => {
     const geo = stubGeolocation('ok');
     openRadioPanel();
     toggle($('#radio-visible'), true);
-    expect($('#radio-location').textContent).toContain('Add your location');
-
-    ($('[data-action="locate"]') as HTMLButtonElement).click();
     expect(geo).toHaveBeenCalledTimes(1); // one shot, never a continuous watch
     expect(sensors.setManual).toHaveBeenCalledWith({ latitudeDeg: 41, longitudeDeg: 29, altitudeKm: 0 });
-    expect($('#radio-location').textContent).toBe('');
-
     expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'NOAA 19']); // 40 deg and 10 deg
     expect([...document.querySelectorAll('.radio-row-when')].map((e) => e.textContent)).toEqual(['▲ 40°', '▲ 10°']);
+    expect($('#radio-location').textContent).toContain('Your location: 41.0° N, 29.0° E');
   });
 
   it('applies the minimum elevation to "above my horizon" (default 5°, adjustable)', () => {
@@ -305,22 +303,50 @@ describe('above my horizon now', () => {
     expect($('#radio-minelev-hint').textContent).toContain('15°');
   });
 
-  it('explains a blocked location without breaking the list', () => {
-    stubGeolocation('denied');
+  it.each([
+    [1, 'blocked for this site'],
+    [2, 'could not find its location'],
+    [3, 'took too long'],
+  ] as const)('explains geolocation error %i and does not show an unfiltered list', (code, message) => {
+    stubGeolocation(code);
     openRadioPanel();
     toggle($('#radio-visible'), true);
-    ($('[data-action="locate"]') as HTMLButtonElement).click();
-    expect($('#radio-location').textContent).toContain('Location is blocked');
-    expect(document.querySelectorAll('.radio-row').length).toBeGreaterThan(0);
+    expect($('#radio-location').textContent).toContain(message);
+    expect(document.querySelectorAll('.radio-row')).toHaveLength(0);
+    expect($('#radio-list').textContent).toContain('Add your location above');
+    expect(document.querySelector('#radio-manual')).not.toBeNull(); // the way out: type coordinates
   });
 
-  it('says so when the browser cannot locate', () => {
+  it('works with typed coordinates when the device cannot locate (comma decimals too)', () => {
+    stubGeolocation(2);
+    openRadioPanel();
+    toggle($('#radio-visible'), true);
+    ($('#radio-lat') as HTMLInputElement).value = '41,01';
+    ($('#radio-lon') as HTMLInputElement).value = '28.97';
+    $('#radio-manual').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    expect(sensors.setManual).toHaveBeenCalledWith({ latitudeDeg: 41.01, longitudeDeg: 28.97, altitudeKm: 0 });
+    expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'NOAA 19']);
+  });
+
+  it('rejects coordinates out of range and keeps what was typed', () => {
+    stubGeolocation(2);
+    openRadioPanel();
+    toggle($('#radio-visible'), true);
+    ($('#radio-lat') as HTMLInputElement).value = '141';
+    ($('#radio-lon') as HTMLInputElement).value = '29';
+    $('#radio-manual').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    expect(sensors.setManual).not.toHaveBeenCalled();
+    expect($('#radio-location').textContent).toContain('between −90 and 90');
+    expect(($('#radio-lat') as HTMLInputElement).value).toBe('141');
+  });
+
+  it('says so when the browser cannot locate at all, and still offers typed coordinates', () => {
     Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
     openRadioPanel();
     toggle($('#radio-visible'), true);
-    ($('[data-action="locate"]') as HTMLButtonElement).click();
     expect($('#radio-location').textContent).toContain('cannot provide a location');
     expect(document.querySelector('[data-action="locate"]')).toBeNull();
+    expect(document.querySelector('#radio-manual')).not.toBeNull();
   });
 
   it('uses a stored location straight away and fills in next-pass times for satellites below the horizon', async () => {
@@ -410,5 +436,18 @@ describe('export and sharing', () => {
   it('stays closed for a normal page load', () => {
     initRadioPanel();
     expect(isRadioPanelOpen()).toBe(false);
+  });
+});
+
+describe('parseCoordinates', () => {
+  it('accepts dot or comma decimals within range', () => {
+    expect(parseCoordinates('41.01', '28.97')).toEqual({ latitudeDeg: 41.01, longitudeDeg: 28.97 });
+    expect(parseCoordinates(' -33,9 ', '-70,66')).toEqual({ latitudeDeg: -33.9, longitudeDeg: -70.66 });
+  });
+  it('rejects empty, non-numeric and out-of-range values', () => {
+    expect(parseCoordinates('', '29')).toBeNull();
+    expect(parseCoordinates('abc', '29')).toBeNull();
+    expect(parseCoordinates('91', '29')).toBeNull();
+    expect(parseCoordinates('41', '181')).toBeNull();
   });
 });

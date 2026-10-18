@@ -30,6 +30,7 @@ import {
 import { computeLookAngles, findNextPass, type ObserverLocation, type PassEvent } from '../orbital/lookAngles';
 import { closeKesslerPanel } from './KesslerPanel';
 import { getSensorSnapshot, setManualLocation } from './observerSensors';
+import { formatGroundPosition } from '../orbital/groundPosition';
 import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
 
@@ -39,7 +40,8 @@ const PASS_HORIZON_HOURS = 12;
 const PASS_CACHE_MS = 10 * 60_000;
 const PASS_CHUNK = 5;
 
-type LocationState = 'idle' | 'busy' | 'denied' | 'unsupported';
+/** Why there is no location yet; each failure gets its own explanation. */
+type LocationState = 'idle' | 'busy' | 'denied' | 'unavailable' | 'timeout' | 'unsupported' | 'invalid';
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
@@ -106,6 +108,9 @@ function computeMatches(): void {
         .sort((a, b) => (elevations.get(b.entry.noradId) ?? -90) - (elevations.get(a.entry.noradId) ?? -90));
     }
   }
+  // No location yet: listing every satellite here would look as if the filter
+  // did nothing. The hint above the list asks for the location instead.
+  if (visibleNow && !observer) result = [];
   matches = result;
 }
 
@@ -176,24 +181,43 @@ function renderChips(): void {
   if (modeEl) modeEl.innerHTML = modes;
 }
 
+const LOCATION_MESSAGES: Record<LocationState, string> = {
+  idle: 'radio.location_needed',
+  busy: 'radio.location_needed',
+  denied: 'radio.location_denied',
+  unavailable: 'radio.location_unavailable',
+  timeout: 'radio.location_timeout',
+  unsupported: 'radio.location_unsupported',
+  invalid: 'radio.manual_invalid',
+};
+
 function renderLocationHint(): void {
   const el = panelEl?.querySelector('#radio-location');
   if (!el) return;
-  if (!visibleNow || observerLocation()) {
+  if (!visibleNow) {
     el.innerHTML = '';
     return;
   }
-  const message =
-    locationState === 'denied'
-      ? t('radio.location_denied')
-      : locationState === 'unsupported'
-        ? t('radio.location_unsupported')
-        : t('radio.location_needed');
+  const observer = observerLocation();
+  if (observer && locationState === 'idle') {
+    const pos = formatGroundPosition(observer.latitudeDeg, observer.longitudeDeg);
+    el.innerHTML = `<p class="muted radio-location-note">${escapeHtml(fill(t('radio.your_location'), { pos }))} <button type="button" class="radio-link-btn" data-action="locate">${escapeHtml(t('radio.update_location'))}</button></p>`;
+    return;
+  }
+  const busy = locationState === 'busy';
   const button =
     locationState === 'unsupported'
       ? ''
-      : `<button type="button" class="radio-link-btn" data-action="locate"${locationState === 'busy' ? ' disabled' : ''}>${escapeHtml(t(locationState === 'busy' ? 'radio.locating' : 'radio.use_location'))}</button>`;
-  el.innerHTML = `<p class="muted radio-location-note">${escapeHtml(message)} ${button}</p>`;
+      : `<button type="button" class="radio-link-btn" data-action="locate"${busy ? ' disabled' : ''}>${escapeHtml(t(busy ? 'radio.locating' : 'radio.use_location'))}</button>`;
+  // Typing coordinates always works, even on a computer with no location service.
+  const manual = `
+    <form class="radio-manual" id="radio-manual" novalidate>
+      <span class="radio-manual-label">${escapeHtml(t('radio.manual_label'))}</span>
+      <input type="text" inputmode="decimal" id="radio-lat" aria-label="${escapeHtml(t('radio.manual_lat'))}" placeholder="${escapeHtml(t('radio.manual_lat'))} (41.01)" autocomplete="off" />
+      <input type="text" inputmode="decimal" id="radio-lon" aria-label="${escapeHtml(t('radio.manual_lon'))}" placeholder="${escapeHtml(t('radio.manual_lon'))} (28.97)" autocomplete="off" />
+      <button type="submit" class="radio-link-btn">${escapeHtml(t('radio.manual_set'))}</button>
+    </form>`;
+  el.innerHTML = `<p class="muted radio-location-note">${escapeHtml(t(LOCATION_MESSAGES[locationState]))} ${button}</p>${manual}`;
 }
 
 function rowHtml(m: RadioMatch): string {
@@ -239,7 +263,8 @@ function renderResults(): void {
   const list = panelEl.querySelector('#radio-list');
   if (!list) return;
   if (matches.length === 0) {
-    list.innerHTML = `<li class="radio-empty muted">${escapeHtml(t('radio.empty'))}</li>`;
+    const emptyKey = visibleNow && !observerLocation() ? 'radio.list_needs_location' : 'radio.empty';
+    list.innerHTML = `<li class="radio-empty muted">${escapeHtml(t(emptyKey))}</li>`;
   } else {
     const shown = matches.slice(0, MAX_ROWS);
     list.innerHTML =
@@ -281,7 +306,7 @@ function renderShell(): void {
         <select id="radio-minelev" aria-describedby="radio-minelev-hint">${MIN_ELEVATION_CHOICES.map((d) => `<option value="${d}"${d === minElevDeg ? ' selected' : ''}>${d === 0 ? escapeHtml(t('radio.minelev_any')) : d + '°'}</option>`).join('')}</select>
       </label>
       <p class="muted radio-hint" id="radio-minelev-hint">${escapeHtml(t('radio.minelev_hint'))}</p>
-      <div id="radio-location"></div>
+      <div id="radio-location" aria-live="polite"></div>
 
       <input type="search" id="radio-search" class="radio-search" placeholder="${escapeHtml(t('radio.search'))}" aria-label="${escapeHtml(t('radio.search'))}" value="${escapeHtml(searchValue)}" autocomplete="off" />
 
@@ -368,14 +393,18 @@ function requestLocation(): void {
         altitudeKm: (pos.coords.altitude ?? 0) / 1000,
       });
       locationState = 'idle';
+      passCache.clear(); // passes depend on where you are
       renderLocationHint();
       renderResults();
     },
-    () => {
-      locationState = 'denied';
+    (err) => {
+      // 1 = blocked by the user/browser, 3 = took too long, anything else = the
+      // device could not work out where it is (e.g. location services off).
+      locationState = err?.code === 1 ? 'denied' : err?.code === 3 ? 'timeout' : 'unavailable';
       renderLocationHint();
+      renderResults();
     },
-    { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
+    { enableHighAccuracy: false, timeout: 15_000, maximumAge: 600_000 },
   );
 }
 
@@ -416,9 +445,48 @@ function onPanelChange(event: Event): void {
   if (target.id === 'radio-amateur') setFilters({ amateurOnly: target.checked });
   if (target.id === 'radio-visible') {
     visibleNow = target.checked;
-    renderLocationHint();
+    if (visibleNow && !observerLocation() && locationState !== 'busy' && locationState !== 'unsupported') {
+      requestLocation();
+    } else {
+      renderLocationHint();
+    }
     renderResults();
   }
+}
+
+/** "41,01" and "41.01" both work; returns null when out of range. */
+export function parseCoordinates(latText: string, lonText: string): { latitudeDeg: number; longitudeDeg: number } | null {
+  const num = (v: string) => (v.trim() === '' ? Number.NaN : Number(v.trim().replace(',', '.')));
+  const lat = num(latText);
+  const lon = num(lonText);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { latitudeDeg: lat, longitudeDeg: lon };
+}
+
+function onPanelSubmit(event: SubmitEvent): void {
+  const form = event.target as HTMLFormElement;
+  if (form.id !== 'radio-manual') return;
+  event.preventDefault();
+  const lat = form.querySelector<HTMLInputElement>('#radio-lat')?.value ?? '';
+  const lon = form.querySelector<HTMLInputElement>('#radio-lon')?.value ?? '';
+  const coords = parseCoordinates(lat, lon);
+  if (!coords) {
+    locationState = 'invalid';
+    renderLocationHint();
+    const latInput = panelEl?.querySelector<HTMLInputElement>('#radio-lat');
+    if (latInput) {
+      latInput.value = lat;
+      latInput.focus();
+    }
+    const lonInput = panelEl?.querySelector<HTMLInputElement>('#radio-lon');
+    if (lonInput) lonInput.value = lon;
+    return;
+  }
+  setManualLocation({ ...coords, altitudeKm: 0 });
+  locationState = 'idle';
+  passCache.clear();
+  renderLocationHint();
+  renderResults();
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -457,6 +525,7 @@ export function openRadioPanel(): void {
   panel.addEventListener('click', onPanelClick);
   panel.addEventListener('input', onPanelInput);
   panel.addEventListener('change', onPanelChange);
+  panel.addEventListener('submit', onPanelSubmit);
   document.addEventListener('keydown', onKeydown);
   refreshTimer = window.setInterval(() => {
     if (observerLocation()) renderResults();
