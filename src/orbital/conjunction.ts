@@ -13,6 +13,7 @@
  * invalidateUpcomingConjunctionScan() when catalog/time mode changes so a
  * stale idle callback cannot wipe cards mid-rescan.
  */
+import { nameCollator } from '../data/nameOrder';
 import { eciToScene } from './coordinates';
 import { propagateObject, propagateState, type PropagationState } from './propagator';
 import type { ConjunctionEvent, OrbitLayer, TrackedObject } from '../types';
@@ -384,7 +385,7 @@ export function getColocatedObjectNames(objects: TrackedObject[], index: number)
   return objects
     .filter((o) => orbitFingerprint(o) === fp)
     .map((o) => o.name)
-    .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+    .sort((a, b) => nameCollator.compare(a, b));
 }
 
 function quantizeEciKm(value: number): number {
@@ -428,7 +429,7 @@ function preferConjunctionEvent(
   if (objA.category === 'stations' && objB.category !== 'stations') return a;
   if (objB.category === 'stations' && objA.category !== 'stations') return b;
   if (objA.noradId !== objB.noradId) return objA.noradId < objB.noradId ? a : b;
-  return a.objectA.localeCompare(b.objectA, 'en', { sensitivity: 'base' }) <= 0 ? a : b;
+  return nameCollator.compare(a.objectA, b.objectA) <= 0 ? a : b;
 }
 
 function deduplicatePhysicalConjunctions(
@@ -1267,7 +1268,10 @@ export type UpcomingWorkerRequest =
       /** Present only when the catalog changed since the last scan. */
       objects?: UpcomingWorkerObject[];
     }
-  | { type: 'cancel'; scanId: number };
+  | { type: 'cancel'; scanId: number }
+  /** Page hidden / visible again: stop and resume the sweep (battery). */
+  | { type: 'pause' }
+  | { type: 'resume' };
 
 export type UpcomingWorkerResponse =
   | { type: 'progress'; scanId: number; result: ConjunctionScanResult }
@@ -1335,6 +1339,23 @@ function markWorkerBroken(reason: unknown): void {
   }
 }
 
+let visibilityHooked = false;
+
+/**
+ * Workers keep running when the page is hidden (a locked phone, another tab),
+ * unlike the drawing loop. The 24-hour sweep can take minutes on a phone, so
+ * pause it while nobody can see the results and resume where it left off.
+ */
+function pauseScanWhileHidden(): void {
+  if (visibilityHooked || typeof document === 'undefined') return;
+  visibilityHooked = true;
+  const sync = (): void => {
+    worker?.postMessage({ type: document.hidden ? 'pause' : 'resume' } satisfies UpcomingWorkerRequest);
+  };
+  document.addEventListener('visibilitychange', sync);
+  if (document.hidden) sync();
+}
+
 function ensureWorker(): Worker | null {
   if (worker) return worker;
   if (!workerFactory || workerBroken) return null;
@@ -1355,6 +1376,7 @@ function ensureWorker(): Worker | null {
     created.onerror = (err) => markWorkerBroken(err.message || err);
     created.onmessageerror = (err) => markWorkerBroken(err);
     worker = created;
+    pauseScanWhileHidden();
     return worker;
   } catch (err) {
     markWorkerBroken(err);

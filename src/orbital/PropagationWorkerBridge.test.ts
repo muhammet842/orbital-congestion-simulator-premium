@@ -246,6 +246,21 @@ describe('PropagationWorkerBridge — failure handling', () => {
     expect(bridge.isAvailable()).toBe(true);
   });
 
+  it('reports "starting" only until the first result, so the scene waits instead of propagating on the main thread', async () => {
+    const { bridge, worker, generation } = await readyBridge();
+    expect(bridge.isStarting()).toBe(true);
+    bridge.request(Date.UTC(2024, 0, 1), 1);
+    reply(worker, generation, Date.UTC(2024, 0, 1));
+    expect(bridge.isStarting()).toBe(false);
+  });
+
+  it('stops reporting "starting" after a failure, so the main-thread fallback takes over', async () => {
+    const { bridge, worker } = await readyBridge();
+    expect(bridge.isStarting()).toBe(true);
+    worker.onerror!(new Error('boom before the first result'));
+    expect(bridge.isStarting()).toBe(false);
+  });
+
   it('treats an error message from the worker as a failure', async () => {
     const { bridge, worker, generation } = await readyBridge();
     worker.onmessage!({ data: { type: 'error', generation, message: 'bad TLE' } } as MessageEvent);

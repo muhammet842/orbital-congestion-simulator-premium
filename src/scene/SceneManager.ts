@@ -31,6 +31,7 @@ import { propagateObject } from '../orbital/propagator';
 import { getVisualConjunctionLayout, PAIR_FOCUS_MAX_DISTANCE, PAIR_FOCUS_NEAR, PAIR_INSPECT_MIN_DISTANCE, GLOBE_CAMERA_NEAR } from '../orbital/visualConjunction';
 import { CameraFly } from './CameraFly';
 import { ConjunctionVerification } from './ConjunctionVerification';
+import { CatalogPacer } from './catalogPacing';
 import { ConjunctionLabels } from './ConjunctionLabels';
 import { getDayNightState } from './dayNight';
 import { Earth } from './Earth';
@@ -68,6 +69,8 @@ const LAUNCH_FRAME_ALTITUDE_KM = 3000;
 
 /** Main-thread propagation cadence when no Worker result is available. */
 const SYNC_FALLBACK_QUANTUM_MS = 250;
+/** Closer than this (Earth radii from the centre) every frame updates the catalogue. */
+const CATALOG_FULL_RATE_DISTANCE = 2;
 
 export class SceneManager {
   readonly renderer: WebGLRenderer;
@@ -103,6 +106,7 @@ export class SceneManager {
   private lastConjunctionSessionKey: string | null = null;
   private lastConjunctionRevision = -1;
   private debrisFrameCounter = 0;
+  private readonly catalogPacer = new CatalogPacer();
   private lastFramedSelectionIndex: number | null = null;
   private lastFramedLaunchId: string | null = null;
   private clickAnchor: { x: number; y: number } | null = null;
@@ -618,10 +622,35 @@ export class SceneManager {
     // The Worker result arrives via message handler and is buffered.
     // Falls back to (throttled) synchronous propagation before the Worker's
     // first reply, while it restarts, or if it has failed for good.
-    this.propWorker.request(simTime.getTime(), timeSpeed);
-    const propagations =
-      this.propWorker.getLatestResults() ??
-      getPropagationResults(currentState.objects, simTime, timeSpeed, SYNC_FALLBACK_QUANTUM_MS);
+    // Catalogue work (propagating and re-uploading every dot) is paced by its
+    // cost on this device; see catalogPacing.ts. Anything the user changes, and
+    // zoomed-in views, update immediately.
+    const catalogKey = [
+      currentState.objects.length,
+      currentState.selectedIndex,
+      currentState.selectedConjunctionSessionKey,
+      Object.values(currentState.layerFilters).join(','),
+      currentState.searchQuery,
+      currentState.colorByFunction,
+      currentState.altitudeFilter ? `${currentState.altitudeFilter.minKm}-${currentState.altitudeFilter.maxKm}` : '',
+      currentState.inclinationFilter ? `${currentState.inclinationFilter.minDeg}-${currentState.inclinationFilter.maxDeg}` : '',
+      currentState.showOnlyRecentLaunches,
+      currentState.categoryFilter,
+      timeSpeed,
+    ].join('|');
+    const zoomedIn = Boolean(currentState.selectedConjunction) || this.camera.position.length() < CATALOG_FULL_RATE_DISTANCE;
+    const catalogDue = this.catalogPacer.isDue(now, catalogKey, zoomedIn);
+    if (catalogDue) this.propWorker.request(simTime.getTime(), timeSpeed);
+    const catalogStart = performance.now();
+    const latestFromWorker = catalogDue ? this.propWorker.getLatestResults() : null;
+    const propagations = !catalogDue
+      ? null
+      : (latestFromWorker ??
+        // A healthy Worker is about to answer: wait for it rather than block
+        // the main thread with a full-catalogue pass during loading.
+        (this.propWorker.isStarting()
+          ? null
+          : getPropagationResults(currentState.objects, simTime, timeSpeed, SYNC_FALLBACK_QUANTUM_MS)));
     const debrisStride = getDebrisUpdateStride(timeSpeed);
     const skipPointsUpdate = this.debrisFrameCounter++ % debrisStride !== 0;
 
@@ -630,7 +659,7 @@ export class SceneManager {
     // otherwise the ~25km-wide exaggerated satellite model dwarfs genuine
     // multi-km near-misses and makes them look like a physical collision.
     let conjunctionLiveDistanceKm: number | null = null;
-    if (currentState.selectedConjunction) {
+    if (currentState.selectedConjunction && propagations) {
       const propA = propagations[currentState.selectedConjunction.indexA];
       const propB = propagations[currentState.selectedConjunction.indexB];
       if (propA && propB) {
@@ -641,7 +670,7 @@ export class SceneManager {
       }
     }
 
-    if (this.orbitalMeshes) {
+    if (this.orbitalMeshes && propagations) {
       this.orbitalMeshes.updatePositions(
         currentState.objects,
         propagations,
@@ -662,6 +691,7 @@ export class SceneManager {
         },
       );
     }
+    if (propagations) this.catalogPacer.done(now, catalogKey, performance.now() - catalogStart);
 
     const footprintIndex =
       currentState.selectedConjunction || !this.earth.mesh.visible

@@ -54,7 +54,7 @@ export const DEFAULT_SKY_SCAN_POOL = 1_200;
 
 /**
  * Build a priority-ordered, size-capped scan pool so mobile never SGP4s the
- * entire ~12k catalog in one Spotter session.
+ * entire ~28k catalog in one Spotter session.
  * Order: selected → stations → stratified sample of the rest (no debris).
  */
 export function buildSkyScanPool(

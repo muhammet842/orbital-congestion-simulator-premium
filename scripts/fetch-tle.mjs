@@ -57,8 +57,6 @@ const ACTIVE_GROUP_SOURCES = [
   'resource',
   'science',
   'military',
-  'starlink',
-  'oneweb',
   'satnogs',
   'planet',
   'spire',
@@ -72,6 +70,10 @@ const ACTIVE_GROUP_SOURCES = [
   'nnss',
   'education',
   'radar',
+  // Everything else CelesTrak lists as active (Starlink, OneWeb and the rest),
+  // so the catalogue is complete. Fetched once: the big constellations are not
+  // also fetched as separate groups, which would download them twice.
+  'active',
 ];
 
 /** Keep in sync with src/data/objectMetadata.ts TURKISH_NORAD_IDS (+ iconic MEO/GEO). */
@@ -93,11 +95,9 @@ const PRIORITY_NORAD_IDS = [
          // it's picked up — and flagged "NEW" — the moment data appears.
 ];
 
-/** Prevent one mega-constellation from filling the entire spacecraft budget. */
-const GROUP_CAPS = {
-  starlink: 4500,
-  oneweb: 600,
-};
+/** Per-group caps. Empty since the full catalogue is shown: capping Starlink
+ *  hid more than half of it, and it is the main source of LEO congestion. */
+const GROUP_CAPS = {};
 
 const DEBRIS_SOURCES = [
   { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=cosmos-2251-debris&FORMAT=tle', category: 'debris' },
@@ -112,11 +112,17 @@ const DEBRIS_NAME_FILL = {
   category: 'debris',
 };
 
-const MAX_SATELLITES = 7_000;
+/** Spent upper stages ("R/B"): large, long-lived, and a big part of the collision risk. */
+const ROCKET_BODY_FILL = {
+  url: 'https://celestrak.org/NORAD/elements/gp.php?NAME=R/B&FORMAT=tle',
+  category: 'debris',
+};
+
+const MAX_SATELLITES = 22_000;
 /** Spacecraft slots the bulk groups leave free for SatNOGS amateur
  *  satellites that no fetched group contains (~25 as of 2026-10). */
 const AMATEUR_RESERVE = 100;
-const MAX_DEBRIS = 5_000;
+const MAX_DEBRIS = 18_000;
 /** Fallback records older than this are not recycled: a local build can be
  *  days old, and its elements would otherwise ship again under today's
  *  fetchedAt with nothing marking them as stale. */
@@ -641,6 +647,25 @@ async function main() {
     await sleep(FETCH_DELAY_MS);
   }
 
+  if (debrisCount(seen) < MAX_DEBRIS) {
+    try {
+      const objects = await fetchSource(ROCKET_BODY_FILL);
+      let added = 0;
+      for (const obj of [...objects].sort((a, b) => b.noradId - a.noradId)) {
+        if (debrisCount(seen) >= MAX_DEBRIS) break;
+        if (seen.has(obj.noradId)) continue;
+        seen.set(obj.noradId, obj);
+        added++;
+      }
+      console.log(
+        `  debris (NAME=R/B fill): ${objects.length} fetched, ${added} kept (${debrisCount(seen)}/${MAX_DEBRIS})`,
+      );
+    } catch (err) {
+      console.warn(`  rocket-body fill failed — ${err.message}`);
+    }
+    await sleep(FETCH_DELAY_MS);
+  }
+
   const fallbackObjects = await loadFallbackDataset();
   if (fallbackObjects) {
     if (spacecraftCount(seen) < MAX_SATELLITES) {
@@ -841,7 +866,7 @@ async function main() {
   const outPath = fileURLToPath(OUTPUT_PATH);
   await mkdir(dirname(outPath), { recursive: true });
   // Compact (no indentation): this file is fetched by the browser, not
-  // hand-edited, and pretty-printing ~12k objects adds ~500 KB of pure
+  // hand-edited, and pretty-printing ~28k objects adds ~500 KB of pure
   // whitespace for zero benefit.
   await writeFile(outPath, JSON.stringify(dataset));
 

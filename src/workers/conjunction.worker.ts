@@ -29,6 +29,9 @@ const PROGRESS_INTERVAL_MS = 1_000;
 
 let catalog: TrackedObject[] = [];
 let current: { scanId: number; sweep: UpcomingConjunctionSweep } | null = null;
+/** Page hidden: the sweep waits here instead of using the CPU. */
+let paused = false;
+let parked: { scanId: number; lastProgressMs: number } | null = null;
 
 function post(msg: UpcomingWorkerResponse): void {
   (self as unknown as Worker).postMessage(msg);
@@ -36,6 +39,10 @@ function post(msg: UpcomingWorkerResponse): void {
 
 function pump(scanId: number, lastProgressMs: number): void {
   if (!current || current.scanId !== scanId) return;
+  if (paused) {
+    parked = { scanId, lastProgressMs };
+    return;
+  }
   const { sweep } = current;
   try {
     const deadline = performance.now() + SLICE_MS;
@@ -61,6 +68,17 @@ function pump(scanId: number, lastProgressMs: number): void {
 
 self.onmessage = (e: MessageEvent<UpcomingWorkerRequest>) => {
   const msg = e.data;
+  if (msg.type === 'pause') {
+    paused = true;
+    return;
+  }
+  if (msg.type === 'resume') {
+    paused = false;
+    const resume = parked;
+    parked = null;
+    if (resume) pump(resume.scanId, resume.lastProgressMs);
+    return;
+  }
   if (msg.type === 'cancel') {
     if (current?.scanId === msg.scanId) current = null;
     return;

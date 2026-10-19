@@ -48,6 +48,9 @@ export class InstancedOrbitalPoints {
   private readonly matrix = new Matrix4();
   private readonly instanceColor = new Color();
   private matrixDirty = false;
+  /** Catalogue indices of this layer's kind; the other kind stays hidden. */
+  private ownIndices: number[] = [];
+  private indexedFor: TrackedObject[] | null = null;
 
   constructor(objectCount: number, kind: OrbitalPointKind) {
     this.count = objectCount;
@@ -61,6 +64,23 @@ export class InstancedOrbitalPoints {
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = kind === 'debris' ? 1 : 2;
     this.mesh.name = `${kind}-points`;
+  }
+
+  /**
+   * Once per catalogue: remember which instances belong to this layer and hide
+   * the rest for good (an object's category never changes), so every later
+   * update only walks this layer's objects instead of the whole catalogue.
+   */
+  private indexKinds(objects: TrackedObject[]): void {
+    if (this.indexedFor === objects) return;
+    this.indexedFor = objects;
+    this.ownIndices = [];
+    this.matrix.makeScale(0, 0, 0);
+    for (let i = 0; i < this.count; i++) {
+      if (objects[i] && includesKind(objects[i].category, this.kind)) this.ownIndices.push(i);
+      else this.mesh.setMatrixAt(i, this.matrix);
+    }
+    this.mesh.instanceMatrix.needsUpdate = true;
   }
 
   updatePositions(
@@ -85,17 +105,11 @@ export class InstancedOrbitalPoints {
     this.matrixDirty = false;
     const nowMs = Date.now();
 
-    for (let i = 0; i < this.count; i++) {
+    this.indexKinds(objects);
+    for (const i of this.ownIndices) {
       const obj = objects[i];
       const isSelected = i === selectedIndex;
       const isConjunction = highlightSet.has(i);
-
-      if (!includesKind(obj.category, this.kind)) {
-        this.matrix.makeScale(0, 0, 0);
-        this.mesh.setMatrixAt(i, this.matrix);
-        this.matrixDirty = true;
-        continue;
-      }
 
       if (gltfDetailIndices.has(i)) {
         this.matrix.makeScale(0, 0, 0);
