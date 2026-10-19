@@ -5,6 +5,7 @@
  * Only what a hobbyist can RECEIVE is indexed: downlinks and beacon/listen
  * channels (not uplinks). Pure functions only, so it is easy to test.
  */
+import { nameCollator } from './nameOrder';
 import type { TrackedObject } from '../types';
 import {
   BAND_RANGES,
@@ -123,7 +124,7 @@ export function filterRadioEntries(entries: readonly RadioEntry[], filters: Radi
     (a, b) =>
       amateurRank(a) - amateurRank(b) ||
       nameRank(a) - nameRank(b) ||
-      a.entry.name.localeCompare(b.entry.name, 'en', { sensitivity: 'base' }),
+      nameCollator.compare(a.entry.name, b.entry.name),
   );
 }
 

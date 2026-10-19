@@ -7,8 +7,8 @@
  * to propagate at the reference epoch.
  */
 import { twoline2satrec } from 'satellite.js';
-import { getCategoryColor, inferFunctionGroup } from '../orbital/classify';
-import { propagateObject } from '../orbital/propagator';
+import { classifyOrbit, getCategoryColor, inferFunctionGroup } from '../orbital/classify';
+import { propagateObject, propagateState } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
 import { getRadioFrequencies } from './radioFrequencies';
 import { validateDataset } from './validateDataset';
@@ -90,6 +90,8 @@ export function tleAgeDays(satrec: TrackedObject['satrec'], referenceMs: number)
   return (referenceMs - epochMs) / 86_400_000;
 }
 
+const EARTH_MEAN_RADIUS_KM = 6371;
+
 export function createTrackedObjects(dataset: TleDataset, date = new Date()): TrackedObject[] {
   const tracked: TrackedObject[] = [];
   const fetchedAtMs = Date.parse(dataset.fetchedAt);
@@ -105,7 +107,19 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
       const radioFrequencies = getRadioFrequencies(record.noradId) ?? record.radioFrequencies;
 
       const satrec = twoline2satrec(enriched.line1, enriched.line2);
-      const propagation = propagateObject(satrec, date);
+      // One SGP4 step to drop objects whose elements fail or have re-entered, and
+      // to place the object in its layer. Distance from Earth's centre is enough
+      // for that (it differs from the geodetic height by at most ~21 km) and is
+      // much cheaper than the full geodetic conversion for 25k+ objects.
+      const state = propagateState(satrec, date);
+      const propagation = state
+        ? {
+            layer: classifyOrbit(
+              Math.hypot(state.positionEci.x, state.positionEci.y, state.positionEci.z) - EARTH_MEAN_RADIUS_KM,
+              satrec.ecco ?? 0,
+            ),
+          }
+        : null;
       if (!propagation) {
         console.warn(`Skipping ${enriched.name}: propagation failed at ${date.toISOString()}`);
         continue;

@@ -12,6 +12,7 @@
  * UI panels should read via getState() + subscribe(); SceneManager advances
  * clocks each animation frame without full panel re-renders where possible.
  */
+import { nameCollator } from '../data/nameOrder';
 import type { ConjunctionScanResult, ConjunctionSortMode } from '../orbital/conjunction';
 import {
   clampVerificationTimeMs,
@@ -177,7 +178,19 @@ export function getGlobalSimulationTime(): Date {
   return state.time.mode === 'live' ? new Date() : state.time.current;
 }
 
+let lastFormattedSecond = Number.NaN;
+let lastFormatted = '';
+
 export function formatUtcDateTime(date: Date): string {
+  // Several panels format the clock every frame; the text only changes once a second.
+  const second = Math.floor(date.getTime() / 1000);
+  if (second === lastFormattedSecond) return lastFormatted;
+  lastFormattedSecond = second;
+  lastFormatted = formatUtcDateTimeUncached(date);
+  return lastFormatted;
+}
+
+function formatUtcDateTimeUncached(date: Date): string {
   const utcTime = date.toISOString().slice(11, 19);
   // Zero-pad the day so the string width does not jump between "3 Jan"
   // and "13 Jan" (which was shoving wrapped labels up/down every second).
@@ -622,7 +635,7 @@ export function initState(
 ): void {
   sortedAllIndices = objects
     .map((_, i) => i)
-    .sort((a, b) => objects[a].name.localeCompare(objects[b].name, 'en', { sensitivity: 'base' }));
+    .sort((a, b) => nameCollator.compare(objects[a].name, objects[b].name));
 
   state = {
     ...state,

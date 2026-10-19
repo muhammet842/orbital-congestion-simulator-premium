@@ -81,6 +81,8 @@ export class PropagationWorkerBridge {
   /** Wall time of the outstanding init/propagate request (watchdog). */
   private awaitingSinceMs: number | null = null;
   private restarts = 0;
+  /** True once the Worker has delivered at least one result. */
+  private hasReplied = false;
   private failed = false;
 
   constructor() {
@@ -90,6 +92,16 @@ export class PropagationWorkerBridge {
   /** False once the Worker has failed more than MAX_RESTARTS times. */
   isAvailable(): boolean {
     return !this.failed;
+  }
+
+  /**
+   * True while a healthy Worker is still preparing its first result. The scene
+   * then waits (a moment) instead of propagating the whole catalogue on the
+   * main thread, which on a slow phone costs seconds of frozen loading. After
+   * a failure or during a restart this is false, so the fallback still runs.
+   */
+  isStarting(): boolean {
+    return !this.failed && !this.hasReplied && this.restarts === 0;
   }
 
   /**
@@ -181,6 +193,7 @@ export class PropagationWorkerBridge {
       this.awaitingSinceMs = null;
       this.lastProcessedTickMs = msg.tickMs;
       this.latestResults = decodeBuffer(msg.data, this.objectCount);
+      this.hasReplied = true;
       // A healthy reply resets the restart budget.
       this.restarts = 0;
 

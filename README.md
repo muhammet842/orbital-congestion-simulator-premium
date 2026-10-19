@@ -1,6 +1,6 @@
 # Orbital Congestion Simulator
 
-> An open-source, real-time 3D view of Earth’s orbital traffic: about 12,000 satellites and debris, close-approach screening, upcoming launches, and a filterable radio panel for amateur-radio operators.
+> An open-source, real-time 3D view of Earth’s orbital traffic: about 28,000 satellites, debris fragments and rocket bodies, close-approach screening, upcoming launches, and a filterable radio panel for amateur-radio operators.
 
 **Live demo:** [https://orbital-congestion.vercel.app](https://orbital-congestion.vercel.app)
 
@@ -44,7 +44,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 
 ## Why it matters
 
-Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm are tracked in near-Earth space (this globe shows a 12,000-object sample). Collisions like Iridium 33–Cosmos 2251 demonstrated the Kessler Syndrome risk — where one collision creates debris that triggers more collisions. Operators like SpaceX perform hundreds of collision-avoidance maneuvers each year. This simulator makes that invisible traffic visible.
+Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm are tracked in near-Earth space (this globe shows the ~28,000 of them with public orbit data: every active satellite, every catalogued debris fragment and spent rocket body). Collisions like Iridium 33–Cosmos 2251 demonstrated the Kessler Syndrome risk — where one collision creates debris that triggers more collisions. Operators like SpaceX perform hundreds of collision-avoidance maneuvers each year. This simulator makes that invisible traffic visible.
 
 ## Tech stack
 
@@ -125,13 +125,13 @@ Deep links: `?object=<NORAD>`, `?event=<id>` and `?radio=<band>` (with optional 
 
 Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.org/):
 
-- **TLE / GP** — active satellites (capped at 7,000 — Starlink/OneWeb sub-capped), debris (capped at 5,000 — Cosmos 2251, Fengyun-1C, Iridium 33, Cosmos 1408, then other trackable `DEB` fragments), and stations (ISS and Tiangong modules plus visiting vehicles). Objects are re-categorised by name, so rocket bodies listed in active groups count as debris unless they transmit; unidentified analyst tracks are left out
+- **TLE / GP** — every active satellite (CelesTrak’s `active` group, about 16,000 in 2026, including all of Starlink and OneWeb), every catalogued debris fragment (the Cosmos 2251, Fengyun-1C, Iridium 33 and Cosmos 1408 clouds plus all other `DEB` objects) and spent rocket bodies (`R/B`), and stations (ISS and Tiangong modules plus visiting vehicles). Objects are re-categorised by name, so rocket bodies listed in active groups count as debris unless they transmit; unidentified analyst tracks are left out
 - **SATCAT** — one download of [`satcat.csv`](https://celestrak.org/pub/satcat.csv) joined by NORAD ID so each object can carry a **country** (and organization **owner** when SATCAT’s `OWNER` is an agency/consortium code). Name-based heuristics in `objectMetadata.ts` remain the fallback when SATCAT has no match or only supplies a country code (so operators like SpaceX can still come from the name).
 - **AMSAT and SatNOGS** — published amateur-radio and active transmitter records joined by NORAD ID. Only confirmed, operationally valid SatNOGS transmitter entries are retained. A channel gets the **AMATEUR** badge only when every frequency it lists falls in an ITU amateur band, so 401 MHz space-operation and 2.2 GHz S-band links on amateur CubeSats are left unbadged. Satellites with an active SatNOGS amateur channel that no fetched CelesTrak group contains are fetched by catalog number (100 spacecraft slots are reserved for them). When CelesTrak publishes no elements at all for one of them (LAPAN-A2 / IO-86, for example), the SatNOGS DB’s own TLE is used instead, but only if it is at most 30 days old; the app then says so in the object’s details, since positions and pass times from such elements are approximate.
 - **Launches** — [Launch Library 2](https://thespacedevs.com/llapi) by The Space Devs (free tier, 15 requests per hour per IP). The browser never contacts it: the site’s `/api/launches` function fetches it server-side and caches the result (details in [docs/OPERATIONS.md](docs/OPERATIONS.md#launch-data)).
 - **Official constellation plans** — documented service bands for supported Galileo, GPS, BeiDou, Starlink, and OneWeb spacecraft families.
 
-Output: `tle.json` — up to **12,000 objects**, deduplicated by NORAD ID. (`public/data/tle.json` in the repo is a seed; the live catalog is published by the daily workflow, see below.)
+Output: `tle.json` — about **28,000 objects** (limits: 22,000 spacecraft, 18,000 debris), deduplicated by NORAD ID. (`public/data/tle.json` in the repo is a seed; the live catalog is published by the daily workflow, see below.)
 
 A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT and radio-frequency sources, and publishes the catalog to a single-commit `data` branch (so the repository does not grow by ~5 MB a day). It then commits a tiny pointer, `public/data/data-ref.json`, to `main`, which redeploys the site; the Vercel build downloads that exact snapshot (`scripts/pull-data.mjs`). This keeps the deployed app under the in-app 3-day staleness warning. Manual refresh:
 
@@ -224,7 +224,7 @@ Positions are SGP4 from a periodic TLE snapshot, not a live tracking API.
 
 ## If the live catalog looks wrong
 
-Healthy catalog: **~12,000** objects and **stations** (ISS / Tiangong) visible in Live Stats. A thin fetch once shipped ~3.5k objects and zero stations.
+Healthy catalog: **~28,000** objects and **stations** (ISS / Tiangong) visible in Live Stats. A thin fetch once shipped ~3.5k objects and zero stations.
 
 1. Check GitHub → **Actions → TLE Refresh** (and CI).
 2. Locally: `npm run fetch-tle` — the script **refuses** to overwrite `public/data/tle.json` if totals/stations/active/debris fall below hard minimums, or if any category (or the total) drops more than 15% versus the previous file (override an intentional drop with `ALLOW_CATALOG_DROP=1`).
