@@ -16,7 +16,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 
 ### Highlights
 
-- **A radio panel for amateur-radio operators** — filter the satellites you can actually receive by band (starting with *Easy · VHF/UHF*, the ~425 satellites a handheld radio or small Yagi can hear, out of ~5,900 with published frequencies), mode, and amateur-only. **Above my horizon now** lists what is up at your location with next-pass times. Export the list as CSV or share a link that carries your filters. Frequencies come from SatNOGS DB and AMSAT, and amateur channels carry an **AMATEUR** badge.
+- **A radio panel for amateur-radio operators** — filter the satellites you can actually receive by band (starting with *Easy · VHF/UHF*, the ~425 satellites a handheld radio or small Yagi can hear, out of ~5,900 with published frequencies), mode, and amateur-only. **Above my horizon now** lists what is up at your location (from your device, or typed-in coordinates) above an adjustable minimum elevation, with next-pass times. Each amateur satellite links to its recent SatNOGS observations. Export the list as CSV or share a link that carries your filters. Frequencies come from SatNOGS DB and AMSAT, and amateur channels carry an **AMATEUR** badge.
 - **Upcoming launches** — the next rocket launches (and any in flight) with rocket, pad, destination and a live countdown; pick one to mark its pad on the globe or jump to the ISS for resupply missions.
 - **Honest about accuracy** — close approaches are screening estimates from public TLEs, not operational conjunction assessments, and the app says so wherever they appear. Launches are schedules, not live tracking.
 - **Private by design** — no cookies, accounts, ads or third-party requests; only anonymous, cookieless visit counts. Fonts are self-hosted, and launch data is fetched by the site’s own server function.
@@ -26,12 +26,12 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 
 - **Live 3D globe** with instanced orbital points, day/night Earth shading, and a LEO shell reference ring
 - **Orbit layers & filters** — LEO / MEO / GEO / HEO; satellites / stations / debris; search; altitude & inclination ranges
-- **Color by Function** — Starlink, stations, active payloads, and debris at a glance
+- **Color by Function** — Starlink, stations, active payloads, debris and amateur-radio satellites at a glance, in a colour-blind-friendly palette (amateur satellites are also drawn larger)
 - **New to this catalog** — filter objects first seen in this app’s TLE list within the last 14 days (`firstSeenAt`)
 - **Object details** — altitude, velocity, country/owner, orbit trail, ground track, footprint, and published radio-frequency metadata
 - **Docked stacks as one object** — the catalog lists every station module and docked vehicle separately, but they share one published orbit. The ISS, the Chinese space station and similar stacks are shown as a single object with their docked parts listed; searching for a module (e.g. “Nauka”) or linking to its NORAD number opens the stack, and a vehicle that undocks separates automatically
 - **Radio-frequency reference** — verified uplink, downlink, beacon/listening frequencies, modulation modes, operational notes, and direct source links for supported spacecraft and constellations. Channels the sources identify as amateur-radio services carry an **AMATEUR** badge and are listed first
-- **Radio panel** — the header **Radio** button opens a filterable list of the satellites you can actually receive: bands (Easy VHF/UHF up to 500 MHz, 2 m, 70 cm, 400 MHz, 137 MHz weather, or the dish bands), modes (FM, CW, SSB, digital), amateur-only, and **above my horizon now** with next-pass times. Export the list as CSV or copy a link that carries your filters
+- **Radio panel** — the header **Radio** button opens a filterable list of the satellites you can actually receive: bands (Easy VHF/UHF up to 500 MHz, 2 m, 70 cm, 400 MHz, 137 MHz weather, or the dish bands), modes (FM, CW, SSB, digital), amateur-only, and **above my horizon now** with an adjustable minimum elevation and next-pass times; links to each satellite’s recent SatNOGS observations. Export the list as CSV or copy a link that carries your filters
 - **Close-approach alerts** — next-24h scanning with sortable cards and a VERIFY playback mode (T−60s → CPA → T+15s)
 - **Upcoming launches** — the next rocket launches (and any in flight) with rocket, provider, pad, destination and a live countdown; pick one to mark its pad on the globe, or jump to the ISS for resupply missions
 - **Historical event replays** — seven landmark collisions, ASAT tests, and breakups
@@ -60,7 +60,7 @@ Earth orbit is increasingly crowded. About **40,000** objects larger than 10 cm 
 
 ## Getting started
 
-**Requirements:** Node.js 22+ (what CI uses), a WebGL-capable browser (without WebGL the app shows an explanatory message instead of the 3D view).
+**Requirements:** Node.js 22.22 or newer, a WebGL-capable browser (without WebGL the app shows an explanatory message instead of the 3D view).
 
 ```bash
 git clone https://github.com/muhammet842/orbital-congestion-simulator-premium.git
@@ -115,7 +115,7 @@ On phones the side panels open as drawers and the radio table switches to a stac
 
 In the radio table, the **AMATEUR** badge appears only where the source data says a channel is an amateur-radio service. Channels confirmed as other services (weather, navigation, broadband…) are dimmed and listed last. A channel with no badge and no dimming is simply **unclassified** by its source, which is not the same as not being amateur.
 
-The **Radio** button (📻) in the header opens the radio panel. It starts on **Easy · VHF/UHF** (about 425 satellites a simple handheld radio or small Yagi can hear); narrow it with a band chip such as **70 cm**, a mode such as **CW**, **Amateur only**, or a name / NORAD search. **Above my horizon now** lists what is up at your location, highest first, with next-pass times for the rest; it uses the location saved by the Spotter, or **Use my location** (one request, not tracking). Click a row to open that satellite, **Export CSV** to download the list, or **Copy link** to share the exact filters (e.g. `?radio=ham70cm&mode=fm&amateur=1`).
+The **Radio** button (📻) in the header opens the radio panel. It starts on **Easy · VHF/UHF** (about 425 satellites a simple handheld radio or small Yagi can hear); narrow it with a band chip such as **70 cm**, a mode such as **CW**, **Amateur only**, or a name / NORAD search. **Above my horizon now** lists what is up at your location, highest first, with next-pass times for the rest. Ticking it asks the browser for your location once (no tracking) or uses the one saved by the Spotter; if the device cannot locate itself, type latitude and longitude instead. **Min. elevation** (Any, 5°, 10°, 15°) hides satellites too low above the horizon to receive well. Each amateur satellite has a **SatNOGS** link to its recent observations (waterfalls and audio). Click a row to open that satellite, **Export CSV** to download the list, or **Copy link** to share the exact filters (e.g. `?radio=ham70cm&mode=fm&amateur=1`).
 
 In **Upcoming Launches**, click a launch to fly to its pad and mark it on the globe (click again to clear it). For missions to the International Space Station, **Show ISS** selects the station. Countdowns use real time, whatever time the globe is showing. When a webcast is known, **Watch** opens it in a new tab.
 
@@ -133,7 +133,7 @@ Orbital elements and catalog metadata come from [CelesTrak](https://celestrak.or
 
 Output: `tle.json` — about **28,000 objects** (limits: 22,000 spacecraft, 18,000 debris), deduplicated by NORAD ID. (`public/data/tle.json` in the repo is a seed; the live catalog is published by the daily workflow, see below.)
 
-A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT and radio-frequency sources, and publishes the catalog to a single-commit `data` branch (so the repository does not grow by ~5 MB a day). It then commits a tiny pointer, `public/data/data-ref.json`, to `main`, which redeploys the site; the Vercel build downloads that exact snapshot (`scripts/pull-data.mjs`). This keeps the deployed app under the in-app 3-day staleness warning. Manual refresh:
+A [GitHub Actions workflow](.github/workflows/tle-refresh.yml) runs `npm run fetch-tle` every day, refreshes TLEs, re-joins SATCAT and radio-frequency sources, and publishes the catalog to a single-commit `data` branch (so the repository does not grow by ~11 MB a day). It then commits a tiny pointer, `public/data/data-ref.json`, to `main`, which redeploys the site; the Vercel build downloads that exact snapshot (`scripts/pull-data.mjs`). This keeps the deployed app under the in-app 3-day staleness warning. Manual refresh:
 
 ```bash
 npm run fetch-tle
@@ -212,7 +212,7 @@ Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.g
 
 Open the [live demo](https://orbital-congestion.vercel.app) (desktop first). Skip or finish the short tour, then try:
 
-1. **Color by Function** (Display Options) — Starlink / stations / active / debris become readable at a glance.
+1. **Color by Function** (Display Options) — Starlink / stations / active / debris / amateur radio become readable at a glance.
 2. **Search** `ISS` or `25544`, select it, inspect the sourced radio-frequency table, and toggle orbit trail / ground track on the right.
 3. **Historical Events** — start with Iridium 33 ↔ Cosmos 2251; scrub or Exit when done.
 4. **Close Approach Alerts** — if cards appear, open one for VERIFY playback (may take a minute to scan).
@@ -232,10 +232,6 @@ Healthy catalog: **~28,000** objects and **stations** (ISS / Tiangong) visible i
 4. On the deployed site, confirm **Live Stats → TLE data updated** and object counts.
 
 Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
-
-## Stardance / NASA
-
-Built for the [Hack Club Stardance](https://stardance.hackclub.com/) competition in collaboration with NASA themes on space sustainability and orbital debris awareness. This is an independent project and is not affiliated with or endorsed by NASA.
 
 ## Contributing
 
