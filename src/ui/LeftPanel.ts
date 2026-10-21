@@ -14,6 +14,8 @@ import {
   hasUpcomingConjunctionScanCompleted,
   isUpcomingConjunctionScanPending,
   selectConjunctionAlertsForDisplay,
+  filterConjunctionAlertsInHorizon,
+  MAX_DISPLAY_ALERTS,
   type ConjunctionSortMode,
 } from '../orbital/conjunction';
 import {
@@ -137,6 +139,7 @@ export function initLeftPanel(container: HTMLElement): void {
       <p class="muted conjunction-accuracy-note" id="conjunction-stale-note" hidden></p>
       <div class="conjunction-filters" id="conjunction-filters"></div>
       <div class="conjunction-list" id="conjunction-list"></div>
+      <div class="conjunction-more-controls" id="conjunction-more-controls"></div>
     </div>
   `;
 
@@ -158,6 +161,18 @@ export function initLeftPanel(container: HTMLElement): void {
     );
     if (!input?.dataset.sort) return;
     setConjunctionSortMode(input.dataset.sort as ConjunctionSortMode);
+  });
+
+  container.addEventListener('click', (e) => {
+    const moreBtn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-conj-more]');
+    if (moreBtn) {
+      conjunctionShowCount =
+        moreBtn.dataset.conjMore === 'more' ? conjunctionShowCount + SHOW_MORE_STEP : MAX_DISPLAY_ALERTS;
+      renderConjunctions(container);
+      // After "Show less", bring the list back into view.
+      if (moreBtn.dataset.conjMore === 'less') container.querySelector('#conjunction-list')?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
   });
 
   container.addEventListener('click', (e) => {
@@ -596,12 +611,38 @@ function renderConjunctionFilters(container: HTMLElement): void {
   `;
 }
 
+/** Cards added per "Show more" click. */
+const SHOW_MORE_STEP = 10;
+/** Cards currently shown; starts at the default and grows with "Show more". */
+let conjunctionShowCount = MAX_DISPLAY_ALERTS;
+
 function getVisibleConjunctions() {
   const { conjunctions, conjunctionSortMode } = getState();
   return selectConjunctionAlertsForDisplay(conjunctions, {
     nowMs: getGlobalSimulationTime().getTime(),
     sortMode: conjunctionSortMode,
+    limit: conjunctionShowCount,
   });
+}
+
+/**
+ * "Show more" while stored close approaches are hidden, "Show less" once the
+ * list is longer than the default. The scan keeps a pool of the soonest and
+ * tightest passes; the rest are only counted (the "+N more" line), so the
+ * list can grow up to that pool, not to the full count.
+ */
+function renderShowMoreControls(container: HTMLElement, shown: number, available: number): void {
+  const el = container.querySelector('#conjunction-more-controls');
+  if (!el) return;
+  const more = available > shown;
+  const less = shown > MAX_DISPLAY_ALERTS;
+  const key = `${more}|${less}`;
+  if ((el as HTMLElement).dataset.state === key && el.childElementCount === Number(more) + Number(less)) return;
+  (el as HTMLElement).dataset.state = key;
+  el.innerHTML = [
+    more ? `<button type="button" class="conjunction-more-btn" data-conj-more="more">${escapeHtml(t('conj.show_more'))}</button>` : '',
+    less ? `<button type="button" class="conjunction-more-btn" data-conj-more="less">${escapeHtml(t('conj.show_less'))}</button>` : '',
+  ].join('');
 }
 
 function renderConjunctions(container: HTMLElement): void {
@@ -610,6 +651,7 @@ function renderConjunctions(container: HTMLElement): void {
   const listEl = container.querySelector('#conjunction-list')!;
 
   if (conjunctions.length === 0) {
+    renderShowMoreControls(container, 0, 0);
     previousAlertKeys.clear();
     lastConjunctionStructureKey = '';
     displayedConjunctions = [];
@@ -628,6 +670,7 @@ function renderConjunctions(container: HTMLElement): void {
   const visible = getVisibleConjunctions();
   displayedConjunctions = visible;
   const nowMs = getGlobalSimulationTime().getTime();
+  renderShowMoreControls(container, visible.length, filterConjunctionAlertsInHorizon(conjunctions, { nowMs }).length);
   const overflowTotal = countConjunctionOverflow(conjunctions, {
     nowMs,
     displayedCount: visible.length,

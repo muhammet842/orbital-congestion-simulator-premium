@@ -4054,3 +4054,17 @@ summary:focus-visible,
 .launch-detail-lang { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .launch-detail-text { margin: 0 0 8px; font-size: 0.85rem; line-height: 1.5; }
 .launch-detail-watch { display: block; text-align: center; text-decoration: none; margin: 10px 0 6px; }
+
+/* "Show more" / "Show less" under the close-approach cards */
+.conjunction-more-controls { display: flex; justify-content: center; gap: 14px; }
+.conjunction-more-controls:empty { display: none; }
+.conjunction-more-btn {
+  padding: 4px 6px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.conjunction-more-btn:hover { text-decoration: underline; }
