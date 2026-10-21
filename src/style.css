@@ -4044,3 +4044,13 @@ summary:focus-visible,
   font-weight: 600;
   color: var(--accent);
 }
+
+/* Launch details in the right panel */
+.launch-detail-when { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-family: var(--font-mono); font-size: 0.82rem; }
+.launch-detail-countdown { color: var(--accent); }
+.launch-detail-time { margin-top: 2px; font-size: 0.75rem; }
+.launch-detail-mission { margin: 14px 0 6px; }
+.launch-detail-mission h3 { margin: 0 0 6px; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.launch-detail-lang { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.launch-detail-text { margin: 0 0 8px; font-size: 0.85rem; line-height: 1.5; }
+.launch-detail-watch { display: block; text-align: center; text-decoration: none; margin: 10px 0 6px; }

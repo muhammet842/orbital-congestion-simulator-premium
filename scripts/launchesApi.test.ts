@@ -4,6 +4,8 @@ import {
   RECENT_MS,
   classifyStatus,
   destinationOf,
+  missionDescriptionOf,
+  MAX_DESCRIPTION_CHARS,
   normalizeLaunch,
   normalizeLaunches,
   pickDetailTarget,
@@ -81,6 +83,7 @@ describe('normalizeLaunch', () => {
       longitude: -80.57735736,
       orbit: 'Low Earth Orbit',
       missionType: 'Resupply',
+      missionDescription: null,
       destination: 'International Space Station',
       toIss: true,
       webcastUrl: null,
@@ -238,5 +241,30 @@ describe('handler', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['Cache-Control']).toBe('public, s-maxage=60');
     expect(JSON.parse(res.body).launches).toHaveLength(1);
+  });
+});
+
+describe('missionDescriptionOf', () => {
+  it('passes a normal description through, trimmed, with paragraph breaks kept', () => {
+    expect(missionDescriptionOf('  A batch of 27 satellites.\r\n\r\n\r\nSecond paragraph.  ')).toBe('A batch of 27 satellites.\n\nSecond paragraph.');
+  });
+  it('is null for missing or blank text', () => {
+    expect(missionDescriptionOf(undefined)).toBeNull();
+    expect(missionDescriptionOf('   ')).toBeNull();
+    expect(missionDescriptionOf(42)).toBeNull();
+  });
+  it('cuts very long text at a word boundary with an ellipsis', () => {
+    const long = 'word '.repeat(600);
+    const out = missionDescriptionOf(long)!;
+    expect(out.length).toBeLessThanOrEqual(MAX_DESCRIPTION_CHARS + 1);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out).not.toMatch(/wor…$/);
+  });
+  it('is mapped by normalizeLaunch', () => {
+    const l = normalizeLaunch({
+      id: 'x', name: 'Falcon 9 Block 5 | Starlink Group 15-15', net: '2026-10-21T12:00:00Z',
+      status: { abbrev: 'Go' }, mission: { name: 'Starlink Group 15-15', description: 'A batch of 27 satellites for Starlink.' },
+    })!;
+    expect(l.missionDescription).toBe('A batch of 27 satellites for Starlink.');
   });
 });

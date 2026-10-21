@@ -14,11 +14,12 @@ import {
   ISS_NORAD_ID,
   fetchLaunches,
   formatCountdown,
+  rememberLaunches,
   type DurationUnits,
   launchPollIntervalMs,
   type Launch,
 } from '../data/launches';
-import { getState, selectLaunch, selectObject, subscribe } from '../state/appState';
+import { clearObjectSelection, getState, selectLaunch, selectObject, subscribe } from '../state/appState';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
 
 type LoadState = 'loading' | 'ready' | 'error';
@@ -27,11 +28,11 @@ const RETRY_AFTER_ERROR_MS = 60_000;
 const LOCALES: Record<string, string> = { en: 'en-GB', tr: 'tr-TR', de: 'de-DE', ru: 'ru-RU', zh: 'zh-CN' };
 
 /** Countdown units in the current language ("3d 5h", "3g 5sa", …). */
-function durationUnits(): DurationUnits {
+export function durationUnits(): DurationUnits {
   return { d: t('dur.d'), h: t('dur.h'), m: t('dur.m'), s: t('dur.s') };
 }
 
-function formatNet(netIso: string): string {
+export function formatNet(netIso: string): string {
   const locale = LOCALES[getLang()] ?? 'en-GB';
   const text = new Date(netIso).toLocaleString(locale, {
     timeZone: 'UTC',
@@ -147,6 +148,7 @@ export function initLaunchesPanel(container: HTMLElement): () => void {
     let next = RETRY_AFTER_ERROR_MS;
     try {
       launches = await fetchLaunches();
+      rememberLaunches(launches);
       loadState = 'ready';
       next = launchPollIntervalMs(launches, Date.now());
     } catch {
@@ -170,6 +172,8 @@ export function initLaunchesPanel(container: HTMLElement): () => void {
       if (getState().selectedLaunch?.id === launch.id) {
         selectLaunch(null);
       } else {
+        // The details panel then shows this launch rather than an earlier satellite.
+        clearObjectSelection();
         selectLaunch({
           id: launch.id,
           name: launch.name,

@@ -27,6 +27,7 @@ function launch(overrides: Partial<Launch> = {}): Launch {
     longitude: -80.58,
     orbit: 'Low Earth Orbit',
     missionType: 'Resupply',
+    missionDescription: null,
     destination: 'International Space Station',
     toIss: true,
     webcastUrl: null,

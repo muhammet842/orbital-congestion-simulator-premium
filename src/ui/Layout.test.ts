@@ -182,14 +182,18 @@ describe('collapsible panels on desktop', () => {
     expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
   });
 
-  it('also opens it for an event replay, but not for a launch pad (that lives in the left panel)', () => {
+  it('also opens it for an event replay and for a launch (its details show there)', () => {
     localStorage.setItem('orbital-panels', JSON.stringify({ left: false, right: true }));
     const { grid } = mount();
 
-    selectLaunch({ id: 'pad-only', name: 'x', latitudeDeg: 1, longitudeDeg: 2, padName: null });
-    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(true);
+    selectLaunch({ id: 'launch-1', name: 'x', latitudeDeg: 1, longitudeDeg: 2, padName: null });
+    expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
     selectLaunch(null);
+  });
 
+  it('opens it for an event replay', () => {
+    localStorage.setItem('orbital-panels', JSON.stringify({ left: false, right: true }));
+    const { grid } = mount();
     setState({ selectedEventId: 'iridium-cosmos' });
     expect(grid.classList.contains('app-grid--right-collapsed')).toBe(false);
   });

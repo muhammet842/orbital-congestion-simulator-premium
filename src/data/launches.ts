@@ -32,6 +32,8 @@ export interface Launch {
   longitude: number | null;
   orbit: string | null;
   missionType: string | null;
+  /** What the mission is for, as published by The Space Devs (English, plain text). */
+  missionDescription: string | null;
   /** Where the mission is headed, e.g. "International Space Station" or an orbit name. */
   destination: string | null;
   toIss: boolean;
@@ -104,6 +106,7 @@ function parseLaunch(raw: unknown): Launch | null {
     longitude: coordOrNull(r.longitude, 180),
     orbit: strOrNull(r.orbit),
     missionType: strOrNull(r.missionType),
+    missionDescription: strOrNull(r.missionDescription),
     destination: strOrNull(r.destination),
     toIss: r.toIss === true,
     webcastUrl: httpsUrlOrNull(r.webcastUrl),
@@ -111,6 +114,19 @@ function parseLaunch(raw: unknown): Launch | null {
 }
 
 /** Validates the function's JSON; unusable launches are dropped, a bad envelope throws. */
+let latestLaunches: readonly Launch[] = [];
+
+/** Keep the most recent launch list so other panels can show a launch's details. */
+export function rememberLaunches(launches: readonly Launch[]): void {
+  latestLaunches = launches;
+}
+
+/** The launch with this id from the most recent list, or null. */
+export function findLaunch(id: string | null | undefined): Launch | null {
+  if (!id) return null;
+  return latestLaunches.find((launch) => launch.id === id) ?? null;
+}
+
 export function parseLaunchesResponse(json: unknown): Launch[] {
   if (typeof json !== 'object' || json === null || !Array.isArray((json as { launches?: unknown }).launches)) {
     throw new LaunchesUnavailableError('Launch data has an unexpected shape.');
