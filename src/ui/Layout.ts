@@ -1,5 +1,6 @@
 import { getState, subscribe } from '../state/appState';
 import { getLang, setLang, SUPPORTED_LANGS, t } from '../i18n/i18n';
+import { githubMark, icon } from './icons';
 
 /** Must match the max-width used for `.app-grid`'s mobile layout in style.css. */
 export const MOBILE_BREAKPOINT_PX = 860;
@@ -41,7 +42,7 @@ export function createLayout(root: HTMLElement): {
   root.innerHTML = `
     <div class="app-grid">
       <header class="app-header">
-        <button id="toggle-left-panel" class="panel-toggle-btn" type="button" aria-label="${t('layout.toggle_left')}" data-i18n-aria="layout.toggle_left" aria-expanded="false">☰</button>
+        <button id="toggle-left-panel" class="panel-toggle-btn icon-btn" type="button" aria-label="${t('layout.toggle_left')}" title="${t('layout.toggle_left')}" data-i18n-aria="layout.toggle_left" data-i18n-title="layout.toggle_left" aria-expanded="false">${icon('panelLeft', 20)}</button>
 
         <div class="header-brand">
           <span class="header-mark" aria-hidden="true">
@@ -55,29 +56,34 @@ export function createLayout(root: HTMLElement): {
           </h1>
         </div>
 
-        <button id="toggle-right-panel" class="panel-toggle-btn" type="button" aria-label="${t('layout.toggle_right')}" data-i18n-aria="layout.toggle_right" aria-expanded="false">ℹ</button>
-
         <div class="header-actions" id="header-actions">
-          <label class="header-lang">
-            <span class="header-lang-icon" aria-hidden="true">🌐</span>
-            <select id="lang-select" class="lang-select" aria-label="${t('layout.lang_aria')}" data-i18n-aria="layout.lang_aria">
-              ${SUPPORTED_LANGS.map((l) => `<option value="${l}"${l === getLang() ? ' selected' : ''}>${l.toUpperCase()}</option>`).join('')}
-            </select>
-          </label>
-          <a
-            class="header-github"
-            href="https://github.com/muhammet842/orbital-congestion-simulator-premium"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="${t('layout.github_title')}"
-            data-i18n-title="layout.github_title"
-          >
-            <svg class="header-github-icon" viewBox="0 0 16 16" aria-hidden="true" width="14" height="14">
-              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.68 7.68 0 0 1 8 4.77c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-            <span class="header-github-label" data-i18n="layout.github_label">${t('layout.github_label')}</span>
-          </a>
+          <div class="header-more" id="header-more">
+            <button id="header-more-btn" class="icon-btn header-more-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="header-menu" aria-label="${t('layout.more')}" title="${t('layout.more')}" data-i18n-aria="layout.more" data-i18n-title="layout.more">${icon('more', 20)}</button>
+            <div class="header-menu" id="header-menu" hidden>
+              <label class="header-menu-item header-lang">
+                ${icon('globe')}
+                <span class="header-menu-label" data-i18n="layout.language">${t('layout.language')}</span>
+                <select id="lang-select" class="lang-select" aria-label="${t('layout.lang_aria')}" data-i18n-aria="layout.lang_aria">
+                  ${SUPPORTED_LANGS.map((l) => `<option value="${l}"${l === getLang() ? ' selected' : ''}>${l.toUpperCase()}</option>`).join('')}
+                </select>
+              </label>
+              <a
+                class="header-menu-item header-github"
+                href="https://github.com/muhammet842/orbital-congestion-simulator-premium"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="${t('layout.github_title')}"
+                data-i18n-title="layout.github_title"
+              >
+                ${githubMark(17)}
+                <span class="header-menu-label" data-i18n="layout.github_label">${t('layout.github_label')}</span>
+                ${icon('external', 14)}
+              </a>
+            </div>
+          </div>
         </div>
+
+        <button id="toggle-right-panel" class="panel-toggle-btn icon-btn" type="button" aria-label="${t('layout.toggle_right')}" title="${t('layout.toggle_right')}" data-i18n-aria="layout.toggle_right" data-i18n-title="layout.toggle_right" aria-expanded="false">${icon('panelRight', 20)}</button>
       </header>
       <aside id="left-panel" class="panel panel-left"></aside>
       <main id="scene-container" class="scene-container"></main>
@@ -95,8 +101,43 @@ export function createLayout(root: HTMLElement): {
   setupMobilePanelToggles(root, leftPanel, rightPanel);
   setupDesktopPanelToggles(root);
   setupLangSelect(root);
+  setupHeaderMenu(root);
 
   return { leftPanel, rightPanel, sceneContainer, timeBar };
+}
+
+/**
+ * The "More" menu holds what people use rarely: language, the guided tour and
+ * the GitHub link. A simple disclosure (it contains a select, so not role=menu):
+ * closes on an outside click, Escape, or once something in it has been used.
+ */
+function setupHeaderMenu(root: HTMLElement): void {
+  const button = root.querySelector<HTMLButtonElement>('#header-more-btn');
+  const menu = root.querySelector<HTMLElement>('#header-menu');
+  if (!button || !menu) return;
+  const setOpen = (open: boolean): void => {
+    menu.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+  };
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const open = Boolean(menu.hidden);
+    setOpen(open);
+    if (open) menu.querySelector<HTMLElement>('select, button, a')?.focus();
+  });
+  document.addEventListener('click', (event) => {
+    if (!menu.hidden && !menu.contains(event.target as Node)) setOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !menu.hidden) {
+      setOpen(false);
+      button.focus();
+    }
+  });
+  menu.addEventListener('click', (event) => {
+    if ((event.target as Element).closest('a, button')) setOpen(false);
+  });
+  menu.addEventListener('change', () => setOpen(false));
 }
 
 function setupLangSelect(root: HTMLElement): void {
@@ -187,7 +228,7 @@ function setupMobilePanelToggles(
 }
 
 /**
- * Desktop: the ☰ and ℹ header buttons collapse the left and right panels so the
+ * Desktop: the panel buttons at either end of the header collapse the left and right panels so the
  * globe can take the space. The choice is remembered. Showing something in the
  * details panel (selecting a satellite, replaying an event, verifying a close
  * approach) opens it again for that visit, so a click never seems to do nothing.

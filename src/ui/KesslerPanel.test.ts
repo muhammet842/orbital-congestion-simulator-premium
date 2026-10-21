@@ -16,7 +16,18 @@ function mountHeader(): void {
         <div class="header-title">Orbital Congestion Simulator</div>
       </div>
       <div class="header-actions" id="header-actions">
-        <select id="lang-select"></select>
+        <div class="header-more" id="header-more">
+          <button id="header-more-btn" type="button" aria-expanded="false">More</button>
+          <div class="header-menu" id="header-menu">
+            <label class="header-lang">
+              <select id="lang-select">
+                <option value="en">EN</option>
+                <option value="tr">TR</option>
+              </select>
+            </label>
+            <a class="header-github" href="https://github.com/muhammet842/orbital-congestion-simulator-premium">GitHub</a>
+          </div>
+        </div>
       </div>
     </header>
   `;
@@ -39,16 +50,16 @@ afterEach(() => {
 });
 
 describe('initKesslerPanel', () => {
-  it('inserts a header trigger button before the language selector', () => {
+  it('adds a labelled header button before the More menu', () => {
     initKesslerPanel();
     const btn = document.getElementById('kessler-panel-btn');
-    const langSel = document.getElementById('lang-select');
+    const more = document.getElementById('header-more');
     const actions = document.getElementById('header-actions');
     expect(btn).not.toBeNull();
     expect(actions?.contains(btn!)).toBe(true);
-    expect(
-      Boolean(btn && langSel && (btn.compareDocumentPosition(langSel) & Node.DOCUMENT_POSITION_FOLLOWING)),
-    ).toBe(true);
+    expect(btn?.nextElementSibling).toBe(more);
+    expect(btn?.querySelector('svg')).not.toBeNull();
+    expect(btn?.textContent).toBe('Future Projection');
   });
 
   it('opens the panel when the header button is clicked', () => {

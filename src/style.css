@@ -917,9 +917,9 @@ select option:checked {
 }
 
 .filter-segment-option--on {
-  border-color: rgba(248, 113, 113, 0.55);
-  background: rgba(248, 113, 113, 0.12);
-  color: #fecaca;
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--text-primary);
 }
 
 .filter-segment-swatch {
@@ -4068,3 +4068,361 @@ summary:focus-visible,
   cursor: pointer;
 }
 .conjunction-more-btn:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   UI polish: one visual language
+   Tokens (spacing steps, radii, colour roles) and the header.
+   ========================================================================== */
+:root {
+  /* Spacing steps: use these instead of one-off pixel values. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  /* Corner radius: small controls and cards share one rounding. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  /* Colour roles: accent = actions and selection; danger = real warnings only. */
+  --control-bg: rgba(255, 255, 255, 0.04);
+  --control-bg-hover: rgba(var(--accent-rgb), 0.12);
+  --control-border: rgba(255, 255, 255, 0.08);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.icon { display: block; flex-shrink: 0; }
+
+/* Header: same height, colour and hover for every control. */
+.app-header { gap: var(--space-3); padding: 0 var(--space-4); }
+.header-actions { gap: var(--space-1); }
+
+.icon-btn,
+.header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 34px;
+  min-width: 34px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+.icon-btn:hover,
+.header-btn:hover,
+.icon-btn[aria-expanded='true'] {
+  color: var(--accent);
+  background: var(--control-bg-hover);
+}
+.header-btn { width: auto; height: 34px; min-height: 34px; padding: 0 var(--space-3) 0 var(--space-2); font-size: 0.8rem; }
+.header-btn-label { white-space: nowrap; }
+
+/* The panel toggles show on every screen size now, with the same icon style. */
+.panel-toggle-btn {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: inherit;
+  border-color: var(--control-border);
+  background: var(--control-bg);
+  color: var(--text-muted);
+}
+.panel-toggle-btn:hover { color: var(--accent); background: var(--control-bg-hover); border-color: rgba(var(--accent-rgb), 0.35); }
+.panel-toggle-btn[aria-expanded='true'] { color: var(--text-primary); background: var(--control-bg); border-color: var(--control-border); }
+@media (min-width: 861px) {
+  .panel-toggle-btn[aria-expanded='true'] { color: var(--text-muted); }
+  .panel-toggle-btn[aria-expanded='false'] { color: var(--text-muted); opacity: 0.7; }
+}
+
+/* "More" menu */
+.header-more { position: relative; }
+.header-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: var(--space-1);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: #14151a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: menu-in 0.14s var(--ease);
+}
+.header-menu[hidden] { display: none; }
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.header-menu-item .icon { color: var(--text-muted); }
+.header-menu-item:hover { background: rgba(255, 255, 255, 0.05); text-decoration: none; }
+.header-menu-item:hover .icon { color: var(--accent); }
+.header-menu-label { flex: 1; }
+.header-menu-item .icon--external { opacity: 0.6; }
+.header-menu .lang-select {
+  height: 30px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--control-bg);
+}
+/* These used to be header buttons; inside the menu they are plain rows. */
+.header-menu .help-header-btn,
+.header-menu .header-github {
+  width: 100%;
+  height: auto;
+  min-height: 38px;
+  justify-content: flex-start;
+  padding: 0 var(--space-3);
+  border: 0;
+  font-size: 0.84rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-primary);
+}
+.header-menu .header-github-label { display: inline; }
+
+/* Phones: icons only in the header, everything still reachable. */
+@media (max-width: 860px) {
+  /* visible, so the More menu can drop below the header */
+  .app-header { gap: var(--space-2); padding: 0 var(--space-2); overflow: visible; }
+  .header-btn-label { display: none; }
+  .header-btn { padding: 0; width: 34px; min-width: 34px; }
+  .header-menu .header-github,
+  .header-menu .help-header-btn { display: flex; }
+  .header-menu .lang-select { max-width: none; font-size: 0.8rem; padding: 2px 22px 2px 8px; }
+}
+
+/* ── Collapsible panel sections ───────────────────────────────────────────
+   Each heading is a toggle; a thin rule separates sections. The short
+   explanation of a section sits behind the ⓘ button in its heading. */
+.panel-heading--section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--panel-border);
+}
+#tour-region-search > .panel-heading--section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.panel-heading--section.is-collapsed { margin-bottom: 0; }
+.section-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.section-toggle:hover { color: var(--text-primary); }
+.section-toggle .icon { transition: transform 0.18s var(--ease); }
+.section-toggle[aria-expanded='false'] .icon { transform: rotate(-90deg); }
+.section-toggle-label { min-width: 0; overflow-wrap: anywhere; }
+.section-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.75;
+}
+.section-info-btn:hover,
+.section-info-btn[aria-expanded='true'] { color: var(--accent); opacity: 1; background: var(--control-bg); }
+.section-collapsed { display: none !important; }
+.section-info:not(.section-info--open) { display: none !important; }
+.section-info--open { animation: fade-in 0.18s var(--ease); }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+.panel-left .panel-lede,
+.panel-left .conjunction-accuracy-note {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid rgba(var(--accent-rgb), 0.5);
+  background: var(--control-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-muted);
+}
+
+/* ── Colour roles: orange for actions and selection, red only for real
+   warnings. Section headings are all the same quiet style. */
+.panel-heading--alert,
+.panel-heading--alert + .panel-lede { color: var(--text-muted); }
+.conjunction-sort-option:has(input:checked) { color: var(--text-primary); }
+.conjunction-sort-option input { accent-color: var(--accent); }
+
+/* Close-approach cards: neutral, the pair and distance readable; the red
+   frame and warning sign only for passes under 1 km (critical risk). */
+.conjunction-alert {
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.conjunction-alert:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.16); }
+.conjunction-alert-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; color: var(--text-muted); }
+.conjunction-alert-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(var(--accent-rgb), 0.75); }
+.conjunction-alert-text { color: var(--text-primary); font-weight: 400; }
+.conjunction-alert--critical { border-color: rgba(224, 112, 112, 0.45); background: rgba(224, 112, 112, 0.08); }
+.conjunction-alert--critical:hover { border-color: rgba(224, 112, 112, 0.7); background: rgba(224, 112, 112, 0.13); }
+.conjunction-alert--critical .conjunction-alert-icon { color: var(--danger); }
+.conjunction-alert--active,
+.conjunction-alert--critical.conjunction-alert--active {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.conjunction-alert--new { animation: fade-in 0.3s var(--ease); box-shadow: none; }
+.conjunction-alert--new.conjunction-alert--active { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* Empty state while the 24-hour scan runs. */
+.conjunction-empty--scanning { display: flex; align-items: center; gap: var(--space-2); }
+.conjunction-empty--scanning::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Warnings that are real stay coloured, with the same outline icon. */
+.tle-stale-banner { display: flex; align-items: flex-start; gap: var(--space-2); border-radius: var(--radius-sm); }
+.tle-stale-banner .icon { margin-top: 2px; }
+
+/* Dialog close buttons: the same icon button everywhere. */
+.modal-close,
+.spotter-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+.spotter-close:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Text values in sans, numbers aligned; monospace stays for countdowns,
+   frequencies and other columns of figures. */
+.stat-row dd,
+.detail-row dd { font-family: var(--font); font-variant-numeric: tabular-nums; }
+
+/* One radius scale: 8px for cards, 6px for controls. */
+.event-card,
+.filter-toggle-card,
+.launch-card { border-radius: var(--radius-md); }
+.filter-chip,
+.search-input,
+.object-list-item,
+.speed-btn,
+.btn-orbit-trail,
+.btn-exit-conjunction { border-radius: var(--radius-sm); }
+
+/* ── Loading screen: the brand mark with a satellite circling it. */
+.loading-screen { gap: var(--space-2); animation: fade-in 0.3s var(--ease); }
+.loading-mark {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-3);
+}
+.loading-mark__core {
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.45);
+}
+.loading-mark__orbit {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 50%;
+  animation: spin 2.4s linear infinite;
+}
+.loading-mark__sat {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+.loading-brand {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.loading-message { margin: 0; font-size: 0.85rem; }
+
+/* Panels appear smoothly once the app has loaded. */
+.app-header,
+.panel-left,
+.panel-right { animation: appear 0.35s var(--ease); }
+/* Opacity only: the phone drawers are positioned with transform. */
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }

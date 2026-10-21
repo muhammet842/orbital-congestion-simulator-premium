@@ -114,9 +114,13 @@ async function main(): Promise<void> {
 
 function showLoading(app: HTMLElement, message = t('boot.loading')): void {
   app.innerHTML = `
-    <div class="loading-screen">
-      <div class="loading-spinner" aria-hidden="true"></div>
-      <p>${escapeHtml(message)}</p>
+    <div class="loading-screen" role="status">
+      <span class="loading-mark" aria-hidden="true">
+        <span class="loading-mark__core"></span>
+        <span class="loading-mark__orbit"><span class="loading-mark__sat"></span></span>
+      </span>
+      <p class="loading-brand">${escapeHtml(t('brand.full'))}</p>
+      <p class="loading-message">${escapeHtml(message)}</p>
     </div>
   `;
 }

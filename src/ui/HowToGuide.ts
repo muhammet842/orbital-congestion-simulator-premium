@@ -8,6 +8,7 @@ import { applyTranslations, onLangChange, setLang, SUPPORTED_LANGS, t, type Lang
 import { closeKesslerPanel, openKesslerPanel } from './KesslerPanel';
 import { setTourPanel } from './Layout';
 import { escapeHtml } from './escapeHtml';
+import { icon } from './icons';
 
 const LS_HELP_SEEN = 'orbital-help-seen-v3';
 
@@ -22,7 +23,6 @@ const LANG_LABELS: Record<Lang, string> = {
 const STEPS = [
   'globe',
   'language',
-  'github',
   'search',
   'details',
   'approaches',
@@ -45,8 +45,7 @@ interface StepConfig {
 
 const STEP_CONFIG: StepConfig[] = [
   { id: 'globe', target: '#scene-container', panel: null },
-  { id: 'language', target: '.header-lang', panel: null },
-  { id: 'github', target: '.header-github', panel: null },
+  { id: 'language', target: '#header-more-btn', panel: null },
   { id: 'search', target: '#tour-region-search', panel: 'left' },
   { id: 'details', target: '#right-panel', panel: 'right' },
   { id: 'approaches', target: '#tour-region-approaches', panel: 'left' },
@@ -659,25 +658,23 @@ export function openHowToGuide(): void {
 export function initHowToGuide(): void {
   const btn = document.createElement('button');
   btn.id = 'help-guide-btn';
-  btn.className = 'help-header-btn';
+  btn.className = 'help-header-btn header-menu-item';
   btn.type = 'button';
-  btn.textContent = '?';
+  btn.innerHTML = `${icon('help')}<span class="header-menu-label"></span>`;
 
   const refreshLabel = (): void => {
     const label = t('help.button');
     btn.title = label;
-    btn.setAttribute('aria-label', label);
+    btn.querySelector('.header-menu-label')!.textContent = label;
   };
   refreshLabel();
   btn.addEventListener('click', openHowToGuide);
 
-  const actions = document.getElementById('header-actions');
-  const langSel = document.getElementById('lang-select');
-  if (actions && langSel) {
-    actions.insertBefore(btn, langSel.closest('.header-lang') ?? langSel);
-  } else {
-    document.querySelector('.app-header')?.appendChild(btn);
-  }
+  // A menu item in the header's "More" menu, after the language choice.
+  const menu = document.getElementById('header-menu');
+  const github = menu?.querySelector('.header-github');
+  if (menu && github) menu.insertBefore(btn, github);
+  else document.querySelector('.app-header')?.appendChild(btn);
 
   onLangChange(refreshLabel);
 
