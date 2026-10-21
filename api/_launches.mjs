@@ -62,6 +62,20 @@ export function destinationOf(programs, orbitName) {
   return { destination: orbit && !/unknown/i.test(orbit) ? orbit : null, toIss: false };
 }
 
+/** Longest mission description passed to the browser (LL2 texts are a few sentences). */
+export const MAX_DESCRIPTION_CHARS = 1200;
+
+/** Plain-text mission description: trimmed, blank lines collapsed, length-bounded. */
+export function missionDescriptionOf(value) {
+  if (typeof value !== 'string') return null;
+  const text = value.replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  if (!text) return null;
+  if (text.length <= MAX_DESCRIPTION_CHARS) return text;
+  const cut = text.slice(0, MAX_DESCRIPTION_CHARS);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${cut.slice(0, lastSpace > MAX_DESCRIPTION_CHARS * 0.8 ? lastSpace : MAX_DESCRIPTION_CHARS)}…`;
+}
+
 /** Normalises one LL2 launch object; returns null if it is unusable. */
 export function normalizeLaunch(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -91,6 +105,7 @@ export function normalizeLaunch(raw) {
     longitude: finiteOrNull(pad.longitude),
     orbit: raw.mission?.orbit?.name ?? null,
     missionType: raw.mission?.type ?? null,
+    missionDescription: missionDescriptionOf(raw.mission?.description),
     destination,
     toIss,
     webcastUrl,

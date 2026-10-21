@@ -7,6 +7,8 @@ import {
   selectHistoricalEvent,
 } from '../state/appState';
 import type { TrackedObject } from '../types';
+import { rememberLaunches, type Launch } from '../data/launches';
+import { setLang } from '../i18n/i18n';
 
 /** Minimal TrackedObject stub so selectObject + render don't blow up. */
 function makeFakeObject(name = 'TEST-SAT'): TrackedObject {
@@ -38,6 +40,7 @@ function resetState(): void {
     eventReplay: null,
     selectedConjunction: null,
     selectedConjunctionSessionKey: null,
+    selectedLaunch: null,
   });
 }
 
@@ -203,5 +206,79 @@ describe('initRightPanel – DOM smoke', () => {
     // The right panel should show the event information card
     const detail = container.querySelector('#object-detail')!;
     expect(detail.innerHTML.length).toBeGreaterThan(50);
+  });
+});
+
+describe('launch details', () => {
+  const launch = (over: Partial<Launch> = {}): Launch => ({
+    id: 'L1',
+    name: 'Starlink Group 15-15',
+    rocket: 'Falcon 9 Block 5',
+    provider: 'SpaceX',
+    net: new Date(Date.now() + 3 * 3_600_000).toISOString(),
+    status: 'go',
+    padName: 'Space Launch Complex 40',
+    locationName: 'Cape Canaveral SFS, FL, USA',
+    latitude: 28.56,
+    longitude: -80.58,
+    orbit: 'Low Earth Orbit',
+    missionType: 'Communications',
+    missionDescription: 'A batch of 27 satellites for the Starlink mega-constellation.',
+    destination: 'Low Earth Orbit',
+    toIss: true,
+    webcastUrl: 'https://www.youtube.com/watch?v=abc',
+    ...over,
+  });
+  const open = (l: Launch) => {
+    rememberLaunches([l]);
+    const container = document.createElement('div');
+    initRightPanel(container);
+    setState({ selectedLaunch: { id: l.id, name: l.name, latitudeDeg: 1, longitudeDeg: 2, padName: null } });
+    return container;
+  };
+
+  beforeEach(() => setLang('en'));
+
+  it('shows what the launch is for, where it goes and when, without a Show ISS button', () => {
+    const c = open(launch());
+    const text = c.textContent!.replace(/\s+/g, ' ');
+    expect(text).toContain('Upcoming launch');
+    expect(text).toContain('Starlink Group 15-15');
+    expect(text).toContain('A batch of 27 satellites for the Starlink mega-constellation.');
+    expect(text).toContain('Communications');
+    expect(text).toContain('Falcon 9 Block 5');
+    expect(text).toContain('Space Launch Complex 40, Cape Canaveral SFS, FL, USA');
+    expect(c.querySelector('[data-field="launch-countdown"]')?.textContent).toMatch(/^T− /);
+    expect(c.querySelector<HTMLAnchorElement>('.launch-detail-watch')?.href).toBe('https://www.youtube.com/watch?v=abc');
+    expect(text).not.toContain('Show ISS');
+  });
+
+  it('says when no description exists, and notes that descriptions are in English', () => {
+    setLang('tr');
+    const c = open(launch({ missionDescription: null }));
+    expect(c.textContent).toContain('Henüz bir görev açıklaması yayımlanmadı.');
+    expect(c.querySelector('.launch-detail-lang')).toBeNull(); // no English text to flag
+    const c2 = open(launch());
+    expect(c2.querySelector('.launch-detail-lang')?.textContent).toContain('İngilizce');
+  });
+
+  it('treats the published text as text, and only links https webcasts', () => {
+    const c = open(launch({ missionDescription: '<img src=x onerror=alert(1)>', webcastUrl: 'javascript:alert(1)' }));
+    expect(c.querySelector('img')).toBeNull();
+    expect(c.textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(c.querySelector('.launch-detail-watch')).toBeNull();
+  });
+
+  it('calls a launch that already happened a recent launch', () => {
+    const c = open(launch({ status: 'success', net: new Date(Date.now() - 3_600_000).toISOString() }));
+    expect(c.querySelector('.norad-id')?.textContent).toBe('Recent launch');
+    expect(c.querySelector('[data-field="launch-countdown"]')?.textContent).toMatch(/^T\+ /);
+  });
+
+  it('shows a satellite instead once one is selected', () => {
+    const c = open(launch());
+    setState({ objects: [makeFakeObject('SAT-A')] });
+    selectObject(0);
+    expect(c.textContent).not.toContain('Upcoming launch');
   });
 });

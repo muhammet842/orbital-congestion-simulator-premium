@@ -172,12 +172,12 @@ function setupMobilePanelToggles(
     lastSelectedIndex = selectedIndex;
   });
 
-  // Picking a launch marks its pad on the globe: get the drawer out of the way
-  // so the marker is actually visible.
+  // Picking a launch shows its details, like picking a satellite. The globe
+  // flies to the pad behind the drawer; closing the drawer shows the marker.
   let lastLaunchId: string | null = null;
   subscribe(() => {
     const launchId = getState().selectedLaunch?.id ?? null;
-    if (mobileQuery.matches && launchId != null && launchId !== lastLaunchId) closePanels();
+    if (mobileQuery.matches && launchId != null && launchId !== lastLaunchId) openPanel(rightPanel, toggleRightBtn);
     lastLaunchId = launchId;
   });
 
@@ -225,7 +225,7 @@ function setupDesktopPanelToggles(root: HTMLElement): void {
   // Something to show in the details panel: open it again (not remembered).
   const selectionKey = (): string => {
     const s = getState();
-    return [s.selectedIndex, s.selectedEventId, s.selectedConjunction ? 'c' : null].join('|');
+    return [s.selectedIndex, s.selectedEventId, s.selectedConjunction ? 'c' : null, s.selectedLaunch?.id ?? null].join('|');
   };
   let lastSelection = selectionKey();
   subscribe(() => {
