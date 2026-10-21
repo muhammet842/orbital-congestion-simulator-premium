@@ -53,6 +53,7 @@ import {
   type SensorSnapshot,
 } from './observerSensors';
 import { escapeHtml } from './escapeHtml';
+import { icon } from './icons';
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
@@ -281,7 +282,7 @@ function renderShell(): void {
   panelEl.innerHTML = `
     <div class="spotter-header">
       <div class="spotter-title">${t('spotter.title')}</div>
-      <button type="button" class="spotter-close" id="spotter-close" aria-label="${t('spotter.close')}">✕</button>
+      <button type="button" class="spotter-close" id="spotter-close" aria-label="${t('spotter.close')}">${icon('close')}</button>
     </div>
     <div class="spotter-body spotter-body--sky">
       <p class="spotter-target">${escapeHtml(name)}</p>

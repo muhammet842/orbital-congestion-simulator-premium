@@ -33,6 +33,7 @@ import { getSensorSnapshot, setManualLocation } from './observerSensors';
 import { formatGroundPosition } from '../orbital/groundPosition';
 import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
+import { icon } from './icons';
 
 const MAX_ROWS = 150;
 const REFRESH_MS = 10_000;
@@ -284,7 +285,7 @@ function renderShell(): void {
   panelEl.innerHTML = `
     <div class="modal-header">
       <div class="modal-title" id="radio-title">${escapeHtml(t('radio.title'))}</div>
-      <button type="button" class="modal-close" id="radio-close" aria-label="${escapeHtml(t('radio.close'))}" title="${escapeHtml(t('radio.close'))}">✕</button>
+      <button type="button" class="modal-close" id="radio-close" aria-label="${escapeHtml(t('radio.close'))}" title="${escapeHtml(t('radio.close'))}">${icon('close')}</button>
     </div>
     <div class="modal-body radio-body">
       <p class="radio-lede muted">${escapeHtml(t('radio.lede'))}</p>
@@ -570,24 +571,26 @@ export function resetRadioPanelForTests(): void {
 export function initRadioPanel(): void {
   const btn = document.createElement('button');
   btn.id = 'radio-panel-btn';
-  btn.className = 'kessler-header-btn radio-header-btn';
+  btn.className = 'kessler-header-btn header-btn radio-header-btn';
   btn.type = 'button';
-  btn.textContent = '📻';
+  btn.innerHTML = `${icon('radio')}<span class="header-btn-label"></span>`;
 
   const refreshLabel = (): void => {
     const label = t('radio.button');
     btn.title = label;
     btn.setAttribute('aria-label', label);
+    btn.querySelector('.header-btn-label')!.textContent = label;
   };
   refreshLabel();
   btn.addEventListener('click', openRadioPanel);
 
   const kessler = document.getElementById('kessler-panel-btn');
-  const actions = document.getElementById('header-actions');
-  const langSel = document.getElementById('lang-select');
   if (kessler?.parentElement) kessler.parentElement.insertBefore(btn, kessler);
-  else if (actions && langSel) actions.insertBefore(btn, langSel.closest('.header-lang') ?? langSel);
-  else document.querySelector('.app-header')?.appendChild(btn);
+  else {
+    const more = document.getElementById('header-more');
+    if (more?.parentElement) more.parentElement.insertBefore(btn, more);
+    else document.querySelector('.app-header')?.appendChild(btn);
+  }
 
   onLangChange(() => {
     refreshLabel();

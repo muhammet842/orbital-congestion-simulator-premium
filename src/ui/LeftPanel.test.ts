@@ -5,9 +5,11 @@ import { setState } from '../state/appState';
 import type { ConjunctionEvent, TrackedObject } from '../types';
 
 // requestAnimationFrame is not implemented in jsdom — stub it so initLeftPanel
-// can register the live-time refresh loop without throwing.
+// can register the live-time refresh loop without throwing. Same for
+// scrollIntoView ("Show less" scrolls the list back into view).
 beforeEach(() => {
   vi.stubGlobal('requestAnimationFrame', vi.fn());
+  Element.prototype.scrollIntoView = vi.fn();
 });
 
 describe('initLeftPanel – DOM smoke', () => {
@@ -214,6 +216,27 @@ describe('renderConjunctions — predicted (future) close approaches', () => {
     expect(text).toContain('1.85');
     // ~3h12m away — must not render as if it were already happening now.
     expect(text).toMatch(/3h ?12m|in 3h/);
+
+    document.body.removeChild(container);
+    setState({ conjunctions: [], conjunctionHiddenCount: 0 });
+  });
+
+  it('marks only passes under 1 km as critical (red frame and warning sign)', () => {
+    const close = { ...makeFutureConjunction(60 * 60 * 1000), objectB: 'DEB-1', noradIdB: 3, distanceKm: 0.4 };
+    setState({ conjunctions: [makeFutureConjunction(30 * 60 * 1000), close], conjunctionHiddenCount: 0 });
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    initLeftPanel(container);
+
+    const cards = [...container.querySelectorAll('.conjunction-alert')];
+    expect(cards).toHaveLength(2);
+    const critical = cards.filter((card) => card.classList.contains('conjunction-alert--critical'));
+    expect(critical).toHaveLength(1);
+    expect(critical[0].textContent).toContain('DEB-1');
+    expect(critical[0].querySelector('.icon--alert')).not.toBeNull();
+    const calm = cards.find((card) => !card.classList.contains('conjunction-alert--critical'))!;
+    expect(calm.querySelector('.icon--alert')).toBeNull();
 
     document.body.removeChild(container);
     setState({ conjunctions: [], conjunctionHiddenCount: 0 });

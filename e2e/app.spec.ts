@@ -67,25 +67,26 @@ test.describe('Event cards', () => {
 });
 
 test.describe('Language switcher', () => {
-  test('language dropdown exists in the header', async ({ page }) => {
+  test('the language choice is in the header More menu', async ({ page }) => {
     await page.goto('/');
-    const select = page.locator('#lang-select');
-    await expect(select).toBeVisible({ timeout: 10_000 });
+    await page.locator('#header-more-btn').click();
+    await expect(page.locator('#lang-select')).toBeVisible({ timeout: 10_000 });
   });
 
   test('switching to Turkish translates orbit-layers heading', async ({ page }) => {
     await page.goto('/');
-    const select = page.locator('#lang-select');
-    await select.selectOption('tr');
+    await page.locator('#header-more-btn').click();
+    await page.locator('#lang-select').selectOption('tr');
     // "ui.orbit_layers" in Turkish is "Yörünge Katmanları"
     await expect(page.getByText('Yörünge Katmanları')).toBeVisible({ timeout: 5_000 });
   });
 
   test('switching back to English restores English text', async ({ page }) => {
     await page.goto('/');
-    const select = page.locator('#lang-select');
-    await select.selectOption('tr');
-    await select.selectOption('en');
+    await page.locator('#header-more-btn').click();
+    await page.locator('#lang-select').selectOption('tr');
+    await page.locator('#header-more-btn').click();
+    await page.locator('#lang-select').selectOption('en');
     await expect(page.getByText('Orbit Layers')).toBeVisible({ timeout: 5_000 });
   });
 });
@@ -93,12 +94,14 @@ test.describe('Language switcher', () => {
 test.describe('How-to guide', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.locator('#help-guide-btn').waitFor({ timeout: 10_000 });
+    await page.locator('#help-guide-btn').waitFor({ state: 'attached', timeout: 10_000 });
+    // The tour is in the header's More menu.
+    await page.locator('#header-more-btn').click();
   });
 
   test('opens the UI tour spotlight from the help button', async ({ page }) => {
     await page.locator('#help-guide-btn').click();
-    await expect(page.locator('.tour-progress')).toHaveText('1 / 11');
+    await expect(page.locator('.tour-progress')).toHaveText('1 / 10');
     await expect(page.locator('#tour-highlight')).toBeVisible();
     await expect(page.locator('#tour-skip')).toBeVisible();
     await expect(page.locator('#thesis-collision')).toHaveCount(0);

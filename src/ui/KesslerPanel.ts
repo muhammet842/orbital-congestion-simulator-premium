@@ -20,6 +20,7 @@ import {
   type KesslerYearPoint,
 } from '../orbital/kesslerProjection';
 import { onLangChange, t } from '../i18n/i18n';
+import { icon } from './icons';
 
 // ── Module-local component state ────────────────────────────────────────────
 
@@ -116,26 +117,23 @@ function applyPresetToSliders(id: KesslerPresetId): void {
 export function initKesslerPanel(): void {
   const btn = document.createElement('button');
   btn.id = 'kessler-panel-btn';
-  btn.className = 'kessler-header-btn';
+  btn.className = 'kessler-header-btn header-btn';
   btn.type = 'button';
-  btn.textContent = '🌌';
+  btn.innerHTML = `${icon('projection')}<span class="header-btn-label"></span>`;
 
   const refreshLabel = (): void => {
     const label = t('kessler.button');
     btn.title = label;
     btn.setAttribute('aria-label', label);
+    btn.querySelector('.header-btn-label')!.textContent = label;
   };
   refreshLabel();
   btn.addEventListener('click', openKesslerPanel);
 
-  const header = document.querySelector('.app-header');
-  const actions = document.getElementById('header-actions');
-  const langSel = document.getElementById('lang-select');
-  if (actions && langSel) actions.insertBefore(btn, langSel.closest('.header-lang') ?? langSel);
-  else if (header) {
-    if (langSel) header.insertBefore(btn, langSel);
-    else header.appendChild(btn);
-  }
+  const more = document.getElementById('header-more');
+  if (more?.parentElement) more.parentElement.insertBefore(btn, more);
+  else document.querySelector('.app-header')?.appendChild(btn);
+
 
   onLangChange(() => {
     refreshLabel();
@@ -209,7 +207,7 @@ function renderPanelContent(): void {
   panelEl.innerHTML = `
     <div class="modal-header">
       <div class="modal-title">${t('kessler.title')}</div>
-      <button class="modal-close" id="kp-close" aria-label="${t('kessler.close')}" title="${t('kessler.close')}">✕</button>
+      <button class="modal-close" id="kp-close" aria-label="${t('kessler.close')}" title="${t('kessler.close')}">${icon('close')}</button>
     </div>
     <div class="modal-body">
       <p class="kp-subtitle">${t('kessler.subtitle')}</p>

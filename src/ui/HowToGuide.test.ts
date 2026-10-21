@@ -18,13 +18,18 @@ function mountAppShell(): void {
         <div class="header-title">Orbital Congestion Simulator</div>
       </div>
       <div class="header-actions" id="header-actions">
-        <div class="header-lang">
-          <select id="lang-select">
-            <option value="en">EN</option>
-            <option value="tr">TR</option>
-          </select>
+        <div class="header-more" id="header-more">
+          <button id="header-more-btn" type="button" aria-expanded="false">More</button>
+          <div class="header-menu" id="header-menu">
+            <label class="header-lang">
+              <select id="lang-select">
+                <option value="en">EN</option>
+                <option value="tr">TR</option>
+              </select>
+            </label>
+            <a class="header-github" href="https://github.com/muhammet842/orbital-congestion-simulator-premium">GitHub</a>
+          </div>
         </div>
-        <a class="header-github" href="https://github.com/muhammet842/orbital-congestion-simulator-premium">GitHub</a>
       </div>
     </header>
     <aside id="left-panel" class="panel panel-left" style="overflow-y: auto; height: 200px;">
@@ -74,14 +79,14 @@ afterEach(() => {
 });
 
 describe('initHowToGuide', () => {
-  it('inserts a "?" header button before the language selector', () => {
+  it('adds the tour to the More menu in the header, between the language and GitHub', () => {
     initHowToGuide();
     const btn = document.getElementById('help-guide-btn');
-    const langSel = document.getElementById('lang-select');
-    expect(btn?.textContent).toBe('?');
-    expect(
-      Boolean(btn && langSel && (btn.compareDocumentPosition(langSel) & Node.DOCUMENT_POSITION_FOLLOWING)),
-    ).toBe(true);
+    const menu = document.getElementById('header-menu');
+    const github = document.querySelector('.header-github');
+    expect(btn?.textContent).toBe('How to use');
+    expect(menu?.contains(btn!)).toBe(true);
+    expect(Boolean(btn && github && (btn.compareDocumentPosition(github) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   });
 
   it('auto-opens on first visit after a short delay', () => {
@@ -106,7 +111,7 @@ describe('interactive tour', () => {
 
   it('starts the UI tour immediately from ? after the guide has been seen', () => {
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
     expect(document.getElementById('thesis-collision')).toBeNull();
     expect(document.getElementById('thesis-projection')).toBeNull();
   });
@@ -117,49 +122,47 @@ describe('interactive tour', () => {
     document.querySelector<HTMLButtonElement>('.tour-lang-btn[data-lang="tr"]')?.click();
     expect(getLang()).toBe('tr');
     expect(document.querySelector<HTMLSelectElement>('#lang-select')?.value).toBe('tr');
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
     expect(document.getElementById('thesis-collision')).toBeNull();
   });
 
   it('advances with Next and can be skipped', () => {
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
     document.getElementById('tour-next')?.click();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 11');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 10');
     document.getElementById('tour-skip')?.click();
     expect(isHowToGuideOpen()).toBe(false);
     expect(localStorage.getItem(LS_HELP_SEEN)).toBe('1');
   });
 
-  it('skips a step whose target is hidden in this layout (GitHub link on phones)', () => {
-    document.querySelector<HTMLElement>('.header-github')!.style.display = 'none';
+  it('skips a step whose target is hidden in this layout', () => {
+    document.querySelector<HTMLElement>('#header-more-btn')!.style.display = 'none';
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
-    document.getElementById('tour-next')?.click(); // language
-    document.getElementById('tour-next')?.click(); // would be GitHub
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('3 / 10');
-    expect(document.querySelector('.tour-title')?.textContent).not.toMatch(/GitHub/);
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
+    document.getElementById('tour-next')?.click(); // would be the More menu
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 9');
+    expect(document.querySelector('.tour-title')?.textContent).toBe('Search and filter');
     // Back returns to the step before, not to the skipped one.
     document.getElementById('tour-back')?.click();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('2 / 10');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 9');
   });
 
   it('keeps all steps when every target is visible', () => {
     openHowToGuide();
-    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 11');
+    expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
   });
 
   it('walks through every step in order, including upcoming launches and the radio panel', () => {
     openHowToGuide();
     const titles: string[] = [];
-    for (let i = 0; i < 11; i++) {
+    for (let i = 0; i < 10; i++) {
       titles.push(document.querySelector('.tour-title')!.textContent!);
-      if (i < 10) document.getElementById('tour-next')!.click();
+      if (i < 9) document.getElementById('tour-next')!.click();
     }
     expect(titles).toEqual([
       'Explore the globe',
-      'Change the language',
-      'View the source on GitHub',
+      'Language, tour and source code',
       'Search and filter',
       'Inspect details',
       'Watch close approaches',
@@ -174,7 +177,7 @@ describe('interactive tour', () => {
 
   it('describes close approaches as estimates, not operational alerts', () => {
     openHowToGuide();
-    for (let i = 0; i < 5; i++) document.getElementById('tour-next')!.click();
+    for (let i = 0; i < 4; i++) document.getElementById('tour-next')!.click();
     expect(document.querySelector('.tour-title')?.textContent).toBe('Watch close approaches');
     expect(document.querySelector('.tour-body')?.textContent).toMatch(/screening estimates/i);
     expect(document.querySelector('.tour-body')?.textContent).not.toMatch(/every day/i);

@@ -16,6 +16,7 @@ import {
   selectConjunctionAlertsForDisplay,
   filterConjunctionAlertsInHorizon,
   MAX_DISPLAY_ALERTS,
+  RISK_CRITICAL_KM,
   type ConjunctionSortMode,
 } from '../orbital/conjunction';
 import {
@@ -47,6 +48,8 @@ import { t, applyTranslations, onLangChange } from '../i18n/i18n';
 import { isRecentlyLaunched, hasAnyRecentlyLaunched } from '../data/newLaunches';
 import { escapeHtml } from './escapeHtml';
 import { STALE_TLE_AGE_DAYS } from '../data/tleLoader';
+import { initPanelSections } from './panelSections';
+import { icon } from './icons';
 
 const LAYERS: OrbitLayer[] = ['LEO', 'MEO', 'GEO', 'HEO'];
 const CATEGORY_FILTERS: Array<ObjectCategory | 'all'> = ['all', 'active', 'stations', 'debris'];
@@ -135,7 +138,7 @@ export function initLeftPanel(container: HTMLElement): void {
     <div id="tour-region-approaches" class="tour-region">
       <h2 class="panel-heading panel-heading--alert" data-i18n="ui.close_approach">Close Approach Alerts (Next 24h)</h2>
       <p class="panel-lede" data-i18n="conj.why_it_matters">${t('conj.why_it_matters')}</p>
-      <p class="muted conjunction-accuracy-note" data-i18n="conj.accuracy_note">${t('conj.accuracy_note')}</p>
+      <p class="muted conjunction-accuracy-note" data-section-info data-i18n="conj.accuracy_note">${t('conj.accuracy_note')}</p>
       <p class="muted conjunction-accuracy-note" id="conjunction-stale-note" hidden></p>
       <div class="conjunction-filters" id="conjunction-filters"></div>
       <div class="conjunction-list" id="conjunction-list"></div>
@@ -154,6 +157,8 @@ export function initLeftPanel(container: HTMLElement): void {
   initLaunchesPanel(container);
   initEventCards(container);
   initAdvancedFilters(container);
+  // Rarely used sections start closed; the visitor's choice is remembered.
+  initPanelSections(container, ['ui.advanced_filters', 'ui.object_categories', 'ui.live_stats']);
 
   container.addEventListener('change', (e) => {
     const input = (e.target as HTMLElement).closest<HTMLInputElement>(
@@ -564,9 +569,9 @@ function renderStats(container: HTMLElement): void {
     : 0;
 
   const tleStaleHtml = tleAgeDays > 7
-    ? `<div class="tle-stale-banner tle-stale-banner--critical">⚠ ${t('tle.critical').replace('{n}', String(Math.floor(tleAgeDays)))}</div>`
+    ? `<div class="tle-stale-banner tle-stale-banner--critical">${icon('alert', 15)}<span>${t('tle.critical').replace('{n}', String(Math.floor(tleAgeDays)))}</span></div>`
     : tleAgeDays > 3
-    ? `<div class="tle-stale-banner tle-stale-banner--warn">⚠ ${t('tle.warn').replace('{n}', String(Math.floor(tleAgeDays)))}</div>`
+    ? `<div class="tle-stale-banner tle-stale-banner--warn">${icon('alert', 15)}<span>${t('tle.warn').replace('{n}', String(Math.floor(tleAgeDays)))}</span></div>`
     : '';
 
   const liveEl = container.querySelector('#live-stats')!;
@@ -661,9 +666,10 @@ function renderConjunctions(container: HTMLElement): void {
     const existing = listEl.querySelector('.conjunction-empty');
     if (existing && !listEl.querySelector('.conjunction-alert')) {
       if (existing.textContent !== emptyText) existing.textContent = emptyText;
+      existing.classList.toggle('conjunction-empty--scanning', stillScanning);
       return;
     }
-    listEl.innerHTML = `<p class="muted conjunction-empty">${emptyText}</p>`;
+    listEl.innerHTML = `<p class="muted conjunction-empty${stillScanning ? ' conjunction-empty--scanning' : ''}">${emptyText}</p>`;
     return;
   }
 
@@ -711,14 +717,16 @@ function renderConjunctions(container: HTMLElement): void {
       const sessionKey = conjunctionSessionKey(c);
       const isNew = !previousAlertKeys.has(sessionKey);
       const isActive = sessionKey === selectedConjunctionSessionKey;
+      // Red and the warning sign only for passes the detail view calls critical.
+      const isCritical = c.distanceKm < RISK_CRITICAL_KM;
       nextKeys.add(sessionKey);
       return `
         <button
           type="button"
-          class="conjunction-alert${isNew ? ' conjunction-alert--new' : ''}${isActive ? ' conjunction-alert--active' : ''}"
+          class="conjunction-alert${isCritical ? ' conjunction-alert--critical' : ''}${isNew ? ' conjunction-alert--new' : ''}${isActive ? ' conjunction-alert--active' : ''}"
           data-session-key="${escapeHtml(sessionKey)}"
         >
-          <span class="conjunction-alert-icon" aria-hidden="true">⚠</span>
+          <span class="conjunction-alert-icon" aria-hidden="true">${isCritical ? icon('alert', 15) : '<span class="conjunction-alert-dot"></span>'}</span>
           <span class="conjunction-alert-text">${escapeHtml(formatAlertMessage(c, nowMs))}</span>
         </button>
       `;
