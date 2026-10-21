@@ -346,23 +346,44 @@ function restoreGlobalLiveTime(): TimeState {
   };
 }
 
-export function selectObject(index: number): void {
+/**
+ * One thing is in focus at a time: picking a satellite, a historical event, a
+ * close approach or a launch cancels whichever of the others was active
+ * (including a close-approach or replay clock), so a click always shows the
+ * card that was clicked. `keep` names the one being picked.
+ */
+function cancelOtherFocus(keep: 'object' | 'event' | 'conjunction' | 'launch'): Partial<AppState> {
   const wasVerifying = state.verificationTime != null;
-  setState({
-    selectedIndex: index,
-    selectedEventId: null,
-    selectedConjunction: null,
-    selectedConjunctionSessionKey: null,
-    verificationTime: null,
-    eventReplay: null,
-    ...(wasVerifying ? { time: restoreGlobalLiveTime() } : {}),
-  });
+  return {
+    ...(keep !== 'object' ? { selectedIndex: null } : {}),
+    ...(keep !== 'event' ? { selectedEventId: null, eventReplay: null } : {}),
+    ...(keep !== 'conjunction'
+      ? {
+          selectedConjunction: null,
+          selectedConjunctionSessionKey: null,
+          verificationTime: null,
+          ...(wasVerifying ? { time: restoreGlobalLiveTime() } : {}),
+        }
+      : {}),
+    ...(keep !== 'launch' ? { selectedLaunch: null } : {}),
+  };
 }
 
-/** Marks a launch pad on the globe and flies the camera there; null clears it. */
+export function selectObject(index: number): void {
+  setState({ ...cancelOtherFocus('object'), selectedIndex: index });
+}
+
+/**
+ * Marks a launch pad on the globe and flies the camera there (cancelling a
+ * selected satellite, event or close approach); null clears it.
+ */
 export function selectLaunch(launch: SelectedLaunch | null): void {
-  if (launch == null && state.selectedLaunch == null) return;
-  setState({ selectedLaunch: launch });
+  if (launch == null) {
+    if (state.selectedLaunch == null) return;
+    setState({ selectedLaunch: null });
+    return;
+  }
+  setState({ ...cancelOtherFocus('launch'), selectedLaunch: launch });
 }
 
 export function clearObjectSelection(): void {
@@ -371,17 +392,13 @@ export function clearObjectSelection(): void {
 }
 
 export function selectHistoricalEvent(eventId: string): void {
-  const wasVerifying = state.verificationTime != null;
   setState({
+    ...cancelOtherFocus('event'),
     selectedEventId: eventId,
-    selectedIndex: null,
-    selectedConjunction: null,
-    selectedConjunctionSessionKey: null,
-    verificationTime: null,
+    // A new event starts without the previous event's replay.
     eventReplay: null,
     showOrbitTrail: false,
     showGroundTrack: true,
-    ...(wasVerifying ? { time: restoreGlobalLiveTime() } : {}),
   });
 }
 
@@ -467,6 +484,7 @@ export function selectConjunctionFromAlert(alert: ConjunctionEvent): void {
   const startMs = cpaTimeMs - getVerificationRewindMs(relativeVelocityKmS);
 
   setState({
+    ...cancelOtherFocus('conjunction'),
     selectedConjunction: frozen,
     selectedConjunctionSessionKey: sessionKey,
     conjunctionRevision: state.conjunctionRevision + 1,
@@ -479,8 +497,6 @@ export function selectConjunctionFromAlert(alert: ConjunctionEvent): void {
       speed: 1,
       relativeVelocityKmS,
     },
-    selectedIndex: null,
-    selectedEventId: null,
     showOrbitTrail: false,
     showGroundTrack: true,
   });

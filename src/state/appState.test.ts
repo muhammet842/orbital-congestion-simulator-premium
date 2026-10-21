@@ -572,6 +572,32 @@ describe('selectConjunctionFromAlert', () => {
     expect(vt!.currentMs).toBe(cpa.getTime() - VERIFY_REWIND_MS);
   });
 
+  it('replaces a selected launch or a running historical replay', () => {
+    setState({
+      objects: [makeObj({ noradId: 1, name: 'A' }), makeObj({ noradId: 2, name: 'B' })],
+      selectedLaunch: { id: 'l1', name: 'CRS-35', latitudeDeg: 28.56, longitudeDeg: -80.58, padName: null },
+      selectedEventId: 'iridium-cosmos',
+      eventReplay: { eventId: 'iridium-cosmos', collisionTimeMs: 0, currentMs: 0, playing: true, speed: 1 },
+    });
+    selectConjunctionFromAlert({
+      objectA: 'A',
+      objectB: 'B',
+      noradIdA: 1,
+      noradIdB: 2,
+      indexA: 0,
+      indexB: 1,
+      distanceKm: 0.34,
+      relativeVelocityKmS: 0.4,
+      time: new Date('2026-07-25T02:12:25.000Z'),
+      midpointScene: { x: 0, y: 0, z: 0 },
+    });
+    const s = getState();
+    expect(s.selectedConjunction).not.toBeNull();
+    expect(s.selectedLaunch).toBeNull();
+    expect(s.selectedEventId).toBeNull();
+    expect(s.eventReplay).toBeNull();
+  });
+
   it('starts a 5 km/s crossing later than T−60s so 1x is not a streak across the frame', () => {
     setState({
       objects: [makeObj({ noradId: 1, name: 'A' }), makeObj({ noradId: 2, name: 'B' })],
@@ -687,13 +713,69 @@ describe('selectLaunch', () => {
     expect(getState().selectedLaunch).toBeNull();
   });
 
-  it('is independent of the object selection', () => {
+  it('replaces a selected satellite; clearing the launch leaves everything else alone', () => {
     setState({ selectedIndex: 3, selectedLaunch: null });
     selectLaunch(pad);
-    expect(getState().selectedIndex).toBe(3);
+    expect(getState().selectedIndex).toBeNull();
     expect(getState().selectedLaunch).toEqual(pad);
     selectLaunch(null);
-    expect(getState().selectedIndex).toBe(3);
+    expect(getState().selectedLaunch).toBeNull();
+  });
+});
+
+// ── One thing in focus at a time ──────────────────────────────────────────────
+
+describe('switching between satellites, events, close approaches and launches', () => {
+  const pad = { id: 'l1', name: 'CRS-35', latitudeDeg: 28.56, longitudeDeg: -80.58, padName: 'SLC-40' };
+  const replay = { eventId: 'iridium-cosmos', collisionTimeMs: 0, currentMs: 0, playing: true, speed: 1 };
+  const verifying = (): void =>
+    setState({
+      selectedIndex: null,
+      selectedEventId: null,
+      eventReplay: null,
+      selectedLaunch: null,
+      selectedConjunction: { objectA: 'A' } as never,
+      selectedConjunctionSessionKey: 'a|b',
+      verificationTime: { cpaTimeMs: 1, currentMs: 0, playing: true, speed: 1, relativeVelocityKmS: 7 },
+      time: { mode: 'live', current: new Date(0), speed: 5, playing: false },
+    });
+
+  it('a launch picked while watching a close approach ends the approach and returns to live time', () => {
+    verifying();
+    selectLaunch(pad);
+    const s = getState();
+    expect(s.selectedLaunch).toEqual(pad);
+    expect(s.selectedConjunction).toBeNull();
+    expect(s.selectedConjunctionSessionKey).toBeNull();
+    expect(s.verificationTime).toBeNull();
+    expect(s.time.speed).toBe(1);
+    expect(s.time.playing).toBe(true);
+  });
+
+  it('a launch picked during a historical replay ends the replay', () => {
+    setState({ selectedEventId: 'iridium-cosmos', eventReplay: replay, selectedLaunch: null, selectedConjunction: null, verificationTime: null });
+    selectLaunch(pad);
+    expect(getState().selectedEventId).toBeNull();
+    expect(getState().eventReplay).toBeNull();
+  });
+
+  it('a satellite or a historical event picked after a launch replaces it', () => {
+    setState({ selectedLaunch: pad, selectedIndex: null });
+    selectObject(0);
+    expect(getState().selectedLaunch).toBeNull();
+    expect(getState().selectedIndex).toBe(0);
+
+    setState({ selectedLaunch: pad });
+    selectHistoricalEvent('iridium-cosmos');
+    expect(getState().selectedLaunch).toBeNull();
+    expect(getState().selectedIndex).toBeNull();
+  });
+
+  it('a satellite picked during a historical replay ends the replay', () => {
+    setState({ selectedEventId: 'iridium-cosmos', eventReplay: replay, selectedIndex: null });
+    selectObject(0);
+    expect(getState().selectedEventId).toBeNull();
+    expect(getState().eventReplay).toBeNull();
   });
 });
 

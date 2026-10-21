@@ -19,7 +19,7 @@ import {
   launchPollIntervalMs,
   type Launch,
 } from '../data/launches';
-import { clearObjectSelection, getState, selectLaunch, selectObject, subscribe } from '../state/appState';
+import { getState, selectLaunch, selectObject, subscribe } from '../state/appState';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
 
 type LoadState = 'loading' | 'ready' | 'error';
@@ -172,8 +172,7 @@ export function initLaunchesPanel(container: HTMLElement): () => void {
       if (getState().selectedLaunch?.id === launch.id) {
         selectLaunch(null);
       } else {
-        // The details panel then shows this launch rather than an earlier satellite.
-        clearObjectSelection();
+        // Cancels a selected satellite, event or close approach (see selectLaunch).
         selectLaunch({
           id: launch.id,
           name: launch.name,
