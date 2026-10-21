@@ -417,3 +417,65 @@ describe('renderConjunctions — predicted (future) close approaches', () => {
     setState({ conjunctions: [], conjunctionHiddenCount: 0 });
   });
 });
+
+describe('close approaches: Show more / Show less', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-06-01T12:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    setState({ conjunctions: [], conjunctionHiddenCount: 0 });
+  });
+
+  const events = (n: number): ConjunctionEvent[] =>
+    Array.from({ length: n }, (_, i) => ({
+      objectA: `SAT-A${i}`,
+      objectB: `SAT-B${i}`,
+      noradIdA: 1000 + i,
+      noradIdB: 5000 + i,
+      indexA: 0,
+      indexB: 1,
+      distanceKm: 1 + i / 100,
+      relativeVelocityKmS: 7,
+      time: new Date(Date.now() + (i + 1) * 60_000),
+      midpointScene: { x: 0, y: 0, z: 0 },
+    }));
+  const cards = (c: HTMLElement) => c.querySelectorAll('.conjunction-alert').length;
+  const button = (c: HTMLElement, which: 'more' | 'less') => c.querySelector<HTMLButtonElement>(`[data-conj-more="${which}"]`);
+
+  it('grows the list in steps up to the stored close approaches, then collapses back', () => {
+    setState({ conjunctions: events(18), conjunctionHiddenCount: 9000 });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    initLeftPanel(container);
+
+    expect(cards(container)).toBe(5);
+    expect(button(container, 'more')?.textContent).toBe('Show more');
+    expect(button(container, 'less')).toBeNull();
+
+    button(container, 'more')!.click();
+    expect(cards(container)).toBe(15);
+    expect(button(container, 'less')).not.toBeNull();
+
+    button(container, 'more')!.click();
+    expect(cards(container)).toBe(18); // every stored one is shown
+    expect(button(container, 'more')).toBeNull();
+    expect(container.querySelector('.conjunction-more')?.textContent).toMatch(/9[.,\u00a0 ]?000/); // the rest are only counted (local number format)
+
+    button(container, 'less')!.click();
+    expect(cards(container)).toBe(5);
+    expect(button(container, 'less')).toBeNull();
+    container.remove();
+  });
+
+  it('shows no buttons when everything already fits', () => {
+    setState({ conjunctions: events(3), conjunctionHiddenCount: 0 });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    initLeftPanel(container);
+    expect(cards(container)).toBe(3);
+    expect(container.querySelector('[data-conj-more]')).toBeNull();
+    container.remove();
+  });
+});
