@@ -16,7 +16,6 @@ import {
   selectConjunctionAlertsForDisplay,
   filterConjunctionAlertsInHorizon,
   MAX_DISPLAY_ALERTS,
-  RISK_CRITICAL_KM,
   type ConjunctionSortMode,
 } from '../orbital/conjunction';
 import {
@@ -717,16 +716,13 @@ function renderConjunctions(container: HTMLElement): void {
       const sessionKey = conjunctionSessionKey(c);
       const isNew = !previousAlertKeys.has(sessionKey);
       const isActive = sessionKey === selectedConjunctionSessionKey;
-      // Red and the warning sign only for passes the detail view calls critical.
-      const isCritical = c.distanceKm < RISK_CRITICAL_KM;
       nextKeys.add(sessionKey);
       return `
         <button
           type="button"
-          class="conjunction-alert${isCritical ? ' conjunction-alert--critical' : ''}${isNew ? ' conjunction-alert--new' : ''}${isActive ? ' conjunction-alert--active' : ''}"
+          class="conjunction-alert${isNew ? ' conjunction-alert--new' : ''}${isActive ? ' conjunction-alert--active' : ''}"
           data-session-key="${escapeHtml(sessionKey)}"
         >
-          <span class="conjunction-alert-icon" aria-hidden="true">${isCritical ? icon('alert', 15) : '<span class="conjunction-alert-dot"></span>'}</span>
           <span class="conjunction-alert-text">${escapeHtml(formatAlertMessage(c, nowMs))}</span>
         </button>
       `;
