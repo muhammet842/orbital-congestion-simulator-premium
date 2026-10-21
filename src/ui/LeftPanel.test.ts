@@ -221,7 +221,7 @@ describe('renderConjunctions — predicted (future) close approaches', () => {
     setState({ conjunctions: [], conjunctionHiddenCount: 0 });
   });
 
-  it('marks only passes under 1 km as critical (red frame and warning sign)', () => {
+  it('draws every close approach with the same card, without a leading marker', () => {
     const close = { ...makeFutureConjunction(60 * 60 * 1000), objectB: 'DEB-1', noradIdB: 3, distanceKm: 0.4 };
     setState({ conjunctions: [makeFutureConjunction(30 * 60 * 1000), close], conjunctionHiddenCount: 0 });
 
@@ -231,12 +231,11 @@ describe('renderConjunctions — predicted (future) close approaches', () => {
 
     const cards = [...container.querySelectorAll('.conjunction-alert')];
     expect(cards).toHaveLength(2);
-    const critical = cards.filter((card) => card.classList.contains('conjunction-alert--critical'));
-    expect(critical).toHaveLength(1);
-    expect(critical[0].textContent).toContain('DEB-1');
-    expect(critical[0].querySelector('.icon--alert')).not.toBeNull();
-    const calm = cards.find((card) => !card.classList.contains('conjunction-alert--critical'))!;
-    expect(calm.querySelector('.icon--alert')).toBeNull();
+    expect(cards.map((card) => card.className)).toEqual(Array(2).fill(cards[0].className));
+    for (const card of cards) {
+      expect(card.children).toHaveLength(1);
+      expect(card.querySelector('svg')).toBeNull();
+    }
 
     document.body.removeChild(container);
     setState({ conjunctions: [], conjunctionHiddenCount: 0 });

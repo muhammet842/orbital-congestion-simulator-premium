@@ -1760,12 +1760,6 @@ select option:checked {
   box-shadow: 0 0 12px rgba(248, 113, 113, 0.35);
 }
 
-.conjunction-alert-icon {
-  flex-shrink: 0;
-  color: var(--danger);
-  font-size: 0.9rem;
-  line-height: 1.35;
-}
 
 .conjunction-alert-text {
   font-size: 0.78rem;
@@ -4303,8 +4297,8 @@ summary:focus-visible,
 .conjunction-sort-option:has(input:checked) { color: var(--text-primary); }
 .conjunction-sort-option input { accent-color: var(--accent); }
 
-/* Close-approach cards: neutral, the pair and distance readable; the red
-   frame and warning sign only for passes under 1 km (critical risk). */
+/* Close-approach cards: one neutral design for every pass; "By criticality"
+   sorting brings the closest ones to the top. */
 .conjunction-alert {
   align-items: center;
   gap: var(--space-3);
@@ -4315,14 +4309,8 @@ summary:focus-visible,
   transition: border-color 0.15s, background-color 0.15s;
 }
 .conjunction-alert:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.16); }
-.conjunction-alert-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; color: var(--text-muted); }
-.conjunction-alert-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(var(--accent-rgb), 0.75); }
 .conjunction-alert-text { color: var(--text-primary); font-weight: 400; }
-.conjunction-alert--critical { border-color: rgba(224, 112, 112, 0.45); background: rgba(224, 112, 112, 0.08); }
-.conjunction-alert--critical:hover { border-color: rgba(224, 112, 112, 0.7); background: rgba(224, 112, 112, 0.13); }
-.conjunction-alert--critical .conjunction-alert-icon { color: var(--danger); }
-.conjunction-alert--active,
-.conjunction-alert--critical.conjunction-alert--active {
+.conjunction-alert--active {
   border-color: var(--accent);
   background: rgba(var(--accent-rgb), 0.1);
   box-shadow: inset 3px 0 0 var(--accent);
