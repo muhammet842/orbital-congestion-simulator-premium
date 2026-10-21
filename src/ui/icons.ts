@@ -25,6 +25,12 @@ const paths = {
   chevronDown: '<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>',
   /** "More about this" next to a heading. */
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 8v.2"/>',
+  /** Your location. */
+  pin: '<path d="M12 20.5s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0c0 4.9-6.5 10.5-6.5 10.5z"/><circle cx="12" cy="10" r="2.3"/>',
+  /** Download a file. */
+  download: '<path d="M12 4.5v10.5"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>',
+  /** Copy a link. */
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   /** Close a dialog. */
   close: '<path d="M6.5 6.5l11 11"/><path d="M17.5 6.5l-11 11"/>',
   /** Warning (only for the closest passes). */

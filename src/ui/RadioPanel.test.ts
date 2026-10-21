@@ -72,7 +72,7 @@ const rowNames = (): string[] =>
   [...document.querySelectorAll('.radio-row-name')].map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim());
 const summary = (): string => $('#radio-summary').textContent ?? '';
 const pressed = (): string[] =>
-  [...document.querySelectorAll('#radio-panel [aria-pressed="true"]')].map((e) => (e.textContent ?? '').trim());
+  [...document.querySelectorAll('#radio-panel .radio-chip[aria-pressed="true"]')].map((e) => (e.textContent ?? '').trim());
 
 function type(el: HTMLInputElement, value: string): void {
   el.value = value;
@@ -123,6 +123,36 @@ describe('opening the panel', () => {
     // Ku-band, no-radio and (for "easy") nothing else; amateur first, designator-only names last.
     expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'RS-44 Amateur', '2023-091J Amateur', 'NOAA 19']);
     expect(summary()).toBe('4 satellites · 4 channels');
+  });
+
+  it('starts simple: "All satellites" chosen, filters and notes folded, with a summary of the filters', () => {
+    openRadioPanel();
+    const scope = [...document.querySelectorAll('[data-scope]')].map((b) => `${b.textContent}:${b.getAttribute('aria-pressed')}`);
+    expect(scope).toEqual(['Over me now:false', 'All satellites:true']);
+    expect(($('#radio-filters') as HTMLDetailsElement).open).toBe(false);
+    expect(($('#radio-about') as HTMLDetailsElement).open).toBe(false);
+    expect($('#radio-filter-summary').textContent).toBe('Easy · VHF/UHF, All modes');
+    expect($('#radio-location').textContent).toBe('');
+  });
+
+  it('explains the chosen mode in plain words and keeps the summary up to date', () => {
+    openRadioPanel();
+    $('[data-mode="fm"]').click();
+    expect($('#radio-mode-hint').textContent).toMatch(/handheld FM radio/);
+    toggle($('#radio-amateur'), true);
+    expect($('#radio-filter-summary').textContent).toBe('Easy · VHF/UHF, FM, Amateur only');
+  });
+
+  it('keeps a fold open when the language changes (the panel is drawn again)', () => {
+    initRadioPanel(); // registers the language listener
+    openRadioPanel();
+    const filters = $('#radio-filters') as HTMLDetailsElement;
+    filters.open = true;
+    filters.dispatchEvent(new Event('toggle'));
+    setLang('tr');
+    expect($('#radio-filters .radio-fold-title').textContent).toBe('Filtreler');
+    expect(($('#radio-filters') as HTMLDetailsElement).open).toBe(true);
+    setLang('en');
   });
 
   it('links amateur satellites to their SatNOGS observations, but not other services', () => {
@@ -281,7 +311,7 @@ describe('above my horizon now', () => {
   it('asks for the location as soon as the box is ticked, then lists what is up, highest first', () => {
     const geo = stubGeolocation('ok');
     openRadioPanel();
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     expect(geo).toHaveBeenCalledTimes(1); // one shot, never a continuous watch
     expect(sensors.setManual).toHaveBeenCalledWith({ latitudeDeg: 41, longitudeDeg: 29, altitudeKm: 0 });
     expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'NOAA 19']); // 40 deg and 10 deg
@@ -292,7 +322,7 @@ describe('above my horizon now', () => {
   it('applies the minimum elevation to "above my horizon" (default 5°, adjustable)', () => {
     sensors.location = { latitudeDeg: 41, longitudeDeg: 29 };
     openRadioPanel();
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     const select = $('#radio-minelev') as unknown as HTMLSelectElement;
     expect(select.value).toBe('5');
     expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'NOAA 19']); // 40° and 10°
@@ -310,7 +340,7 @@ describe('above my horizon now', () => {
   ] as const)('explains geolocation error %i and does not show an unfiltered list', (code, message) => {
     stubGeolocation(code);
     openRadioPanel();
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     expect($('#radio-location').textContent).toContain(message);
     expect(document.querySelectorAll('.radio-row')).toHaveLength(0);
     expect($('#radio-list').textContent).toContain('Add your location above');
@@ -320,7 +350,7 @@ describe('above my horizon now', () => {
   it('works with typed coordinates when the device cannot locate (comma decimals too)', () => {
     stubGeolocation(2);
     openRadioPanel();
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     ($('#radio-lat') as HTMLInputElement).value = '41,01';
     ($('#radio-lon') as HTMLInputElement).value = '28.97';
     $('#radio-manual').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
@@ -331,7 +361,7 @@ describe('above my horizon now', () => {
   it('rejects coordinates out of range and keeps what was typed', () => {
     stubGeolocation(2);
     openRadioPanel();
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     ($('#radio-lat') as HTMLInputElement).value = '141';
     ($('#radio-lon') as HTMLInputElement).value = '29';
     $('#radio-manual').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
@@ -343,7 +373,7 @@ describe('above my horizon now', () => {
   it('says so when the browser cannot locate at all, and still offers typed coordinates', () => {
     Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
     openRadioPanel();
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     expect($('#radio-location').textContent).toContain('cannot provide a location');
     expect(document.querySelector('[data-action="locate"]')).toBeNull();
     expect(document.querySelector('#radio-manual')).not.toBeNull();
@@ -405,7 +435,7 @@ describe('export and sharing', () => {
     $('[data-band="ham70cm"]').click();
     $('[data-mode="fm"]').click();
     toggle($('#radio-amateur'), true);
-    toggle($('#radio-visible'), true);
+    $('[data-scope="now"]').click();
     $('#radio-copy').click();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -427,6 +457,8 @@ describe('export and sharing', () => {
     window.history.replaceState(null, '', '/?radio=ham70cm&mode=cw&amateur=1&rq=rs');
     initRadioPanel();
     expect(isRadioPanelOpen()).toBe(true);
+    // The link changed the filters, so they are shown, not folded away.
+    expect(($('#radio-filters') as HTMLDetailsElement).open).toBe(true);
     expect(pressed()).toEqual(['70 cm', 'CW']);
     expect(($('#radio-amateur') as HTMLInputElement).checked).toBe(true);
     expect(($('#radio-search') as HTMLInputElement).value).toBe('rs');

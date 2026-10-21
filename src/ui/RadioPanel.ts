@@ -1,11 +1,13 @@
 /**
  * Radio panel: find satellites a hobbyist can actually receive.
  *
- * A header button opens a modal with band / mode / amateur filters, an optional
- * "above my horizon now" filter (from the observer location already stored for
- * the Spotter, or a one-shot "Use my location"), a result list, CSV export and a
- * shareable link that carries the filters. Everything runs in the browser from
- * the catalog's radio data; nothing is sent anywhere.
+ * A header button opens a modal. First-time visitors see one choice, "Over me
+ * now | All satellites" (the location comes from the Spotter's store or a
+ * one-shot "Use my location"), a search and the list. Band / mode / amateur /
+ * minimum elevation sit in a folded "Filters" section, the data notes in a
+ * folded "About this data". CSV export and a shareable link that carries the
+ * filters. Everything runs in the browser from the catalog's radio data;
+ * nothing is sent anywhere.
  *
  * Accessibility: the dialog is labelled, chips are toggle buttons, and no live
  * region is rewritten on a timer (elevations refresh quietly every 10 s).
@@ -54,6 +56,9 @@ let visibleNow = false;
 let minElevDeg = 5;
 const MIN_ELEVATION_CHOICES = [0, 5, 10, 15];
 let locationState: LocationState = 'idle';
+/** The folded "Filters" and "About this data" sections (kept across re-renders). */
+let filtersOpen = false;
+let aboutOpen = false;
 let index: RadioEntry[] = [];
 
 let matches: RadioMatch[] = [];
@@ -85,6 +90,21 @@ function formatIn(ms: number): string {
 
 function fill(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), template);
+}
+
+function filtersAreDefault(): boolean {
+  return (
+    filters.band === DEFAULT_RADIO_FILTERS.band &&
+    filters.mode === DEFAULT_RADIO_FILTERS.mode &&
+    filters.amateurOnly === DEFAULT_RADIO_FILTERS.amateurOnly
+  );
+}
+
+/** "Easy · VHF/UHF, FM, Amateur only": what the folded Filters section is set to. */
+function filterSummary(): string {
+  const parts = [t(`radio.band.${filters.band}`), t(`radio.mode.${filters.mode}`)];
+  if (filters.amateurOnly) parts.push(t('radio.amateur_only'));
+  return parts.join(', ');
 }
 
 // ── data ─────────────────────────────────────────────────────────────────────
@@ -180,6 +200,18 @@ function renderChips(): void {
   const modeEl = panelEl.querySelector('#radio-modes');
   if (bandEl) bandEl.innerHTML = bands;
   if (modeEl) modeEl.innerHTML = modes;
+  const modeHint = panelEl.querySelector('#radio-mode-hint');
+  if (modeHint) modeHint.textContent = t(`radio.mode_hint.${filters.mode}`);
+  const summary = panelEl.querySelector('#radio-filter-summary');
+  if (summary) summary.textContent = filterSummary();
+}
+
+function renderScope(): void {
+  panelEl?.querySelectorAll<HTMLButtonElement>('button[data-scope]').forEach((btn) => {
+    const on = (btn.dataset.scope === 'now') === visibleNow;
+    btn.classList.toggle('radio-scope-btn--on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
 }
 
 const LOCATION_MESSAGES: Record<LocationState, string> = {
@@ -202,7 +234,7 @@ function renderLocationHint(): void {
   const observer = observerLocation();
   if (observer && locationState === 'idle') {
     const pos = formatGroundPosition(observer.latitudeDeg, observer.longitudeDeg);
-    el.innerHTML = `<p class="muted radio-location-note">${escapeHtml(fill(t('radio.your_location'), { pos }))} <button type="button" class="radio-link-btn" data-action="locate">${escapeHtml(t('radio.update_location'))}</button></p>`;
+    el.innerHTML = `<p class="muted radio-location-note">${icon('pin', 15)}<span>${escapeHtml(fill(t('radio.your_location'), { pos }))}</span> <button type="button" class="radio-link-btn" data-action="locate">${escapeHtml(t('radio.update_location'))}</button></p>`;
     return;
   }
   const busy = locationState === 'busy';
@@ -290,42 +322,69 @@ function renderShell(): void {
     <div class="modal-body radio-body">
       <p class="radio-lede muted">${escapeHtml(t('radio.lede'))}</p>
 
-      <div class="radio-group">
-        <span class="radio-group-label" id="radio-band-label">${escapeHtml(t('radio.band_label'))}</span>
-        <div class="radio-chips" id="radio-bands" role="group" aria-labelledby="radio-band-label">${bands}</div>
+      <!-- The question most visitors have first: what can I hear from here, now? -->
+      <div class="radio-scope" role="group" aria-label="${escapeHtml(t('radio.scope_label'))}">
+        <button type="button" class="radio-scope-btn" data-scope="now" aria-pressed="false">${escapeHtml(t('radio.scope_now'))}</button>
+        <button type="button" class="radio-scope-btn" data-scope="all" aria-pressed="false">${escapeHtml(t('radio.scope_all'))}</button>
       </div>
-      <div class="radio-group">
-        <span class="radio-group-label" id="radio-mode-label">${escapeHtml(t('radio.mode_label'))}</span>
-        <div class="radio-chips" id="radio-modes" role="group" aria-labelledby="radio-mode-label">${modes}</div>
-      </div>
-
-      <div class="radio-toggles">
-        <label class="radio-check"><input type="checkbox" id="radio-amateur"${filters.amateurOnly ? ' checked' : ''} /> ${escapeHtml(t('radio.amateur_only'))}</label>
-        <label class="radio-check"><input type="checkbox" id="radio-visible"${visibleNow ? ' checked' : ''} /> ${escapeHtml(t('radio.visible_now'))}</label>
-      </div>
-      <label class="radio-check radio-minelev"><span>${escapeHtml(t('radio.minelev'))}</span>
-        <select id="radio-minelev" aria-describedby="radio-minelev-hint">${MIN_ELEVATION_CHOICES.map((d) => `<option value="${d}"${d === minElevDeg ? ' selected' : ''}>${d === 0 ? escapeHtml(t('radio.minelev_any')) : d + '°'}</option>`).join('')}</select>
-      </label>
-      <p class="muted radio-hint" id="radio-minelev-hint">${escapeHtml(t('radio.minelev_hint'))}</p>
       <div id="radio-location" aria-live="polite"></div>
 
       <input type="search" id="radio-search" class="radio-search" placeholder="${escapeHtml(t('radio.search'))}" aria-label="${escapeHtml(t('radio.search'))}" value="${escapeHtml(searchValue)}" autocomplete="off" />
 
+      <details class="radio-fold radio-filters" id="radio-filters"${filtersOpen ? ' open' : ''}>
+        <summary>
+          ${icon('chevronDown', 14)}
+          <span class="radio-fold-title">${escapeHtml(t('radio.filters'))}</span>
+          <span class="radio-filter-summary" id="radio-filter-summary">${escapeHtml(filterSummary())}</span>
+        </summary>
+        <div class="radio-fold-body">
+          <div class="radio-group">
+            <span class="radio-group-label" id="radio-band-label">${escapeHtml(t('radio.band_label'))}</span>
+            <div class="radio-chips" id="radio-bands" role="group" aria-labelledby="radio-band-label">${bands}</div>
+          </div>
+          <div class="radio-group">
+            <span class="radio-group-label" id="radio-mode-label">${escapeHtml(t('radio.mode_label'))}</span>
+            <div class="radio-chips" id="radio-modes" role="group" aria-labelledby="radio-mode-label" aria-describedby="radio-mode-hint">${modes}</div>
+            <p class="muted radio-hint" id="radio-mode-hint">${escapeHtml(t(`radio.mode_hint.${filters.mode}`))}</p>
+          </div>
+          <label class="radio-check"><input type="checkbox" id="radio-amateur"${filters.amateurOnly ? ' checked' : ''} /> ${escapeHtml(t('radio.amateur_only'))}</label>
+          <div class="radio-group">
+            <label class="radio-check radio-minelev"><span>${escapeHtml(t('radio.minelev'))}</span>
+              <select id="radio-minelev" aria-describedby="radio-minelev-hint">${MIN_ELEVATION_CHOICES.map((d) => `<option value="${d}"${d === minElevDeg ? ' selected' : ''}>${d === 0 ? escapeHtml(t('radio.minelev_any')) : d + '°'}</option>`).join('')}</select>
+            </label>
+            <p class="muted radio-hint" id="radio-minelev-hint">${escapeHtml(t('radio.minelev_hint'))}</p>
+          </div>
+        </div>
+      </details>
+
       <div class="radio-bar">
         <span class="radio-summary" id="radio-summary" role="status"></span>
         <span class="radio-actions">
-          <button type="button" class="radio-link-btn" data-action="export">${escapeHtml(t('radio.export'))}</button>
-          <button type="button" class="radio-link-btn" data-action="copy" id="radio-copy">${escapeHtml(t('radio.copy_link'))}</button>
+          <button type="button" class="radio-action-btn" data-action="export" title="${escapeHtml(t('radio.export'))}" aria-label="${escapeHtml(t('radio.export'))}">${icon('download', 15)}<span>${escapeHtml(t('radio.export_short'))}</span></button>
+          <button type="button" class="radio-action-btn" data-action="copy" id="radio-copy" title="${escapeHtml(t('radio.copy_link'))}">${icon('link', 15)}<span class="radio-copy-label">${escapeHtml(t('radio.copy_link'))}</span></button>
         </span>
       </div>
 
       <ul class="radio-list" id="radio-list"></ul>
 
-      <p class="radio-note muted">${escapeHtml(t('radio.active_only'))}</p>
-      <p class="radio-note muted">${escapeHtml(t('radio.note'))}</p>
-      <p class="radio-note muted">${escapeHtml(t('radio.credit'))}</p>
+      <details class="radio-fold radio-about" id="radio-about"${aboutOpen ? ' open' : ''}>
+        <summary>${icon('info', 15)}<span class="radio-fold-title">${escapeHtml(t('radio.about'))}</span></summary>
+        <div class="radio-fold-body">
+          <p class="radio-note muted">${escapeHtml(t('radio.active_only'))}</p>
+          <p class="radio-note muted">${escapeHtml(t('radio.note'))}</p>
+          <p class="radio-note muted">${escapeHtml(t('radio.credit'))}</p>
+        </div>
+      </details>
     </div>
   `;
+  // `toggle` does not bubble, so each fold gets its own listener.
+  panelEl.querySelector('#radio-filters')?.addEventListener('toggle', (e) => {
+    filtersOpen = (e.currentTarget as HTMLDetailsElement).open;
+  });
+  panelEl.querySelector('#radio-about')?.addEventListener('toggle', (e) => {
+    aboutOpen = (e.currentTarget as HTMLDetailsElement).open;
+  });
+  renderScope();
   renderLocationHint();
   renderResults();
 }
@@ -369,11 +428,12 @@ async function copyLink(): Promise<void> {
   } catch {
     ok = false;
   }
-  if (!button) return;
-  button.textContent = t(ok ? 'radio.link_copied' : 'radio.link_failed');
+  const label = button?.querySelector('.radio-copy-label');
+  if (!label) return;
+  label.textContent = t(ok ? 'radio.link_copied' : 'radio.link_failed');
   window.clearTimeout(linkFeedbackTimer);
   linkFeedbackTimer = window.setTimeout(() => {
-    button.textContent = t('radio.copy_link');
+    label.textContent = t('radio.copy_link');
   }, 2000);
 }
 
@@ -414,6 +474,8 @@ function onPanelClick(event: MouseEvent): void {
   const chip = target.closest<HTMLButtonElement>('button[data-band], button[data-mode]');
   if (chip?.dataset.band) return setFilters({ band: chip.dataset.band as BandId });
   if (chip?.dataset.mode) return setFilters({ mode: chip.dataset.mode as ModeFilter });
+  const scope = target.closest<HTMLButtonElement>('button[data-scope]')?.dataset.scope;
+  if (scope) return setVisibleNow(scope === 'now');
 
   if (target.closest('#radio-close')) return closeRadioPanel();
 
@@ -444,15 +506,19 @@ function onPanelChange(event: Event): void {
     return;
   }
   if (target.id === 'radio-amateur') setFilters({ amateurOnly: target.checked });
-  if (target.id === 'radio-visible') {
-    visibleNow = target.checked;
-    if (visibleNow && !observerLocation() && locationState !== 'busy' && locationState !== 'unsupported') {
-      requestLocation();
-    } else {
-      renderLocationHint();
-    }
-    renderResults();
+}
+
+/** "Over me now" (true) or "All satellites" (false); asks for the location the first time. */
+function setVisibleNow(on: boolean): void {
+  if (on === visibleNow) return;
+  visibleNow = on;
+  renderScope();
+  if (visibleNow && !observerLocation() && locationState !== 'busy' && locationState !== 'unsupported') {
+    requestLocation();
+  } else {
+    renderLocationHint();
   }
+  renderResults();
 }
 
 /** "41,01" and "41.01" both work; returns null when out of range. */
@@ -517,6 +583,8 @@ export function openRadioPanel(): void {
   document.body.appendChild(backdrop);
   backdropEl = backdrop;
   panelEl = panel;
+  // A shared link (or an earlier visit) that changed the filters shows them open.
+  filtersOpen = filtersOpen || !filtersAreDefault();
 
   renderShell();
 
@@ -560,6 +628,8 @@ export function resetRadioPanelForTests(): void {
   visibleNow = false;
   minElevDeg = 5;
   locationState = 'idle';
+  filtersOpen = false;
+  aboutOpen = false;
   passCache.clear();
   matches = [];
   elevations = new Map();
