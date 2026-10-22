@@ -45,7 +45,7 @@
     "@fontsource/syne": "^5.3.0",
     "@vercel/analytics": "^2.0.1",
     "magvar": "^2.2.0",
-    "satellite.js": "^5.0.0",
+    "satellite.js": "^7.1.0",
     "three": "^0.186.1"
   }
 }
