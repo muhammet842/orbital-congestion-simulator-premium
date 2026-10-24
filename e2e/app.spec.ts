@@ -205,6 +205,10 @@ test.describe('Radio panel', () => {
     const dialog = page.getByRole('dialog', { name: 'Satellite radio' });
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('.radio-row').first()).toBeVisible({ timeout: 15_000 });
+    // Simple first view: one choice on top, the detailed filters folded with a summary.
+    await expect(dialog.getByRole('button', { name: 'All satellites' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.locator('#radio-filter-summary')).toContainText('Easy');
+    await dialog.locator('#radio-filters > summary').click();
     await expect(dialog.getByRole('button', { name: /Easy/ })).toHaveAttribute('aria-pressed', 'true');
     await expect(dialog.locator('#radio-summary')).toContainText(/\d+ satellites/);
   });
@@ -215,6 +219,7 @@ test.describe('Radio panel', () => {
     const summary = page.locator('#radio-summary');
     await expect(summary).toContainText(/satellites/, { timeout: 15_000 });
     const easy = Number((await summary.innerText()).match(/(\d+) satellites/)![1]);
+    await page.locator('#radio-filters > summary').click();
 
     await page.locator('[data-band="ham70cm"]').click();
     const ham = Number((await summary.innerText()).match(/(\d+) satellites/)![1]);
