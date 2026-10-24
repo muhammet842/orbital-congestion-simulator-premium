@@ -129,6 +129,22 @@ describe('openKesslerPanel / closeKesslerPanel', () => {
     expect(boomBtn.classList.contains('kp-preset--active')).toBe(true);
   });
 
+  it('colours each slider track up to its handle', () => {
+    openKesslerPanel();
+    const fill = (id: string): string =>
+      (document.getElementById(id) as HTMLInputElement).style.getPropertyValue('--fill');
+
+    // The timeline starts at its last year, so its track is full.
+    expect(fill('kp-scrub')).toBe('100%');
+    const launch = document.getElementById('kp-launch') as HTMLInputElement;
+    launch.value = launch.max;
+    launch.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(fill('kp-launch')).toBe('100%');
+    launch.value = launch.min;
+    launch.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(fill('kp-launch')).toBe('0%');
+  });
+
   it('updates the scrubbed year display when the scrub slider changes', () => {
     openKesslerPanel();
 
