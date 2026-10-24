@@ -346,6 +346,7 @@ function bindEvents(): void {
   });
 
   getEl<HTMLButtonElement>('kp-animate')?.addEventListener('click', toggleAnimate);
+  syncRangeFills();
 }
 
 function syncSliderDom(): void {
@@ -358,6 +359,17 @@ function syncSliderDom(): void {
   setText('kp-launch-val', formatMultiplier(sliderTicks.launch));
   setText('kp-mitigation-val', formatMultiplier(sliderTicks.mitigation));
   setText('kp-risk-val', formatMultiplier(sliderTicks.risk));
+  syncRangeFills();
+}
+
+/** The orange part of each slider track runs up to the handle (CSS reads --fill). */
+function syncRangeFills(): void {
+  panelEl?.querySelectorAll<HTMLInputElement>('.kp-range').forEach((range) => {
+    const min = Number(range.min) || 0;
+    const max = Number(range.max) || 100;
+    const fraction = max > min ? (Number(range.value) - min) / (max - min) : 0;
+    range.style.setProperty('--fill', `${Math.min(100, Math.max(0, fraction * 100))}%`);
+  });
 }
 
 function syncPresetActive(): void {
@@ -379,6 +391,7 @@ function bindScenarioSlider(
     const raw = Number(input.value);
     sliderTicks[key] = raw;
     if (label) label.textContent = format(raw);
+    syncRangeFills();
     if (key !== 'targetYear') activePreset = null;
     syncPresetActive();
     if (timeline.length > 0) runProjection({ preserveScrubFraction: true });
@@ -438,6 +451,7 @@ function updateForScrubIndex(idx: number): void {
   if (scrubInput && document.activeElement !== scrubInput) {
     scrubInput.value = String(scrubIndex);
   }
+  syncRangeFills();
 
   redrawCanvases();
   updateNarrative(point);

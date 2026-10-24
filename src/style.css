@@ -4508,3 +4508,28 @@ summary:focus-visible,
 .radio-action-btn:hover:not(:disabled) .icon { color: var(--accent); }
 .radio-action-btn:disabled { opacity: 0.45; cursor: default; }
 .radio-actions { gap: var(--space-2); }
+
+/* ── Sliders on phones ────────────────────────────────────────────────────
+   The page is dark by design: say so, so phone browsers with an automatic
+   dark mode do not recolour it (that darkened legend dots and slider tracks). */
+:root { color-scheme: dark; }
+
+/* Future Projection sliders: a clearly visible track, orange up to the handle
+   (--fill is set by KesslerPanel), so the handle never floats on its own. */
+.kp-range::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    rgba(var(--accent-rgb), 0.85) 0 var(--fill, 0%),
+    rgba(255, 255, 255, 0.22) var(--fill, 0%) 100%
+  );
+}
+.kp-range::-moz-range-track { background: rgba(255, 255, 255, 0.22); }
+.kp-range::-moz-range-progress { height: 6px; border-radius: 999px; background: rgba(var(--accent-rgb), 0.85); }
+
+/* Advanced Filters: a slightly stronger track and handles in proportion. */
+.dual-range-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.22); }
+.dual-range-fill { border-radius: 999px; opacity: 0.85; }
+@media (pointer: coarse) {
+  .dr-input::-webkit-slider-thumb { width: 20px; height: 20px; }
+  .dr-input::-moz-range-thumb { width: 20px; height: 20px; }
+}
