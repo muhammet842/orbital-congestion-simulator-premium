@@ -134,14 +134,14 @@ function translateRiskLabel(label: string): string {
  */
 function translateVerificationHint(
   assessment: ReturnType<typeof getVerificationAssessment>,
-  liveDistanceKm: number | null,
+  cpaDistanceKm: number,
 ): string {
   if (assessment.riskLabel === 'UNAVAILABLE') return t('conj.hint_unavailable');
   if (assessment.status === 'COLLISION CONFIRMED') {
-    return t('conj.hint_confirmed').replace('{km}', (liveDistanceKm ?? 0).toFixed(3));
+    return t('conj.hint_confirmed').replace('{km}', cpaDistanceKm.toFixed(3));
   }
   if (assessment.status === 'COLLISION AVERTED') {
-    return t('conj.hint_averted').replace('{km}', (liveDistanceKm ?? 0).toFixed(3));
+    return t('conj.hint_averted').replace('{km}', cpaDistanceKm.toFixed(3));
   }
   if (assessment.status === 'APPROACHING') return t('conj.hint_approaching');
   return t('conj.hint_paused');
@@ -380,7 +380,7 @@ function refreshConjunctionVerification(container: HTMLElement, conjunction: Con
     riskEl.textContent = translateRiskLabel(assessment.riskLabel);
     riskEl.className = verificationRiskClass(assessment.riskLabel);
   }
-  if (hintEl) hintEl.textContent = translateVerificationHint(assessment, liveDistance);
+  if (hintEl) hintEl.textContent = translateVerificationHint(assessment, conjunction.distanceKm);
 }
 
 function render(container: HTMLElement): void {

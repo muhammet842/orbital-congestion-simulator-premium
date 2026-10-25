@@ -206,14 +206,17 @@ export function getVerificationAssessment(
     };
   }
 
+  // Judge the pass by its closest approach, not by where the clock happens to
+  // be: a few seconds after CPA two objects crossing at ~10 km/s are already
+  // tens of kilometres apart, so the live distance would always say "missed".
   if (atOrPastCpa) {
-    const confirmed = liveDistanceKm < COLLISION_THRESHOLD_KM;
+    const confirmed = cpaDistanceKm < COLLISION_THRESHOLD_KM;
     return {
       status: confirmed ? 'COLLISION CONFIRMED' : 'COLLISION AVERTED',
       riskLabel: confirmed ? 'COLLISION CONFIRMED' : 'COLLISION AVERTED',
       hint: confirmed
-        ? `Closest approach ${liveDistanceKm.toFixed(3)} km — within collision threshold.`
-        : `Closest approach ${liveDistanceKm.toFixed(3)} km — collision avoided.`,
+        ? `Closest approach ${cpaDistanceKm.toFixed(3)} km — within collision threshold.`
+        : `Closest approach ${cpaDistanceKm.toFixed(3)} km — collision avoided.`,
     };
   }
 
