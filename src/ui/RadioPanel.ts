@@ -36,6 +36,7 @@ import { formatGroundPosition } from '../orbital/groundPosition';
 import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
 import { icon } from './icons';
+import { attachModalKeyboard } from './modalKeyboard';
 
 const MAX_ROWS = 150;
 const REFRESH_MS = 10_000;
@@ -48,7 +49,8 @@ type LocationState = 'idle' | 'busy' | 'denied' | 'unavailable' | 'timeout' | 'u
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
-let opener: HTMLElement | null = null;
+/** Ends the window's keyboard handling and gives focus back (see modalKeyboard.ts). */
+let detachKeyboard: (() => void) | null = null;
 
 let filters: RadioFilters = { ...DEFAULT_RADIO_FILTERS };
 let visibleNow = false;
@@ -556,16 +558,11 @@ function onPanelSubmit(event: SubmitEvent): void {
   renderResults();
 }
 
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') closeRadioPanel();
-}
-
 // ── open / close ─────────────────────────────────────────────────────────────
 
 export function openRadioPanel(): void {
   if (backdropEl) return;
   closeKesslerPanel();
-  opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   index = buildRadioIndex(getState().objects);
 
   const backdrop = document.createElement('div');
@@ -595,12 +592,11 @@ export function openRadioPanel(): void {
   panel.addEventListener('input', onPanelInput);
   panel.addEventListener('change', onPanelChange);
   panel.addEventListener('submit', onPanelSubmit);
-  document.addEventListener('keydown', onKeydown);
   refreshTimer = window.setInterval(() => {
     if (observerLocation()) renderResults();
   }, REFRESH_MS);
 
-  panel.querySelector<HTMLButtonElement>('#radio-close')?.focus();
+  detachKeyboard = attachModalKeyboard(panel, closeRadioPanel, panel.querySelector<HTMLButtonElement>('#radio-close'));
 }
 
 export function closeRadioPanel(): void {
@@ -609,12 +605,11 @@ export function closeRadioPanel(): void {
   window.clearTimeout(passTimer);
   window.clearTimeout(linkFeedbackTimer);
   passRun += 1;
-  document.removeEventListener('keydown', onKeydown);
   backdropEl.remove();
   backdropEl = null;
   panelEl = null;
-  opener?.focus?.();
-  opener = null;
+  detachKeyboard?.();
+  detachKeyboard = null;
 }
 
 export function isRadioPanelOpen(): boolean {

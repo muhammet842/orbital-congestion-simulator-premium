@@ -54,9 +54,12 @@ import {
 } from './observerSensors';
 import { escapeHtml } from './escapeHtml';
 import { icon } from './icons';
+import { attachModalKeyboard } from './modalKeyboard';
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
+/** Ends the window's keyboard handling and gives focus back (see modalKeyboard.ts). */
+let detachKeyboard: (() => void) | null = null;
 let timerId = 0;
 let unsubState: (() => void) | null = null;
 let unsubSensors: (() => void) | null = null;
@@ -150,6 +153,7 @@ export function openSpotterPanel(): void {
   panel.className = 'spotter-panel';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'spotter-title');
 
   backdrop.appendChild(panel);
   document.body.appendChild(backdrop);
@@ -221,10 +225,10 @@ export function openSpotterPanel(): void {
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) closeSpotterPanel();
   });
-  document.addEventListener('keydown', handleEsc);
 
   tick();
   timerId = window.setInterval(tick, TICK_MS);
+  detachKeyboard = attachModalKeyboard(panel, closeSpotterPanel, panel.querySelector<HTMLElement>('#spotter-close'));
 }
 
 export function closeSpotterPanel(): void {
@@ -239,10 +243,11 @@ export function closeSpotterPanel(): void {
   unsubState = null;
   unsubSensors = null;
   unsubLang = null;
-  document.removeEventListener('keydown', handleEsc);
   backdropEl?.remove();
   backdropEl = null;
   panelEl = null;
+  detachKeyboard?.();
+  detachKeyboard = null;
   skyCanvas = null;
   skyCtx = null;
   lastLook = null;
@@ -265,10 +270,6 @@ function resetSkyScanState(): void {
   skyScanDateMs = 0;
 }
 
-function handleEsc(e: KeyboardEvent): void {
-  if (e.key === 'Escape') closeSpotterPanel();
-}
-
 function renderShell(): void {
   if (!panelEl) return;
   const state = getState();
@@ -281,7 +282,7 @@ function renderShell(): void {
 
   panelEl.innerHTML = `
     <div class="spotter-header">
-      <div class="spotter-title">${t('spotter.title')}</div>
+      <div class="spotter-title" id="spotter-title">${t('spotter.title')}</div>
       <button type="button" class="spotter-close" id="spotter-close" aria-label="${t('spotter.close')}">${icon('close')}</button>
     </div>
     <div class="spotter-body spotter-body--sky">

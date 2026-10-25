@@ -42,6 +42,7 @@ import { findLaunch, formatCountdown, isFinished } from '../data/launches';
 import { durationUnits, formatNet } from './LaunchesPanel';
 import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
 import { setTextIfChanged } from './dom';
+import { formatDate } from '../i18n/format';
 
 /** How often live values in the details panel refresh. */
 const DYNAMIC_REFRESH_MS = 100;
@@ -689,11 +690,10 @@ function renderHistoricalEvent(detailEl: Element, eventId: string): void {
     return;
   }
 
-  const formattedDate = new Date(`${event.date}T00:00:00Z`).toLocaleDateString('en-GB', {
+  const formattedDate = formatDate(new Date(`${event.date}T00:00:00Z`), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-    timeZone: 'UTC',
   });
 
   detailEl.innerHTML = `
@@ -785,10 +785,10 @@ function renderEventReplayPanel(detailEl: Element, eventId: string): void {
     </div>
 
     <div class="era-controls">
-      <button type="button" id="btn-replay-back" class="btn-era-ctrl" title="Back 5 seconds">⏮</button>
-      <button type="button" id="btn-replay-restart" class="btn-era-ctrl" title="Restart">↺</button>
-      <button type="button" id="btn-replay-play" class="btn-era-ctrl btn-era-play" data-field="era-play-btn">⏸</button>
-      <button type="button" id="btn-replay-fwd" class="btn-era-ctrl" title="Forward 5 seconds">⏭</button>
+      <button type="button" id="btn-replay-back" class="btn-era-ctrl" title="${t('time.back_5s')}" aria-label="${t('time.back_5s')}">⏮</button>
+      <button type="button" id="btn-replay-restart" class="btn-era-ctrl" title="${t('time.restart')}" aria-label="${t('time.restart')}">↺</button>
+      <button type="button" id="btn-replay-play" class="btn-era-ctrl btn-era-play" data-field="era-play-btn" aria-label="${t('time.pause')}">⏸</button>
+      <button type="button" id="btn-replay-fwd" class="btn-era-ctrl" title="${t('time.fwd_5s')}" aria-label="${t('time.fwd_5s')}">⏭</button>
     </div>
 
     <button type="button" id="btn-replay-exit" class="btn-exit-conjunction">
@@ -841,6 +841,7 @@ function refreshEventReplayHUD(container: HTMLElement, eventId: string, collisio
 
   if (playBtn) {
     playBtn.textContent = eventReplay.playing ? '⏸' : '▶';
+    playBtn.setAttribute('aria-label', t(eventReplay.playing ? 'time.pause' : 'time.play'));
   }
 
   // Distance — computed from the same linear slerp model used in EventReplayVisuals.

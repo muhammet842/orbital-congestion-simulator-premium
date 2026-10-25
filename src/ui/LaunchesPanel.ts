@@ -9,7 +9,7 @@
  * Countdowns use the real wall clock, not the simulation clock: a launch is a
  * real-world event, whatever time the globe is currently showing.
  */
-import { getLang, onLangChange, t } from '../i18n/i18n';
+import { onLangChange, t } from '../i18n/i18n';
 import {
   ISS_NORAD_ID,
   fetchLaunches,
@@ -21,11 +21,11 @@ import {
 } from '../data/launches';
 import { getState, selectLaunch, selectObject, subscribe } from '../state/appState';
 import { escapeHtml, safeHttpUrl } from './escapeHtml';
+import { appLocale } from '../i18n/format';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
 const RETRY_AFTER_ERROR_MS = 60_000;
-const LOCALES: Record<string, string> = { en: 'en-GB', tr: 'tr-TR', de: 'de-DE', ru: 'ru-RU', zh: 'zh-CN' };
 
 /** Countdown units in the current language ("3d 5h", "3g 5sa", …). */
 export function durationUnits(): DurationUnits {
@@ -33,7 +33,7 @@ export function durationUnits(): DurationUnits {
 }
 
 export function formatNet(netIso: string): string {
-  const locale = LOCALES[getLang()] ?? 'en-GB';
+  const locale = appLocale();
   const text = new Date(netIso).toLocaleString(locale, {
     timeZone: 'UTC',
     day: 'numeric',

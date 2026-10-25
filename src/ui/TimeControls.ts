@@ -37,11 +37,11 @@ export function initTimeControls(container: HTMLElement): void {
     <div class="time-controls">
       <div class="time-row time-row--transport">
         <div class="time-buttons">
-          <button type="button" id="btn-rewind" title="${t('time.back_1h')}">⏮</button>
-          <button type="button" id="btn-play" title="${t('time.play_title')}">⏸</button>
-          <button type="button" id="btn-forward" title="${t('time.fwd_1h')}">⏭</button>
+          <button type="button" id="btn-rewind" title="${t('time.back_1h')}" aria-label="${t('time.back_1h')}">⏮</button>
+          <button type="button" id="btn-play" title="${t('time.play_title')}" aria-label="${t('time.pause')}">⏸</button>
+          <button type="button" id="btn-forward" title="${t('time.fwd_1h')}" aria-label="${t('time.fwd_1h')}">⏭</button>
         </div>
-        <input type="range" id="time-slider" class="time-slider" min="-100" max="100" step="1" value="0" />
+        <input type="range" id="time-slider" class="time-slider" min="-100" max="100" step="1" value="0" aria-label="${t('time.slider')}" />
       </div>
       <div class="time-row time-row--meta">
         <div class="time-display" id="time-display"></div>
@@ -306,6 +306,7 @@ export function initTimeControls(container: HTMLElement): void {
 
     const playing = verifying ? vt?.playing : replaying ? er?.playing : time.playing;
     playBtn.textContent = playing ? '⏸' : '▶';
+    playBtn.setAttribute('aria-label', t(playing ? 'time.pause' : 'time.play'));
 
     liveBtn.classList.toggle('active', isLive);
     liveBtn.textContent = verifying
@@ -318,11 +319,11 @@ export function initTimeControls(container: HTMLElement): void {
 
     rewindBtn.title = focused ? t('time.back_5s') : t('time.back_1h');
     forwardBtn.title = focused ? t('time.fwd_5s') : t('time.fwd_1h');
-    slider.title = verifying
-      ? 'Scrub within the close-approach window (approach → T+15s)'
-      : replaying
-        ? 'Scrub within the event replay window (T−5m → IMPACT)'
-        : 'Scrub simulation time (±7 days)';
+    // The buttons show only a symbol, so screen readers need the words.
+    rewindBtn.setAttribute('aria-label', rewindBtn.title);
+    forwardBtn.setAttribute('aria-label', forwardBtn.title);
+    slider.title = t(verifying ? 'time.scrub_verify' : replaying ? 'time.scrub_replay' : 'time.scrub_sim');
+    slider.setAttribute('aria-label', t('time.slider'));
 
     speedButtons.querySelectorAll('.speed-btn').forEach((btn) => {
       const speed = parseInt((btn as HTMLButtonElement).dataset.speed!, 10);

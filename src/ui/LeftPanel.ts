@@ -50,6 +50,7 @@ import { STALE_TLE_AGE_DAYS } from '../data/tleLoader';
 import { initPanelSections } from './panelSections';
 import { icon } from './icons';
 import { setTextIfChanged } from './dom';
+import { formatDate, formatNumber } from '../i18n/format';
 
 const LAYERS: OrbitLayer[] = ['LEO', 'MEO', 'GEO', 'HEO'];
 const CATEGORY_FILTERS: Array<ObjectCategory | 'all'> = ['all', 'active', 'stations', 'debris'];
@@ -357,7 +358,7 @@ function renderHiddenByFilters(container: HTMLElement, query: string, shown: num
     el.innerHTML = '';
     return;
   }
-  el.innerHTML = `<span>${escapeHtml(t('ui.list_hidden_by_filters').replace('{n}', hidden.toLocaleString()))}</span>
+  el.innerHTML = `<span>${escapeHtml(t('ui.list_hidden_by_filters').replace('{n}', formatNumber(hidden)))}</span>
     <button type="button" class="object-list-show-all" id="object-list-show-all">${escapeHtml(t('ui.list_show_all'))}</button>`;
   el.querySelector('#object-list-show-all')?.addEventListener('click', () => {
     hiddenKey = '';
@@ -374,7 +375,7 @@ function renderObjectList(container: HTMLElement): void {
   const metaEl = container.querySelector('#object-list-meta') as HTMLElement;
 
   const total = indices.length;
-  const n = total.toLocaleString();
+  const n = formatNumber(total);
   metaEl.textContent = state.searchQuery.trim()
     ? t(total === 1 ? 'ui.list_match_one' : 'ui.list_match_other').replace('{n}', n)
     : t('ui.list_objects_az').replace('{n}', n);
@@ -548,7 +549,7 @@ function renderStaleNote(container: HTMLElement): void {
     count === 0
       ? ''
       : t(count === 1 ? 'conj.stale_excluded_one' : 'conj.stale_excluded_other')
-          .replace('{n}', count.toLocaleString())
+          .replace('{n}', formatNumber(count))
           .replace('{days}', String(STALE_TLE_AGE_DAYS));
   if (el.textContent !== text) el.textContent = text;
   el.hidden = count === 0;
@@ -581,18 +582,13 @@ function renderStats(container: HTMLElement): void {
 
   const categoryEl = container.querySelector('#category-stats')!;
   categoryEl.innerHTML = `
-    <li><span>${t('cat.active')}</span><strong>${stats.categoryCounts.active.toLocaleString()}</strong></li>
-    <li><span>${t('cat.debris')}</span><strong>${stats.categoryCounts.debris.toLocaleString()}</strong></li>
-    <li><span>${t('cat.stations')}</span><strong>${stats.categoryCounts.stations.toLocaleString()}</strong></li>
+    <li><span>${t('cat.active')}</span><strong>${formatNumber(stats.categoryCounts.active)}</strong></li>
+    <li><span>${t('cat.debris')}</span><strong>${formatNumber(stats.categoryCounts.debris)}</strong></li>
+    <li><span>${t('cat.stations')}</span><strong>${formatNumber(stats.categoryCounts.stations)}</strong></li>
   `;
 
   const fetchedDate = stats.fetchedAt
-    ? new Date(stats.fetchedAt).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'UTC',
-      })
+    ? formatDate(new Date(stats.fetchedAt), { day: 'numeric', month: 'short', year: 'numeric' })
     : '—';
 
   const tleAgeDays = stats.fetchedAt
@@ -613,9 +609,9 @@ function renderStats(container: HTMLElement): void {
   liveEl.innerHTML = `
     ${tleStaleHtml}
     <div class="stat-row"><dt>${timeLabel}</dt><dd id="live-stat-time">${formatUtcDateTime(simTime)}</dd></div>
-    <div class="stat-row"><dt>${t('stats.total')}</dt><dd>${stats.total.toLocaleString()}</dd></div>
-    <div class="stat-row"><dt>${t('stats.visible')}</dt><dd>${visibleCount.toLocaleString()}</dd></div>
-    <div class="stat-row"><dt>${t('stats.close_24h')}</dt><dd>${closeApproachTotal.toLocaleString()}</dd></div>
+    <div class="stat-row"><dt>${t('stats.total')}</dt><dd>${formatNumber(stats.total)}</dd></div>
+    <div class="stat-row"><dt>${t('stats.visible')}</dt><dd>${formatNumber(visibleCount)}</dd></div>
+    <div class="stat-row"><dt>${t('stats.close_24h')}</dt><dd>${formatNumber(closeApproachTotal)}</dd></div>
     <div class="stat-row"><dt>${t('stats.tle_updated')}</dt><dd>${fetchedDate}</dd></div>
   `;
 }
@@ -769,7 +765,7 @@ function renderConjunctions(container: HTMLElement): void {
 function formatConjunctionOverflowText(overflowTotal: number): string {
   return t(overflowTotal === 1 ? 'conj.more_one' : 'conj.more_other').replace(
     '{n}',
-    overflowTotal.toLocaleString(),
+    formatNumber(overflowTotal),
   );
 }
 
@@ -874,16 +870,16 @@ function buildAdvancedFiltersHTML(
     <div class="af-group">
       <div class="af-label-row">
         <span class="af-label" data-i18n="filter.altitude">${t('filter.altitude')}</span>
-        <span class="af-values" id="af-alt-values">${altMin.toLocaleString()} km — ${altMax.toLocaleString()} km</span>
+        <span class="af-values" id="af-alt-values">${formatNumber(altMin)} km — ${formatNumber(altMax)} km</span>
       </div>
       <div class="dual-range">
         <div class="dual-range-track">
           <div class="dual-range-fill" id="af-alt-fill"
                style="left:${altPctMin.toFixed(1)}%;width:${(altPctMax - altPctMin).toFixed(1)}%"></div>
         </div>
-        <input type="range" class="dr-input dr-min" id="af-alt-min"
+        <input type="range" class="dr-input dr-min" id="af-alt-min" aria-label="${escapeHtml(t('a11y.range_min').replace('{name}', t('filter.altitude')))}"
                min="${ALT_MIN_DEFAULT}" max="${ALT_MAX_DEFAULT}" step="50" value="${altMin}">
-        <input type="range" class="dr-input dr-max" id="af-alt-max"
+        <input type="range" class="dr-input dr-max" id="af-alt-max" aria-label="${escapeHtml(t('a11y.range_max').replace('{name}', t('filter.altitude')))}"
                min="${ALT_MIN_DEFAULT}" max="${ALT_MAX_DEFAULT}" step="50" value="${altMax}">
       </div>
     </div>
@@ -898,15 +894,15 @@ function buildAdvancedFiltersHTML(
           <div class="dual-range-fill" id="af-incl-fill"
                style="left:${inclPctMin.toFixed(1)}%;width:${(inclPctMax - inclPctMin).toFixed(1)}%"></div>
         </div>
-        <input type="range" class="dr-input dr-min" id="af-incl-min"
+        <input type="range" class="dr-input dr-min" id="af-incl-min" aria-label="${escapeHtml(t('a11y.range_min').replace('{name}', t('filter.inclination')))}"
                min="${INCL_MIN_DEFAULT}" max="${INCL_MAX_DEFAULT}" step="1" value="${inclMin}">
-        <input type="range" class="dr-input dr-max" id="af-incl-max"
+        <input type="range" class="dr-input dr-max" id="af-incl-max" aria-label="${escapeHtml(t('a11y.range_max').replace('{name}', t('filter.inclination')))}"
                min="${INCL_MIN_DEFAULT}" max="${INCL_MAX_DEFAULT}" step="1" value="${inclMax}">
       </div>
     </div>
 
     <div class="af-footer">
-      <span class="af-count muted" id="af-count">${t('filter.objects_shown').replace('{n}', shown.toLocaleString())}</span>
+      <span class="af-count muted" id="af-count" role="status">${t('filter.objects_shown').replace('{n}', formatNumber(shown))}</span>
       <button type="button" id="af-reset"
               class="btn-af-reset${hasFilter ? '' : ' btn-af-reset--dim'}"
               ${hasFilter ? '' : 'disabled'}>${t('filter.reset')}</button>
@@ -934,7 +930,7 @@ function updateAdvancedFiltersDisplay(container: HTMLElement): void {
 
   // Value labels
   const altValEl = el.querySelector('#af-alt-values');
-  if (altValEl) altValEl.textContent = `${altMin.toLocaleString()} km — ${altMax.toLocaleString()} km`;
+  if (altValEl) altValEl.textContent = `${formatNumber(altMin)} km — ${formatNumber(altMax)} km`;
   const inclValEl = el.querySelector('#af-incl-values');
   if (inclValEl) inclValEl.textContent = `${inclMin}° — ${inclMax}°`;
 
@@ -967,7 +963,7 @@ function updateAdvancedFiltersDisplay(container: HTMLElement): void {
 
   // Object count
   const countEl = el.querySelector('#af-count');
-  if (countEl) countEl.textContent = t('filter.objects_shown').replace('{n}', state.filteredIndices.length.toLocaleString());
+  if (countEl) countEl.textContent = t('filter.objects_shown').replace('{n}', formatNumber(state.filteredIndices.length));
 
   // Reset button
   const hasFilter = af !== null || incf !== null;

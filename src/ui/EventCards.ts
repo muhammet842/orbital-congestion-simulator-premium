@@ -10,6 +10,7 @@
 import { selectHistoricalEvent, getState, subscribe } from '../state/appState';
 import { t, onLangChange } from '../i18n/i18n';
 import { escapeHtml } from './escapeHtml';
+import { formatDate } from '../i18n/format';
 
 export interface HistoricalEventTLE {
   name: string;
@@ -318,11 +319,7 @@ function eventTypeLabel(type: EventType): string {
 
 
 function formatEventDate(isoDate: string): string {
-  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('en-GB', {
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  return formatDate(new Date(`${isoDate}T00:00:00Z`), { month: 'short', year: 'numeric' });
 }
 
 export function initEventCards(container: HTMLElement): void {
