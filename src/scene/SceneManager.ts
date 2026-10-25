@@ -63,6 +63,7 @@ import { EventReplayVisuals } from './EventReplayVisuals';
 import { EventReplayLabels } from './EventReplayLabels';
 import { getHistoricalEvent } from '../ui/EventCards';
 import { isSpotterOpen } from '../ui/SpotterPanel';
+import { renderPixelRatio } from './deviceProfile';
 
 /** Camera distance (as an altitude) when framing a launch pad: a regional view. */
 const LAUNCH_FRAME_ALTITUDE_KM = 3000;
@@ -145,7 +146,7 @@ export class SceneManager {
     this.camera.position.set(0, 0, 4.5);
 
     this.renderer = new WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(renderPixelRatio(window.devicePixelRatio));
     this.renderer.sortObjects = true;
     container.appendChild(this.renderer.domElement);
 
@@ -639,7 +640,7 @@ export class SceneManager {
       timeSpeed,
     ].join('|');
     const zoomedIn = Boolean(currentState.selectedConjunction) || this.camera.position.length() < CATALOG_FULL_RATE_DISTANCE;
-    const catalogDue = this.catalogPacer.isDue(now, catalogKey, zoomedIn);
+    const catalogDue = this.catalogPacer.isDue(now, catalogKey, zoomedIn, timeSpeed);
     if (catalogDue) this.propWorker.request(simTime.getTime(), timeSpeed);
     const catalogStart = performance.now();
     const latestFromWorker = catalogDue ? this.propWorker.getLatestResults() : null;

@@ -27,6 +27,7 @@ import {
   subscribe,
 } from '../state/appState';
 import { onLangChange, t } from '../i18n/i18n';
+import { setTextIfChanged } from './dom';
 
 const SPEEDS = [1, 10, 100];
 const SLIDER_RANGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -352,7 +353,7 @@ export function initTimeControls(container: HTMLElement): void {
     const displayTime = focused || time.mode === 'historical'
       ? getSimulationTime()
       : new Date();
-    display.textContent = formatUtcDateTime(displayTime);
+    setTextIfChanged(display, formatUtcDateTime(displayTime));
     display.classList.toggle('time-display--live', isLive);
     display.classList.toggle('time-display--verify', focused);
 

@@ -41,6 +41,10 @@ import { prepareRadioRows } from '../data/radioDisplay';
 import { findLaunch, formatCountdown, isFinished } from '../data/launches';
 import { durationUnits, formatNet } from './LaunchesPanel';
 import { satnogsLikelyObserved, satnogsObservationsUrl } from '../data/satnogsLinks';
+import { setTextIfChanged } from './dom';
+
+/** How often live values in the details panel refresh. */
+const DYNAMIC_REFRESH_MS = 100;
 
 /**
  * Compute the 3-D separation in km between the two collision objects at T-5min,
@@ -312,16 +316,19 @@ export function initRightPanel(container: HTMLElement): void {
     const detailEl = container.querySelector('#object-detail');
     if (!detailEl) return;
 
-    const altitude = detailEl.querySelector('[data-field="altitude"]');
-    const velocity = detailEl.querySelector('[data-field="velocity"]');
-    if (altitude) altitude.textContent = `${snapshot.altitudeKm.toFixed(0)} km`;
-    if (velocity) velocity.textContent = `${snapshot.velocityKmS.toFixed(2)} km/s`;
-    const position = detailEl.querySelector('[data-field="position"]');
-    if (position) position.textContent = groundPositionText(snapshot);
+    setTextIfChanged(detailEl.querySelector('[data-field="altitude"]'), `${snapshot.altitudeKm.toFixed(0)} km`);
+    setTextIfChanged(detailEl.querySelector('[data-field="velocity"]'), `${snapshot.velocityKmS.toFixed(2)} km/s`);
+    setTextIfChanged(detailEl.querySelector('[data-field="position"]'), groundPositionText(snapshot));
   };
 
-  const tick = (): void => {
-    refreshDynamicValues();
+  // Ten refreshes a second keep the numbers lively; doing it every frame also
+  // ran an extra orbit calculation 60 times a second for no visible change.
+  let lastRefreshAt = Number.NEGATIVE_INFINITY;
+  const tick = (now: number): void => {
+    if (now - lastRefreshAt >= DYNAMIC_REFRESH_MS) {
+      lastRefreshAt = now;
+      refreshDynamicValues();
+    }
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
