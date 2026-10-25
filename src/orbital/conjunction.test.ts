@@ -9,6 +9,7 @@ import {
   formatRelativeVelocityKmS,
   getConjunctions,
   getRiskAssessment,
+  getVerificationAssessment,
   getUpcomingConjunctions,
   getVerificationRewindMs,
   invalidateConjunctionCache,
@@ -303,6 +304,27 @@ describe('getRiskAssessment', () => {
     expect(getRiskAssessment(1)).toBe('MONITORING');
     expect(getRiskAssessment(0.999)).toBe('CRITICAL RISK');
     expect(getRiskAssessment(0)).toBe('CRITICAL RISK');
+  });
+});
+
+describe('getVerificationAssessment', () => {
+  const cpaMs = Date.parse('2026-07-25T02:12:25Z');
+
+  it('judges a finished pass by its closest approach, not by the current separation', () => {
+    // 15 s after CPA two objects crossing at 10 km/s are ~150 km apart.
+    const near = getVerificationAssessment(150, cpaMs + 15_000, cpaMs, 0.05, false);
+    expect(near.status).toBe('COLLISION CONFIRMED');
+    expect(near.hint).toContain('0.050 km');
+
+    const far = getVerificationAssessment(150, cpaMs + 15_000, cpaMs, 1.993, false);
+    expect(far.status).toBe('COLLISION AVERTED');
+    expect(far.hint).toContain('1.993 km');
+  });
+
+  it('tracks the live separation while the pass is still approaching', () => {
+    const a = getVerificationAssessment(0.8, cpaMs - 5_000, cpaMs, 2.5, true);
+    expect(a.status).toBe('APPROACHING');
+    expect(a.riskLabel).toBe('CRITICAL RISK');
   });
 });
 
