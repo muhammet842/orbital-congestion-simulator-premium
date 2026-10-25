@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src/i18n/translations.ts'), 'utf8');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const src = readFileSync(join(root, 'src/i18n/translations.ts'), 'utf8');
 const langs = ['en', 'tr', 'de', 'ru', 'zh'];
 const maps = {};
 let failed = false;
@@ -24,6 +25,30 @@ for (const lang of langs.slice(1)) {
   console.log(lang, 'extra vs en', extra.length, extra.slice(0, 10));
   if (missing.length || extra.length) failed = true;
 }
+
+// Unused keys: every text costs a translation in five languages, so a key the
+// code never asks for should be removed. A key counts as used when it appears
+// literally in the app code, or matches a key built from a pattern such as
+// `radio.mode.${mode}` (prefix "radio.mode.").
+const codeFiles = [join(root, 'index.html')];
+const walk = (dir) => {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) walk(path);
+    else if (/\.(ts|mjs)$/.test(name) && !name.endsWith('.test.ts') && name !== 'translations.ts') codeFiles.push(path);
+  }
+};
+walk(join(root, 'src'));
+const code = codeFiles.map((f) => readFileSync(f, 'utf8')).join('\n');
+const builtPrefixes = [...code.matchAll(/`([a-z][\w-]*(?:\.[\w-]+)*[._])\$\{/g)].map((m) => m[1]);
+const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const unused = [...maps.en].filter(
+  (key) =>
+    !new RegExp(`(^|[^\\w.])${escape(key)}($|[^\\w.])`).test(code) &&
+    !builtPrefixes.some((prefix) => key.startsWith(prefix)),
+);
+console.log('unused keys', unused.length, unused.slice(0, 20));
+if (unused.length) failed = true;
 
 if (failed) {
   console.error('i18n parity check failed');
