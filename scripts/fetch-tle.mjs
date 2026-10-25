@@ -132,6 +132,11 @@ const OUTPUT_PATH = new URL('../public/data/tle.json', import.meta.url);
 const FALLBACK_PATHS = [
   new URL('../dist/data/tle.json', import.meta.url),
   new URL('../public/data/tle.full.json', import.meta.url),
+  // In the daily job this is yesterday's snapshot (restored before fetching),
+  // so a partial CelesTrak outage is filled from it instead of failing the
+  // day's refresh. Read before the new catalog overwrites it; the epoch-age
+  // filter above keeps it from recycling old elements.
+  OUTPUT_PATH,
 ];
 
 const REQUEST_HEADERS = {
