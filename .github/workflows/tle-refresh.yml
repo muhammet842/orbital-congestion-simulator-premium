@@ -39,10 +39,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Don't leave the write token in .git/config while npm packages and
+          # the build run; the two push steps below pass it explicitly.
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -98,6 +102,7 @@ jobs:
       - name: Point main at the new snapshot
         env:
           SNAPSHOT_SHA: ${{ steps.snapshot.outputs.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           node scripts/write-data-ref.mjs --sha "$SNAPSHOT_SHA" --repository "$GITHUB_REPOSITORY" --branch "$DATA_BRANCH"
@@ -109,4 +114,4 @@ jobs:
           git commit -m "chore: data snapshot ${SNAPSHOT_SHA:0:7}"
           # Someone may have pushed while this job ran - replay on top.
           git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"
