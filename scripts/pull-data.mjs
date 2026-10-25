@@ -29,6 +29,7 @@ export const ATTEMPTS = 4;
 const FETCH_TIMEOUT_MS = 60_000;
 const SHA_RE = /^[0-9a-f]{40}$/;
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const BRANCH_RE = /^[A-Za-z0-9_.-]+$/;
 
 /** Validates a parsed data-ref.json and returns the immutable snapshot URL. */
 export function snapshotUrl(ref) {
@@ -36,6 +37,18 @@ export function snapshotUrl(ref) {
   if (!REPO_RE.test(String(ref.repository))) throw new Error('data-ref.json has a bad "repository"');
   if (!SHA_RE.test(String(ref.sha))) throw new Error('data-ref.json has a bad "sha"');
   return `https://raw.githubusercontent.com/${ref.repository}/${ref.sha}/tle.json`;
+}
+
+/**
+ * The current snapshot on the data branch: used only when the pinned commit is
+ * gone. Each daily run force-replaces that branch, so commits named by older
+ * data-ref.json files (rollbacks, redeploys, previews of old branches) are no
+ * longer referenced by any branch and GitHub may delete them.
+ */
+export function branchSnapshotUrl(ref) {
+  if (!REPO_RE.test(String(ref?.repository))) throw new Error('data-ref.json has a bad "repository"');
+  if (!BRANCH_RE.test(String(ref?.branch))) throw new Error('data-ref.json has a bad "branch"');
+  return `https://raw.githubusercontent.com/${ref.repository}/${ref.branch}/tle.json`;
 }
 
 /** Throws unless `data` looks like a complete, current catalog. */
@@ -77,8 +90,18 @@ export async function pullSnapshot(
   ref,
   { fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now() } = {},
 ) {
-  const url = snapshotUrl(ref);
-  const text = await fetchWithRetry(url, fetchImpl, sleep);
+  let url = snapshotUrl(ref);
+  let fallback = false;
+  let text;
+  try {
+    text = await fetchWithRetry(url, fetchImpl, sleep);
+  } catch (err) {
+    // Only a missing commit falls back; any other failure still fails closed.
+    if (!/HTTP 404/.test(err.message) || !ref.branch) throw err;
+    url = branchSnapshotUrl(ref);
+    fallback = true;
+    text = await fetchWithRetry(url, fetchImpl, sleep);
+  }
   let data;
   try {
     data = JSON.parse(text);
@@ -86,7 +109,7 @@ export async function pullSnapshot(
     throw new Error('snapshot is not valid JSON');
   }
   validateSnapshot(data, now);
-  return { text, data, url };
+  return { text, data, url, fallback };
 }
 
 async function main() {
@@ -108,7 +131,10 @@ async function main() {
   }
 
   try {
-    const { text, data, url } = await pullSnapshot(ref);
+    const { text, data, url, fallback } = await pullSnapshot(ref);
+    if (fallback) {
+      console.warn(`pull-data: snapshot ${ref.sha} is gone — using the current '${ref.branch}' branch instead.`);
+    }
     await writeFile(fileURLToPath(OUT_PATH), text);
     console.log(
       `pull-data: wrote ${data.objects.length} objects (fetchedAt ${data.fetchedAt}) from ${url}`,

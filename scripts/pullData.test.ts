@@ -68,6 +68,24 @@ describe('pullSnapshot', () => {
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([1000, 2000]);
   });
 
+  it('falls back to the current data branch only when the pinned snapshot is gone', async () => {
+    const ref = { ...REF, branch: 'data' };
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) =>
+      url.includes(`/${SHA}/`) ? { ok: false, status: 404 } : okResponse(catalog()),
+    );
+    const result = await pullSnapshot(ref, { fetchImpl, sleep: async () => {}, now: NOW });
+    expect(result.fallback).toBe(true);
+    expect(result.url).toBe('https://raw.githubusercontent.com/octo/cat/data/tle.json');
+  });
+
+  it('still fails closed on other errors, even with a branch to fall back to', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    await expect(
+      pullSnapshot({ ...REF, branch: 'data' }, { fetchImpl, sleep: async () => {}, now: NOW }),
+    ).rejects.toThrow(/HTTP 500/);
+    expect(fetchImpl).toHaveBeenCalledTimes(ATTEMPTS);
+  });
+
   it('gives up after the configured attempts so the build fails closed', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 404 });
     await expect(pullSnapshot(REF, { fetchImpl, sleep: async () => {}, now: NOW })).rejects.toThrow(/HTTP 404/);
