@@ -78,8 +78,12 @@ export class OrbitalMeshes {
     // globe should render immediately instead of blocking on GLTF network
     // round-trips for detail models that only matter once something is
     // actually selected. Warm the most common ones in the background so
-    // that first selection doesn't show a bare point while it loads.
-    satelliteModelLoader.warmCache(['iss', 'sat_leo', 'cargo_capsule']);
+    // that first selection doesn't show a bare point while it loads — once
+    // the browser is idle, so the 2 MB model does not compete with the page's
+    // own start-up downloads.
+    const warm = (): void => satelliteModelLoader.warmCache(['iss', 'sat_leo', 'cargo_capsule']);
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 5_000 });
+    else setTimeout(warm, 2_000);
 
     return meshes;
   }

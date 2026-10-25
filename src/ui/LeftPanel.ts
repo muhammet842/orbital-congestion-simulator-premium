@@ -49,6 +49,7 @@ import { escapeHtml } from './escapeHtml';
 import { STALE_TLE_AGE_DAYS } from '../data/tleLoader';
 import { initPanelSections } from './panelSections';
 import { icon } from './icons';
+import { setTextIfChanged } from './dom';
 
 const LAYERS: OrbitLayer[] = ['LEO', 'MEO', 'GEO', 'HEO'];
 const CATEGORY_FILTERS: Array<ObjectCategory | 'all'> = ['all', 'active', 'stations', 'debris'];
@@ -194,10 +195,7 @@ export function initLeftPanel(container: HTMLElement): void {
   });
 
   const refreshLiveStatTime = (): void => {
-    const timeEl = container.querySelector('#live-stat-time');
-    if (timeEl) {
-      timeEl.textContent = formatUtcDateTime(getSimulationTime());
-    }
+    setTextIfChanged(container.querySelector('#live-stat-time'), formatUtcDateTime(getSimulationTime()));
     const now = performance.now();
     if (now - lastConjunctionCountdownMs >= 1_000) {
       lastConjunctionCountdownMs = now;
@@ -224,9 +222,20 @@ export function initLeftPanel(container: HTMLElement): void {
   let lastSelectedIndex: number | null = null;
   let lastFilterUiKey = '';
 
+  // State changes arrive many times a second (e.g. while dragging the time
+  // slider): only rebuild the parts whose content actually changed.
+  let lastStatsKey = statsRenderKey();
+  let lastSortMode = getState().conjunctionSortMode;
   subscribe(() => {
-    renderStats(container);
-    renderConjunctionFilters(container);
+    const statsKey = statsRenderKey();
+    if (statsKey !== lastStatsKey) {
+      lastStatsKey = statsKey;
+      renderStats(container);
+    }
+    if (getState().conjunctionSortMode !== lastSortMode) {
+      lastSortMode = getState().conjunctionSortMode;
+      renderConjunctionFilters(container);
+    }
     renderConjunctions(container);
     renderStaleNote(container);
 
@@ -522,12 +531,19 @@ function renderDisplayOptions(container: HTMLElement): void {
   }
 }
 
+/** Stale-TLE count per catalogue: it only changes when a new catalogue loads. */
+const staleCounts = new WeakMap<readonly object[], number>();
+
 /** Says how many LEO objects the close-approach screen skips for old TLEs. */
 function renderStaleNote(container: HTMLElement): void {
   const el = container.querySelector<HTMLElement>('#conjunction-stale-note');
   if (!el) return;
   const { objects } = getState();
-  const count = countStaleScreeningExclusions(objects);
+  let count = staleCounts.get(objects);
+  if (count === undefined) {
+    count = countStaleScreeningExclusions(objects);
+    staleCounts.set(objects, count);
+  }
   const text =
     count === 0
       ? ''
@@ -536,6 +552,22 @@ function renderStaleNote(container: HTMLElement): void {
           .replace('{days}', String(STALE_TLE_AGE_DAYS));
   if (el.textContent !== text) el.textContent = text;
   el.hidden = count === 0;
+}
+
+/** Everything renderStats shows except the clock (which ticks on its own). */
+function statsRenderKey(): string {
+  const { stats, time, filteredIndices, conjunctions, conjunctionHiddenCount } = getState();
+  const isLive = time.mode === 'live' && !isEventReplayActive() && !isConjunctionVerificationActive();
+  const ageDays = stats.fetchedAt ? Math.floor((Date.now() - new Date(stats.fetchedAt).getTime()) / 86_400_000) : 0;
+  return [
+    stats.total,
+    Object.values(stats.categoryCounts).join(','),
+    stats.fetchedAt,
+    ageDays,
+    isLive,
+    filteredIndices.length,
+    conjunctions.length + conjunctionHiddenCount,
+  ].join('|');
 }
 
 function renderStats(container: HTMLElement): void {

@@ -7,6 +7,7 @@ import {
   Vector3,
 } from 'three';
 import { getDayNightState } from './dayNight';
+import { earthTexturePaths } from './deviceProfile';
 
 const sunDirectionUniform = { value: new Vector3(1, 0, 0) };
 
@@ -17,8 +18,9 @@ export class Earth {
   constructor() {
     const geometry = new SphereGeometry(1, 32, 32);
     const loader = new TextureLoader();
-    const dayMap = loader.load('/textures/earth.jpg');
-    const nightMap = loader.load('/textures/earth-night.jpg');
+    const textures = earthTexturePaths();
+    const dayMap = loader.load(textures.day);
+    const nightMap = loader.load(textures.night);
 
     this.material = new MeshStandardMaterial({
       map: dayMap,
