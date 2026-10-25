@@ -21,6 +21,7 @@ import {
 } from '../orbital/kesslerProjection';
 import { onLangChange, t } from '../i18n/i18n';
 import { icon } from './icons';
+import { attachModalKeyboard } from './modalKeyboard';
 
 // ── Module-local component state ────────────────────────────────────────────
 
@@ -56,6 +57,8 @@ let activePreset: KesslerPresetId | null = 'bau';
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
+/** Ends the window's keyboard handling and gives focus back (see modalKeyboard.ts). */
+let detachKeyboard: (() => void) | null = null;
 
 const BASE_DOT_COUNT = 80;
 const MAX_DOT_COUNT = 600;
@@ -143,10 +146,6 @@ export function initKesslerPanel(): void {
 
 // ── Modal open / close ───────────────────────────────────────────────────────
 
-function handleEsc(e: KeyboardEvent): void {
-  if (e.key === 'Escape') closeKesslerPanel();
-}
-
 function handleResize(): void {
   if (timeline.length > 0) redrawCanvases();
 }
@@ -162,6 +161,7 @@ export function openKesslerPanel(): void {
   panel.id = 'kessler-panel';
   panel.className = 'modal-panel kessler-panel';
   panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
   panel.setAttribute('aria-label', t('kessler.title'));
 
   backdrop.appendChild(panel);
@@ -176,8 +176,8 @@ export function openKesslerPanel(): void {
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) closeKesslerPanel();
   });
-  document.addEventListener('keydown', handleEsc);
   window.addEventListener('resize', handleResize);
+  detachKeyboard = attachModalKeyboard(panel, closeKesslerPanel, panel.querySelector<HTMLElement>('#kp-close'));
 }
 
 export function closeKesslerPanel(): void {
@@ -185,8 +185,9 @@ export function closeKesslerPanel(): void {
   backdropEl?.remove();
   backdropEl = null;
   panelEl = null;
-  document.removeEventListener('keydown', handleEsc);
   window.removeEventListener('resize', handleResize);
+  detachKeyboard?.();
+  detachKeyboard = null;
 }
 
 export function isKesslerPanelOpen(): boolean {
@@ -220,38 +221,38 @@ function renderPanelContent(): void {
 
         <div class="kp-slider-row">
           <div class="kp-slider-label-row">
-            <span class="kp-slider-label">${t('kessler.param.launch_rate')}</span>
+            <span class="kp-slider-label" id="kp-launch-label">${t('kessler.param.launch_rate')}</span>
             <span class="kp-slider-value" id="kp-launch-val">${formatMultiplier(sliderTicks.launch)}</span>
           </div>
-          <span class="kp-slider-hint">${t('kessler.param.launch_rate_hint')}</span>
-          <input type="range" id="kp-launch" class="kp-range" min="0" max="600" step="5" value="${sliderTicks.launch}" />
+          <span class="kp-slider-hint" id="kp-launch-hint">${t('kessler.param.launch_rate_hint')}</span>
+          <input type="range" id="kp-launch" class="kp-range" aria-labelledby="kp-launch-label" aria-describedby="kp-launch-hint" min="0" max="600" step="5" value="${sliderTicks.launch}" />
         </div>
 
         <div class="kp-slider-row">
           <div class="kp-slider-label-row">
-            <span class="kp-slider-label">${t('kessler.param.mitigation')}</span>
+            <span class="kp-slider-label" id="kp-mitigation-label">${t('kessler.param.mitigation')}</span>
             <span class="kp-slider-value" id="kp-mitigation-val">${formatMultiplier(sliderTicks.mitigation)}</span>
           </div>
-          <span class="kp-slider-hint">${t('kessler.param.mitigation_hint')}</span>
-          <input type="range" id="kp-mitigation" class="kp-range" min="0" max="300" step="5" value="${sliderTicks.mitigation}" />
+          <span class="kp-slider-hint" id="kp-mitigation-hint">${t('kessler.param.mitigation_hint')}</span>
+          <input type="range" id="kp-mitigation" class="kp-range" aria-labelledby="kp-mitigation-label" aria-describedby="kp-mitigation-hint" min="0" max="300" step="5" value="${sliderTicks.mitigation}" />
         </div>
 
         <div class="kp-slider-row">
           <div class="kp-slider-label-row">
-            <span class="kp-slider-label">${t('kessler.param.collision_risk')}</span>
+            <span class="kp-slider-label" id="kp-risk-label">${t('kessler.param.collision_risk')}</span>
             <span class="kp-slider-value" id="kp-risk-val">${formatMultiplier(sliderTicks.risk)}</span>
           </div>
-          <span class="kp-slider-hint">${t('kessler.param.collision_risk_hint')}</span>
-          <input type="range" id="kp-risk" class="kp-range" min="0" max="600" step="5" value="${sliderTicks.risk}" />
+          <span class="kp-slider-hint" id="kp-risk-hint">${t('kessler.param.collision_risk_hint')}</span>
+          <input type="range" id="kp-risk" class="kp-range" aria-labelledby="kp-risk-label" aria-describedby="kp-risk-hint" min="0" max="600" step="5" value="${sliderTicks.risk}" />
         </div>
 
         <div class="kp-slider-row">
           <div class="kp-slider-label-row">
-            <span class="kp-slider-label">${t('kessler.param.target_year')}</span>
+            <span class="kp-slider-label" id="kp-year-label">${t('kessler.param.target_year')}</span>
             <span class="kp-slider-value" id="kp-year-val">${sliderTicks.targetYear}</span>
           </div>
-          <span class="kp-slider-hint">${t('kessler.param.target_year_hint')}</span>
-          <input type="range" id="kp-target-year" class="kp-range"
+          <span class="kp-slider-hint" id="kp-year-hint">${t('kessler.param.target_year_hint')}</span>
+          <input type="range" id="kp-target-year" class="kp-range" aria-labelledby="kp-year-label" aria-describedby="kp-year-hint"
             min="${CURRENT_YEAR + 5}" max="${CURRENT_YEAR + 75}" step="5" value="${sliderTicks.targetYear}" />
         </div>
       </div>
@@ -276,11 +277,11 @@ function renderPanelContent(): void {
 
         <div class="kp-scrub-block">
           <div class="kp-slider-label-row">
-            <span class="kp-slider-label">${t('kessler.year_scrub')}</span>
+            <span class="kp-slider-label" id="kp-scrub-label">${t('kessler.year_scrub')}</span>
             <span class="kp-slider-value" id="kp-scrub-val">—</span>
           </div>
           <div class="kp-scrub-row">
-            <input type="range" id="kp-scrub" class="kp-range" min="0" max="1" step="1" value="0" />
+            <input type="range" id="kp-scrub" class="kp-range" aria-labelledby="kp-scrub-label" min="0" max="1" step="1" value="0" />
             <button class="kp-animate-btn" id="kp-animate">${t('kessler.play')}</button>
           </div>
         </div>

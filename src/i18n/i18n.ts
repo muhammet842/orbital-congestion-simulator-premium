@@ -35,6 +35,15 @@ function detectInitialLang(): Lang {
 let _lang: Lang = detectInitialLang();
 const _subscribers = new Set<() => void>();
 
+/** BCP 47 tags for <html lang>: screen readers pick their voice from it. */
+const DOCUMENT_LANG: Record<Lang, string> = { en: 'en', tr: 'tr', de: 'de', ru: 'ru', zh: 'zh-Hans' };
+
+/** Tell the browser (and screen readers, translation, hyphenation) which language the page is in. */
+function applyDocumentLang(lang: Lang): void {
+  if (typeof document !== 'undefined') document.documentElement.lang = DOCUMENT_LANG[lang];
+}
+applyDocumentLang(_lang);
+
 export function getLang(): Lang {
   return _lang;
 }
@@ -43,6 +52,7 @@ export function setLang(lang: Lang): void {
   if (lang === _lang) return;
   _lang = lang;
   writeStoredLang(lang);
+  applyDocumentLang(lang);
   _subscribers.forEach((fn) => fn());
 }
 

@@ -86,7 +86,7 @@ export function createLayout(root: HTMLElement): {
         <button id="toggle-right-panel" class="panel-toggle-btn icon-btn" type="button" aria-label="${t('layout.toggle_right')}" title="${t('layout.toggle_right')}" data-i18n-aria="layout.toggle_right" data-i18n-title="layout.toggle_right" aria-expanded="false">${icon('panelRight', 20)}</button>
       </header>
       <aside id="left-panel" class="panel panel-left"></aside>
-      <main id="scene-container" class="scene-container"></main>
+      <main id="scene-container" class="scene-container" aria-label="${t('layout.scene_label')}" data-i18n-aria="layout.scene_label"></main>
       <aside id="right-panel" class="panel panel-right"></aside>
       <div id="mobile-backdrop" class="mobile-backdrop"></div>
       <footer id="time-bar" class="time-bar"></footer>
