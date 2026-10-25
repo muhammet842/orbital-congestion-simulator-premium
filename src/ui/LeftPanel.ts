@@ -16,6 +16,8 @@ import {
   selectConjunctionAlertsForDisplay,
   filterConjunctionAlertsInHorizon,
   MAX_DISPLAY_ALERTS,
+  PREDICTION_RANGE_DAYS,
+  isWithinPredictionRange,
   type ConjunctionSortMode,
 } from '../orbital/conjunction';
 import {
@@ -643,6 +645,19 @@ function renderConjunctionFilters(container: HTMLElement): void {
   `;
 }
 
+/**
+ * Why no close approaches are predicted: the clock was moved too far from the
+ * data's date, or the data itself is too old (its daily refresh has failed).
+ */
+function outOfRangeText(): string {
+  const { fetchedAt } = getState().stats;
+  if (!isWithinPredictionRange(Date.now(), fetchedAt)) {
+    const days = Math.floor((Date.now() - new Date(fetchedAt).getTime()) / 86_400_000);
+    return t('conj.out_of_range_data').replace('{n}', String(days));
+  }
+  return t('conj.out_of_range').replace('{days}', String(PREDICTION_RANGE_DAYS));
+}
+
 /** Cards added per "Show more" click. */
 const SHOW_MORE_STEP = 10;
 /** Cards currently shown; starts at the default and grows with "Show more". */
@@ -687,9 +702,10 @@ function renderConjunctions(container: HTMLElement): void {
     previousAlertKeys.clear();
     lastConjunctionStructureKey = '';
     displayedConjunctions = [];
+    const outOfRange = getState().conjunctionsOutOfRange;
     const stillScanning =
-      isUpcomingConjunctionScanPending() || !hasUpcomingConjunctionScanCompleted();
-    const emptyText = t(stillScanning ? 'conj.scanning' : 'conj.empty');
+      !outOfRange && (isUpcomingConjunctionScanPending() || !hasUpcomingConjunctionScanCompleted());
+    const emptyText = outOfRange ? outOfRangeText() : t(stillScanning ? 'conj.scanning' : 'conj.empty');
     const existing = listEl.querySelector('.conjunction-empty');
     if (existing && !listEl.querySelector('.conjunction-alert')) {
       if (existing.textContent !== emptyText) existing.textContent = emptyText;

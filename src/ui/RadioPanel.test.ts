@@ -22,7 +22,7 @@ vi.mock('../orbital/lookAngles', () => ({
     const elevationDeg = sat.__elev ?? -20;
     return { azimuthDeg: 0, elevationDeg, rangeKm: 1000, visible: elevationDeg > 0 };
   }),
-  findNextPass: vi.fn(() => ({
+  findNextUsefulPass: vi.fn(() => ({
     rise: { time: new Date(Date.now() + 3_600_000 + 30_000), azimuthDeg: 0 },
     max: { time: new Date(Date.now() + 3_900_000), elevationDeg: 33, azimuthDeg: 0 },
     set: null,

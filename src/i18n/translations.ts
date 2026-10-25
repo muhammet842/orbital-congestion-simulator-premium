@@ -159,6 +159,8 @@ const en: Translations = {
 
   // ── Conjunction panel ─────────────────────────────────────────────────
   'conj.scanning': 'Scanning the next 24 hours for close approaches…',
+  'conj.out_of_range': "Close approaches are only predicted within {days} days of the satellite data's date. Move the clock back towards today (Now) to see them.",
+  'conj.out_of_range_data': "The satellite data is {n} days old, too old to predict close approaches. It normally updates every day.",
   'conj.why_it_matters': "Close approaches like these are routine: operators already fly hundreds of avoidance maneuvers a year so crossings do not become Iridium–Cosmos.",
   'conj.accuracy_note': "Screening estimates from public TLE data (typically a kilometre or more of position error, no uncertainty data). Not an operational conjunction assessment; real operators use higher-precision tracking.",
   'ui.launches': "Upcoming Launches",
@@ -712,6 +714,8 @@ const tr: Translations = {
   'unit.s':   '{s}sn',
 
   'conj.scanning': 'Önümüzdeki 24 saat için yakın geçişler taranıyor…',
+  'conj.out_of_range': "Yakın geçişler yalnızca uydu verisinin tarihine en fazla {days} gün uzaklıktaki zamanlar için tahmin edilir. Görmek için saati bugüne doğru geri alın (Şimdi).",
+  'conj.out_of_range_data': "Uydu verisi {n} günlük; yakın geçişleri tahmin etmek için fazla eski. Normalde her gün güncellenir.",
   'conj.why_it_matters': "Bunun gibi yakın geçişler rutindir: operatörler yılda yüzlerce kaçınma manevrası yapıyor ki geçişler Iridium–Cosmos olmasın.",
   'conj.accuracy_note': "Herkese açık TLE verilerinden elde edilen tarama tahminleri (genellikle bir kilometre veya daha fazla konum hatası, belirsizlik verisi yok). Operasyonel bir yakınlaşma değerlendirmesi değildir; gerçek operatörler daha hassas takip verisi kullanır.",
   'ui.launches': "Yaklaşan Fırlatmalar",
@@ -1258,6 +1262,8 @@ const de: Translations = {
   'unit.s':   '{s} Sek',
 
   'conj.scanning': 'Nahflüge für die nächsten 24 Stunden werden gesucht…',
+  'conj.out_of_range': "Annäherungen werden nur bis {days} Tage vom Datum der Satellitendaten entfernt vorhergesagt. Stellen Sie die Uhr in Richtung heute zurück (Jetzt), um sie zu sehen.",
+  'conj.out_of_range_data': "Die Satellitendaten sind {n} Tage alt und damit zu alt für Annäherungsprognosen. Normalerweise werden sie täglich aktualisiert.",
   'conj.why_it_matters': "Solche Annäherungen sind Routine: Betreiber fliegen bereits hunderte Ausweichmanöver pro Jahr, damit Kreuzungen nicht zu Iridium–Cosmos werden.",
   'conj.accuracy_note': "Screening-Schätzungen aus öffentlichen TLE-Daten (typischerweise ein Kilometer oder mehr Positionsfehler, keine Unsicherheitsangaben). Keine operative Konjunktionsbewertung; Betreiber nutzen präzisere Bahnverfolgung.",
   'ui.launches': "Bevorstehende Starts",
@@ -1804,6 +1810,8 @@ const ru: Translations = {
   'unit.s':   '{s} с',
 
   'conj.scanning': 'Идёт поиск сближений на ближайшие 24 часа…',
+  'conj.out_of_range': "Сближения прогнозируются только в пределах {days} дней от даты спутниковых данных. Чтобы увидеть их, верните время ближе к сегодняшнему дню (Сейчас).",
+  'conj.out_of_range_data': "Спутниковым данным {n} дн.: они слишком старые для прогноза сближений. Обычно данные обновляются каждый день.",
   'conj.why_it_matters': "Такие сближения — обычное дело: операторы уже делают сотни манёвров в год, чтобы такие пересечения не стали Iridium–Cosmos.",
   'conj.accuracy_note': "Оценки скрининга по открытым данным TLE (обычно погрешность положения в километр и более, данных о неопределённости нет). Это не оперативная оценка сближений; реальные операторы используют более точное сопровождение.",
   'ui.launches': "Предстоящие запуски",
@@ -2350,6 +2358,8 @@ const zh: Translations = {
   'unit.s':   '{s}秒',
 
   'conj.scanning': '正在扫描未来24小时的近距离接近…',
+  'conj.out_of_range': "仅在距卫星数据日期 {days} 天以内预测近距离接近。请将时间调回接近今天（此刻）以查看。",
+  'conj.out_of_range_data': "卫星数据已有 {n} 天，过旧，无法预测近距离接近。数据通常每天更新。",
   'conj.why_it_matters': "此类近距离接近属于常态：运营商每年已实施数百次避碰机动，以免这类交会变成 Iridium–Cosmos。",
   'conj.accuracy_note': "基于公开 TLE 数据的筛查估计（位置误差通常达一公里或更多，无不确定度数据）。并非业务级交会评估；实际运营商使用更高精度的跟踪数据。",
   'ui.launches': "即将发射",

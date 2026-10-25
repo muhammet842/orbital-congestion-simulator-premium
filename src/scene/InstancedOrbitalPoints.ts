@@ -157,7 +157,7 @@ export class InstancedOrbitalPoints {
       if (
         !isSelected &&
         !isConjunction &&
-        (!layerFilters[result.layer] || !isVisibleFromCamera(result, cameraPosition))
+        !isVisibleFromCamera(result, cameraPosition)
       ) {
         this.matrix.makeScale(0, 0, 0);
         this.mesh.setMatrixAt(i, this.matrix);

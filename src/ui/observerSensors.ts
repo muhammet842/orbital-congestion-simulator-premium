@@ -112,12 +112,17 @@ function loadCachedLocation(): ObserverLocation | null {
       typeof parsed.latitudeDeg === 'number' &&
       typeof parsed.longitudeDeg === 'number' &&
       Number.isFinite(parsed.latitudeDeg) &&
-      Number.isFinite(parsed.longitudeDeg)
+      Number.isFinite(parsed.longitudeDeg) &&
+      // A value outside the Earth's ranges would feed nonsense into the pass maths.
+      Math.abs(parsed.latitudeDeg) <= 90 &&
+      Math.abs(parsed.longitudeDeg) <= 180
     ) {
+      const altitudeKm = typeof parsed.altitudeKm === 'number' && Number.isFinite(parsed.altitudeKm) ? parsed.altitudeKm : 0;
       return {
         latitudeDeg: parsed.latitudeDeg,
         longitudeDeg: parsed.longitudeDeg,
-        altitudeKm: typeof parsed.altitudeKm === 'number' ? parsed.altitudeKm : 0,
+        // Between the Dead Sea shore and the top of Everest, with room to spare.
+        altitudeKm: Math.min(10, Math.max(-1, altitudeKm)),
       };
     }
   } catch {

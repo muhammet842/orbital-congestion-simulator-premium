@@ -306,14 +306,11 @@ export function initRightPanel(container: HTMLElement): void {
     const propagation = propagateObject(obj.satrec, getSimulationTime());
     if (!propagation) return;
 
-    const snapshot = toObjectSnapshot(
-      obj.noradId,
-      obj.name,
-      obj.category,
-      obj.country,
-      obj.owner,
-      propagation,
-    );
+    const snapshot = {
+      ...toObjectSnapshot(obj.noradId, obj.name, obj.category, obj.country, obj.owner, propagation),
+      // The catalogue layer (from the orbit's shape), so the panel agrees with the filters.
+      layer: obj.layer,
+    };
     const detailEl = container.querySelector('#object-detail');
     if (!detailEl) return;
 
@@ -437,14 +434,11 @@ function render(container: HTMLElement): void {
     return;
   }
 
-  const snapshot = toObjectSnapshot(
-    obj.noradId,
-    obj.name,
-    obj.category,
-    obj.country,
-    obj.owner,
-    propagation,
-  );
+  const snapshot = {
+    ...toObjectSnapshot(obj.noradId, obj.name, obj.category, obj.country, obj.owner, propagation),
+    // The catalogue layer (from the orbit's shape), so the panel agrees with the filters.
+    layer: obj.layer,
+  };
 
   const newBadge = isRecentlyLaunched(obj)
     ? `<span class="new-launch-badge" title="${escapeHtml(t('badge.new_launch_title'))}">${t('badge.new_launch')}</span>`

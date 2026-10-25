@@ -14,6 +14,7 @@
  * stale idle callback cannot wipe cards mid-rescan.
  */
 import { nameCollator } from '../data/nameOrder';
+import { perigeeAltitudeKm } from './classify';
 import { eciToScene } from './coordinates';
 import { propagateObject, propagateState, type PropagationState } from './propagator';
 import type { ConjunctionEvent, OrbitLayer, TrackedObject } from '../types';
@@ -347,15 +348,28 @@ function midpointScene(
   };
 }
 
-/** LEO objects with elements fresh enough to trust for close approaches. */
+/**
+ * Objects whose orbit reaches low Earth orbit at its lowest point. Using the
+ * perigee (not the layer) includes stretched orbits that dip into LEO, such
+ * as much of the Fengyun-1C debris; using the orbit's shape (not where the
+ * object is right now) keeps the set the same on every visit.
+ */
+export const SCREEN_MAX_PERIGEE_KM = 2000;
+
+function reachesLowOrbit(obj: TrackedObject): boolean {
+  const perigee = perigeeAltitudeKm(obj.satrec);
+  return Number.isFinite(perigee) ? perigee < SCREEN_MAX_PERIGEE_KM : obj.layer === SUBSET;
+}
+
+/** Objects reaching LEO with elements fresh enough to trust for close approaches. */
 export function isScreenable(obj: TrackedObject): boolean {
-  return obj.layer === SUBSET && !obj.staleElements;
+  return reachesLowOrbit(obj) && !obj.staleElements;
 }
 
 /** LEO objects left out of screening only because their TLE is too old. */
 export function countStaleScreeningExclusions(objects: readonly TrackedObject[]): number {
   let count = 0;
-  for (const obj of objects) if (obj.layer === SUBSET && obj.staleElements) count++;
+  for (const obj of objects) if (reachesLowOrbit(obj) && obj.staleElements) count++;
   return count;
 }
 
@@ -875,6 +889,20 @@ export const UPCOMING_MAX_REL_VELOCITY_KM_S = 16;
 export const UPCOMING_SCREEN_KM = THRESHOLD_KM + 5;
 /** A sweep is a lot of SGP4 work, so re-run it at most this often (wall time). */
 export const UPCOMING_RESCAN_INTERVAL_MS = 5 * 60 * 1000;
+/**
+ * Close approaches are only predicted within this many days of the catalogue's
+ * fetch time (the same limit that marks a single TLE as too old to screen).
+ * Further out, propagated positions drift by tens of km, so a confident
+ * "0.3 km in 4 h" would be fiction.
+ */
+export const PREDICTION_RANGE_DAYS = 7;
+
+/** Whether `simMs` is close enough to the data's date for close-approach predictions. */
+export function isWithinPredictionRange(simMs: number, fetchedAt: string): boolean {
+  const fetchedMs = Date.parse(fetchedAt);
+  if (!Number.isFinite(fetchedMs)) return true;
+  return Math.abs(simMs - fetchedMs) <= PREDICTION_RANGE_DAYS * 86_400_000;
+}
 /** …unless simulated time has drifted this far from the last sweep start
  *  (fast-forward, rewind, historical jumps). */
 export const UPCOMING_MAX_SIM_DRIFT_MS = 60 * 60 * 1000;
