@@ -242,6 +242,42 @@ describe('handler', () => {
     expect(res.headers['Cache-Control']).toBe('public, s-maxage=60');
     expect(JSON.parse(res.body).launches).toHaveLength(1);
   });
+
+  it('refuses a query string (it would skip the CDN cache) without calling the API', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const res = fakeResponse();
+    await handler({ url: '/api/launches?x=1' }, res);
+    vi.unstubAllGlobals();
+    expect(res.statusCode).toBe(400);
+    expect(res.headers['Cache-Control']).toBe('no-store');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('serves the plain URL normally', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [raw({ net: new Date(Date.now() + 48 * HOUR).toISOString() })] }) }));
+    const res = fakeResponse();
+    await handler({ url: '/api/launches' }, res);
+    vi.unstubAllGlobals();
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('shares one upstream call between requests that arrive together', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      await gate;
+      return { ok: true, json: async () => ({ results: [raw({ net: new Date(Date.now() + 48 * HOUR).toISOString() })] }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const responses = [fakeResponse(), fakeResponse(), fakeResponse()];
+    const pending = responses.map((res) => handler({ url: '/api/launches' }, res));
+    release();
+    await Promise.all(pending);
+    vi.unstubAllGlobals();
+    expect(fetchMock).toHaveBeenCalledTimes(1); // the list; no detail request for a launch 48 h away
+    expect(responses.map((r) => r.statusCode)).toEqual([200, 200, 200]);
+  });
 });
 
 describe('missionDescriptionOf', () => {

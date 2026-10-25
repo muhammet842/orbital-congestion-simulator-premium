@@ -21,10 +21,13 @@ const HEADERS = { Accept: 'application/json', 'User-Agent': 'orbital-congestion-
 const MEMORY_TTL_MS = 10 * 60_000;
 
 let memory = null; // { at: number, payload }
+/** The upstream call in progress, shared by requests that arrive at the same time. */
+let inflight = null;
 
 /** For tests. */
 export function resetMemoryCache() {
   memory = null;
+  inflight = null;
 }
 
 async function getJson(url) {
@@ -62,14 +65,23 @@ function send(res, status, body, cacheControl) {
   res.end(JSON.stringify(body));
 }
 
-export default async function handler(_req, res) {
+export default async function handler(req, res) {
+  // The CDN caches the plain URL only; any query string would skip that cache
+  // and spend the upstream rate limit, so it is refused before any API call.
+  if (typeof req?.url === 'string' && req.url.includes('?')) {
+    return send(res, 400, { error: 'query parameters are not supported' }, 'no-store');
+  }
   const now = Date.now();
   if (memory && now - memory.at < MEMORY_TTL_MS) {
     // 15 min at the CDN: stays well inside the upstream rate limit even with several regions.
     return send(res, 200, memory.payload, 'public, s-maxage=900, stale-while-revalidate=3600');
   }
   try {
-    const payload = await buildPayload(now);
+    // Requests that arrive together (cold or expired instance) share one upstream call.
+    inflight ??= buildPayload(now).finally(() => {
+      inflight = null;
+    });
+    const payload = await inflight;
     memory = { at: now, payload };
     return send(res, 200, payload, 'public, s-maxage=900, stale-while-revalidate=3600');
   } catch (err) {
