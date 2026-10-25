@@ -23,7 +23,12 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { getUpcomingConjunctions, conjunctionSessionKey } from '../orbital/conjunction';
+import {
+  getUpcomingConjunctions,
+  conjunctionSessionKey,
+  invalidateUpcomingConjunctionCache,
+  isWithinPredictionRange,
+} from '../orbital/conjunction';
 import { getDebrisUpdateStride, getPropagationResults } from '../orbital/propagationBatch';
 import { PropagationWorkerBridge } from '../orbital/PropagationWorkerBridge';
 import { eciToScene } from '../orbital/coordinates';
@@ -51,6 +56,7 @@ import {
   selectObject,
   clearObjectSelection,
   setConjunctions,
+  setConjunctionsOutOfRange,
   advanceSimulationTime,
   advanceVerificationTime,
   advanceEventReplayTime,
@@ -789,11 +795,19 @@ export class SceneManager {
     );
 
     if (!currentState.selectedConjunction) {
-      // Forward-looking: predicts the closest approaches over the next 24h
-      // rather than only reporting what's happening at this exact instant.
-      getUpcomingConjunctions(currentState.objects, simTime, (fresh) => {
-        setConjunctions(fresh);
-      });
+      const inRange = isWithinPredictionRange(simTime.getTime(), currentState.stats.fetchedAt);
+      if (!inRange && !currentState.conjunctionsOutOfRange) {
+        // Stop a sweep in flight so its results cannot arrive afterwards.
+        invalidateUpcomingConjunctionCache();
+        setConjunctionsOutOfRange(true);
+      } else if (inRange) {
+        if (currentState.conjunctionsOutOfRange) setConjunctionsOutOfRange(false);
+        // Forward-looking: predicts the closest approaches over the next 24h
+        // rather than only reporting what's happening at this exact instant.
+        getUpcomingConjunctions(currentState.objects, simTime, (fresh) => {
+          if (!getState().conjunctionsOutOfRange) setConjunctions(fresh);
+        });
+      }
     }
 
     this.renderer.render(this.scene, this.camera);

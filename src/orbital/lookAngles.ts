@@ -130,6 +130,32 @@ export function computeLookAngles(
  * Coarse scan for the next rise / max elevation / set within `horizonHours`.
  * Step size trades accuracy for speed — fine enough for photographer guidance.
  */
+/**
+ * The next pass that rises after `start` and climbs to at least
+ * `minElevationDeg`: skips a pass already under way at `start` (its rise is
+ * in the past) and low grazers, which findNextPass alone would return.
+ */
+export function findNextUsefulPass(
+  satrec: SatRec,
+  observer: ObserverLocation,
+  start: Date,
+  minElevationDeg: number,
+  horizonHours = 18,
+  stepSeconds = 60,
+): PassEvent | null {
+  const endMs = start.getTime() + horizonHours * 3_600_000;
+  let fromMs = start.getTime();
+  // A handful of passes is plenty: low-orbit passes come every ~90 minutes.
+  for (let i = 0; i < 12 && fromMs < endMs; i++) {
+    const pass = findNextPass(satrec, observer, new Date(fromMs), (endMs - fromMs) / 3_600_000, stepSeconds);
+    if (!pass.max) return null;
+    if (pass.rise && pass.max.elevationDeg >= minElevationDeg) return pass;
+    if (!pass.set) return null;
+    fromMs = pass.set.time.getTime() + stepSeconds * 1000;
+  }
+  return null;
+}
+
 export function findNextPass(
   satrec: SatRec,
   observer: ObserverLocation,
@@ -272,14 +298,27 @@ export function assessPhotoConditions(
   const pos = result.position as EciVec3<number>;
 
   const satLit = isPositionSunlit(pos, sunEciUnit);
-  const obsEci = observerToApproxEci(observer, date);
-  const observerDark = !isPositionSunlit(obsEci, sunEciUnit, true);
+  const observerDark = isObserverDark(observerToApproxEci(observer, date), sunEciUnit);
 
   return {
     satelliteLit: satLit,
     observerDark,
     favorable: satLit && observerDark,
   };
+}
+
+/** The sky is dark enough to see satellites once the Sun is this far below the horizon (end of civil twilight). */
+export const OBSERVER_DARK_SUN_DEPRESSION_DEG = 6;
+
+/** Sun at least 6° below the observer's horizon (a surface point, so no Earth-shadow geometry). */
+export function isObserverDark(
+  observerEci: { x: number; y: number; z: number },
+  sunUnit: { x: number; y: number; z: number },
+): boolean {
+  const r = Math.hypot(observerEci.x, observerEci.y, observerEci.z);
+  if (r === 0) return false;
+  const sinSunElevation = (observerEci.x * sunUnit.x + observerEci.y * sunUnit.y + observerEci.z * sunUnit.z) / r;
+  return sinSunElevation < -Math.sin((OBSERVER_DARK_SUN_DEPRESSION_DEG * Math.PI) / 180);
 }
 
 function observerToApproxEci(observer: ObserverLocation, date: Date): { x: number; y: number; z: number } {
@@ -290,7 +329,6 @@ function observerToApproxEci(observer: ObserverLocation, date: Date): { x: numbe
 function isPositionSunlit(
   positionEci: { x: number; y: number; z: number },
   sunUnit: { x: number; y: number; z: number },
-  treatAsSurface = false,
 ): boolean {
   const along = positionEci.x * sunUnit.x + positionEci.y * sunUnit.y + positionEci.z * sunUnit.z;
   if (along > 0) return true;
@@ -298,6 +336,5 @@ function isPositionSunlit(
   const ry = positionEci.y - along * sunUnit.y;
   const rz = positionEci.z - along * sunUnit.z;
   const radial = Math.sqrt(rx * rx + ry * ry + rz * rz);
-  const limit = treatAsSurface ? EARTH_RADIUS_KM * 0.999 : EARTH_RADIUS_KM;
-  return radial > limit;
+  return radial > EARTH_RADIUS_KM;
 }

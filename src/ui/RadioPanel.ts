@@ -29,7 +29,7 @@ import {
   type RadioFilters,
   type RadioMatch,
 } from '../data/radioIndex';
-import { computeLookAngles, findNextPass, type ObserverLocation, type PassEvent } from '../orbital/lookAngles';
+import { computeLookAngles, findNextUsefulPass, type ObserverLocation, type PassEvent } from '../orbital/lookAngles';
 import { closeKesslerPanel } from './KesslerPanel';
 import { getSensorSnapshot, setManualLocation } from './observerSensors';
 import { formatGroundPosition } from '../orbital/groundPosition';
@@ -142,7 +142,8 @@ function whenText(entry: RadioEntry): string {
   if (elevation != null && elevation >= minElevDeg && elevation > 0) return `▲ ${Math.round(elevation)}°`;
   const cached = passCache.get(entry.noradId);
   const rise = cached?.pass?.rise?.time;
-  if (rise) {
+  // A rise that has already happened is not "next" (it is refreshed below).
+  if (rise && rise.getTime() > Date.now()) {
     const max = Math.round(cached?.pass?.max?.elevationDeg ?? 0);
     return fill(t('radio.rises'), { t: formatIn(rise.getTime() - Date.now()), deg: max });
   }
@@ -164,14 +165,15 @@ function schedulePasses(): void {
     .filter((m) => (elevations.get(m.entry.noradId) ?? -90) < Math.max(minElevDeg, 0.001))
     .filter((m) => {
       const cached = passCache.get(m.entry.noradId);
-      return !cached || now - cached.at > PASS_CACHE_MS;
+      const riseMs = cached?.pass?.rise?.time.getTime();
+      return !cached || now - cached.at > PASS_CACHE_MS || (riseMs != null && riseMs <= now);
     });
 
   const step = (): void => {
     if (run !== passRun || !panelEl) return;
     for (const m of todo.splice(0, PASS_CHUNK)) {
       const sat = objects[m.entry.index]?.satrec;
-      const pass = sat ? findNextPass(sat, observer, new Date(), PASS_HORIZON_HOURS, 60) : null;
+      const pass = sat ? findNextUsefulPass(sat, observer, new Date(), minElevDeg, PASS_HORIZON_HOURS, 60) : null;
       passCache.set(m.entry.noradId, { at: Date.now(), pass });
       const cell = panelEl.querySelector<HTMLElement>(`[data-when="${m.entry.noradId}"]`);
       if (cell) cell.textContent = whenText(m.entry);
@@ -503,6 +505,7 @@ function onPanelChange(event: Event): void {
   const target = event.target as HTMLInputElement;
   if (target.id === 'radio-minelev') {
     minElevDeg = Number(target.value);
+    passCache.clear(); // the next useful pass depends on the minimum elevation
     computeMatches();
     renderResults();
     return;

@@ -36,6 +36,39 @@ export function getFunctionGroupPulse(group: ObjectFunctionGroup, timeMs: number
   return 1;
 }
 
+const GM_KM3_S2 = 398600.4418;
+export const EARTH_MEAN_RADIUS_KM = 6371;
+const GEO_ALTITUDE_KM = 35786;
+/** Geosynchronous belt incl. the graveyard orbits ~300 km above it and inclined GSO (QZSS). */
+const GEO_BAND_KM = 1500;
+
+/** Semi-major axis (km) from SGP4's mean motion `no` (rad/min). */
+export function semiMajorAxisKm(meanMotionRadPerMin: number): number {
+  const nRadS = meanMotionRadPerMin / 60;
+  return Math.cbrt(GM_KM3_S2 / (nRadS * nRadS));
+}
+
+/** Height of the orbit's lowest point above the mean Earth radius. */
+export function perigeeAltitudeKm(satrec: { no?: number; ecco?: number } | undefined): number {
+  if (!satrec?.no) return Number.NaN;
+  return semiMajorAxisKm(satrec.no) * (1 - (satrec.ecco ?? 0)) - EARTH_MEAN_RADIUS_KM;
+}
+
+/**
+ * Orbit layer from the orbit's shape (mean altitude and eccentricity), so it
+ * does not depend on where the object happens to be when the page loads: an
+ * object in a stretched orbit keeps one layer instead of switching between
+ * LEO and MEO from visit to visit.
+ */
+export function classifyOrbitFromElements(meanAltitudeKm: number, eccentricity: number): OrbitLayer {
+  if (eccentricity > 0.25) return 'HEO';
+  if (meanAltitudeKm < 2000) return 'LEO';
+  if (Math.abs(meanAltitudeKm - GEO_ALTITUDE_KM) <= GEO_BAND_KM) return 'GEO';
+  if (meanAltitudeKm < GEO_ALTITUDE_KM) return 'MEO';
+  return 'HEO';
+}
+
+/** Layer from an instantaneous altitude (used for live per-frame values). */
 export function classifyOrbit(altitudeKm: number, eccentricity: number): OrbitLayer {
   if (eccentricity > 0.25) return 'HEO';
   if (altitudeKm < 2000) return 'LEO';

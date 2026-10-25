@@ -7,7 +7,13 @@
  * to propagate at the reference epoch.
  */
 import { twoline2satrec } from 'satellite.js';
-import { classifyOrbit, getCategoryColor, inferFunctionGroup } from '../orbital/classify';
+import {
+  EARTH_MEAN_RADIUS_KM,
+  classifyOrbitFromElements,
+  getCategoryColor,
+  inferFunctionGroup,
+  semiMajorAxisKm,
+} from '../orbital/classify';
 import { propagateObject, propagateState } from '../orbital/propagator';
 import { enrichRecord } from './objectMetadata';
 import { getRadioFrequencies } from './radioFrequencies';
@@ -90,8 +96,6 @@ export function tleAgeDays(satrec: TrackedObject['satrec'], referenceMs: number)
   return (referenceMs - epochMs) / 86_400_000;
 }
 
-const EARTH_MEAN_RADIUS_KM = 6371;
-
 export function createTrackedObjects(dataset: TleDataset, date = new Date()): TrackedObject[] {
   const tracked: TrackedObject[] = [];
   const fetchedAtMs = Date.parse(dataset.fetchedAt);
@@ -107,31 +111,19 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
       const radioFrequencies = getRadioFrequencies(record.noradId) ?? record.radioFrequencies;
 
       const satrec = twoline2satrec(enriched.line1, enriched.line2);
-      // One SGP4 step to drop objects whose elements fail or have re-entered, and
-      // to place the object in its layer. Distance from Earth's centre is enough
-      // for that (it differs from the geodetic height by at most ~21 km) and is
-      // much cheaper than the full geodetic conversion for 25k+ objects.
-      const state = propagateState(satrec, date);
-      const propagation = state
-        ? {
-            layer: classifyOrbit(
-              Math.hypot(state.positionEci.x, state.positionEci.y, state.positionEci.z) - EARTH_MEAN_RADIUS_KM,
-              satrec.ecco ?? 0,
-            ),
-          }
-        : null;
-      if (!propagation) {
+      // One SGP4 step to drop objects whose elements fail or have re-entered.
+      if (!propagateState(satrec, date)) {
         console.warn(`Skipping ${enriched.name}: propagation failed at ${date.toISOString()}`);
         continue;
       }
 
-      // Derive mean altitude and inclination directly from satrec (no propagation needed).
+      // Mean altitude and inclination straight from the elements (no propagation).
       // satrec.no is mean motion in rad/min; satrec.inclo is inclination in radians.
-      const GM_KM3_S2 = 398600.4418;
-      const nRadS = satrec.no / 60; // rad/s
-      const semiMajorKm = Math.cbrt(GM_KM3_S2 / (nRadS * nRadS));
-      const meanAltitudeKm = Math.max(0, semiMajorKm - 6371);
+      const meanAltitudeKm = Math.max(0, semiMajorAxisKm(satrec.no) - EARTH_MEAN_RADIUS_KM);
       const inclinationDeg = satrec.inclo * (180 / Math.PI);
+      // The layer comes from the orbit's shape, not from where the object is
+      // right now, so it is the same on every visit.
+      const propagation = { layer: classifyOrbitFromElements(meanAltitudeKm, satrec.ecco ?? 0) };
       // Absolute age: predicted elements (e.g. Chandra) can carry an epoch a
       // day or so after the fetch, which is fine; far either way is not.
       const staleElements =

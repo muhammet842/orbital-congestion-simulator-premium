@@ -95,6 +95,8 @@ export interface AppState {
   stats: AppStats;
   conjunctions: ConjunctionEvent[];
   conjunctionHiddenCount: number;
+  /** The clock is too far from the data's date to predict close approaches. */
+  conjunctionsOutOfRange: boolean;
   /** Left-panel close-approach list order within the next 24h. */
   conjunctionSortMode: ConjunctionSortMode;
   showOrbitTrail: boolean;
@@ -146,6 +148,7 @@ let state: AppState = {
   },
   conjunctions: [],
   conjunctionHiddenCount: 0,
+  conjunctionsOutOfRange: false,
   conjunctionSortMode: 'time',
   showOrbitTrail: false,
   showGroundTrack: true,
@@ -643,6 +646,16 @@ export function setConjunctions({ alerts, hiddenCount }: ConjunctionScanResult):
   emptyConjunctionScanAcked =
     alerts.length === 0 && hasUpcomingConjunctionScanCompleted();
   setState({ conjunctions: alerts, conjunctionHiddenCount: hiddenCount });
+}
+
+/** Out of range: predictions stop and the list explains why (see isWithinPredictionRange). */
+export function setConjunctionsOutOfRange(outOfRange: boolean): void {
+  if (state.conjunctionsOutOfRange === outOfRange) return;
+  setState(
+    outOfRange
+      ? { conjunctionsOutOfRange: true, conjunctions: [], conjunctionHiddenCount: 0 }
+      : { conjunctionsOutOfRange: false },
+  );
 }
 
 export function initState(
