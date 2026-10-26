@@ -4,7 +4,7 @@
  * step list changes so returning users see the updated tour once.
  * Steps may open mobile drawers via setTourPanel; keep selectors in sync with Layout.
  */
-import { applyTranslations, onLangChange, setLang, SUPPORTED_LANGS, t, type Lang } from '../i18n/i18n';
+import { applyTranslations, LANG_NAMES, onLangChange, setLang, SUPPORTED_LANGS, t, type Lang } from '../i18n/i18n';
 import { closeKesslerPanel, openKesslerPanel } from './KesslerPanel';
 import { setTourPanel } from './Layout';
 import { escapeHtml } from './escapeHtml';
@@ -12,13 +12,6 @@ import { icon } from './icons';
 
 const LS_HELP_SEEN = 'orbital-help-seen-v3';
 
-const LANG_LABELS: Record<Lang, string> = {
-  en: 'English',
-  tr: 'Türkçe',
-  de: 'Deutsch',
-  ru: 'Русский',
-  zh: '中文',
-};
 
 const STEPS = [
   'globe',
@@ -113,11 +106,6 @@ function markGuideSeen(): void {
   }
 }
 
-
-function syncLangSelect(lang: Lang): void {
-  const select = document.querySelector<HTMLSelectElement>('#lang-select');
-  if (select) select.value = lang;
-}
 
 function handleEsc(e: KeyboardEvent): void {
   if (e.key !== 'Escape') return;
@@ -514,7 +502,7 @@ function renderLangCard(card: HTMLElement): void {
       ${SUPPORTED_LANGS.map(
         (lang) => `
         <button type="button" class="tour-lang-btn" data-lang="${lang}">
-          <span class="tour-lang-native">${escapeHtml(LANG_LABELS[lang])}</span>
+          <span class="tour-lang-native">${escapeHtml(LANG_NAMES[lang])}</span>
           <span class="tour-lang-code">${lang.toUpperCase()}</span>
         </button>`,
       ).join('')}
@@ -526,7 +514,6 @@ function renderLangCard(card: HTMLElement): void {
     btn.addEventListener('click', () => {
       const lang = btn.dataset.lang as Lang;
       setLang(lang);
-      syncLangSelect(lang);
       applyTranslations(document);
       startUiTour();
     });

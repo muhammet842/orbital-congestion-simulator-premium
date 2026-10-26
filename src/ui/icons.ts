@@ -23,6 +23,8 @@ const paths = {
   external: '<path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/><path d="M18 14v4.5a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1H10"/>',
   /** Section disclosure. */
   chevronDown: '<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>',
+  /** The chosen option in a list. */
+  check: '<path d="M5.5 12.5l4 4 9-9"/>',
   /** "More about this" next to a heading. */
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 8v.2"/>',
   /** Your location. */

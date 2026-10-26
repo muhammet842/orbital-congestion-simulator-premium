@@ -94,7 +94,7 @@ function readBlob(blob: Blob): Promise<string> {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
   vi.setSystemTime(NOW);
-  document.body.innerHTML = `<header class="app-header"><div id="header-actions"><button id="kessler-panel-btn"></button><label class="header-lang"><select id="lang-select"></select></label></div></header>`;
+  document.body.innerHTML = `<header class="app-header"><div id="header-actions"><button id="kessler-panel-btn"></button><div class="header-lang"><button id="lang-toggle" type="button">Language</button></div></div></header>`;
   resetRadioPanelForTests();
   setLang('en');
   sensors.location = null;

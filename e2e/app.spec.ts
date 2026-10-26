@@ -70,13 +70,14 @@ test.describe('Language switcher', () => {
   test('the language choice is in the header More menu', async ({ page }) => {
     await page.goto('/');
     await page.locator('#header-more-btn').click();
-    await expect(page.locator('#lang-select')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#lang-toggle')).toBeVisible({ timeout: 10_000 });
   });
 
   test('switching to Turkish translates orbit-layers heading', async ({ page }) => {
     await page.goto('/');
     await page.locator('#header-more-btn').click();
-    await page.locator('#lang-select').selectOption('tr');
+    await page.locator('#lang-toggle').click();
+    await page.locator('.lang-option[data-lang="tr"]').click();
     // "ui.orbit_layers" in Turkish is "Yörünge Katmanları"
     await expect(page.getByText('Yörünge Katmanları')).toBeVisible({ timeout: 5_000 });
   });
@@ -84,9 +85,11 @@ test.describe('Language switcher', () => {
   test('switching back to English restores English text', async ({ page }) => {
     await page.goto('/');
     await page.locator('#header-more-btn').click();
-    await page.locator('#lang-select').selectOption('tr');
+    await page.locator('#lang-toggle').click();
+    await page.locator('.lang-option[data-lang="tr"]').click();
     await page.locator('#header-more-btn').click();
-    await page.locator('#lang-select').selectOption('en');
+    await page.locator('#lang-toggle').click();
+    await page.locator('.lang-option[data-lang="en"]').click();
     await expect(page.getByText('Orbit Layers')).toBeVisible({ timeout: 5_000 });
   });
 });

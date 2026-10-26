@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createLayout } from './Layout';
 import { selectLaunch, setState } from '../state/appState';
 import { setTourPanel } from './Layout';
+import { getLang, setLang } from '../i18n/i18n';
 
 beforeEach(() => {
   // jsdom has no matchMedia; the layout uses it for the mobile breakpoint.
@@ -30,6 +31,37 @@ describe('createLayout', () => {
     const headings = root.querySelectorAll('h1');
     expect(headings).toHaveLength(1);
     expect(headings[0].textContent).toMatch(/Orbital Congestion/);
+    document.body.removeChild(root);
+  });
+});
+
+describe('language choice in the More menu', () => {
+  it('opens the list under the Language row, switches language and closes the menu', () => {
+    setLang('en');
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    createLayout(root);
+    const menu = root.querySelector<HTMLElement>('#header-menu')!;
+    const toggle = root.querySelector<HTMLButtonElement>('#lang-toggle')!;
+    const list = root.querySelector<HTMLElement>('#lang-list')!;
+    expect(root.querySelector('select')).toBeNull();
+
+    root.querySelector<HTMLButtonElement>('#header-more-btn')!.click();
+    expect(list.hidden).toBe(true);
+    toggle.click();
+    expect(menu.hidden).toBe(false); // opening the list keeps the menu open
+    expect(list.hidden).toBe(false);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+    list.querySelector<HTMLButtonElement>('[data-lang="tr"]')!.click();
+    expect(getLang()).toBe('tr');
+    expect(menu.hidden).toBe(true);
+    expect(list.hidden).toBe(true); // closed with the menu
+    expect(root.querySelector('#lang-current')?.textContent).toBe('Türkçe');
+    expect(list.querySelector('[data-lang="tr"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(list.querySelector('[data-lang="en"]')?.getAttribute('aria-pressed')).toBe('false');
+
+    setLang('en');
     document.body.removeChild(root);
   });
 });

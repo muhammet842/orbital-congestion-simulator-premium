@@ -21,12 +21,9 @@ function mountAppShell(): void {
         <div class="header-more" id="header-more">
           <button id="header-more-btn" type="button" aria-expanded="false">More</button>
           <div class="header-menu" id="header-menu">
-            <label class="header-lang">
-              <select id="lang-select">
-                <option value="en">EN</option>
-                <option value="tr">TR</option>
-              </select>
-            </label>
+            <div class="header-lang">
+              <button id="lang-toggle" type="button">Language</button>
+            </div>
             <a class="header-github" href="https://github.com/muhammet842/orbital-congestion-simulator-premium">GitHub</a>
           </div>
         </div>
@@ -121,7 +118,6 @@ describe('interactive tour', () => {
     openHowToGuide();
     document.querySelector<HTMLButtonElement>('.tour-lang-btn[data-lang="tr"]')?.click();
     expect(getLang()).toBe('tr');
-    expect(document.querySelector<HTMLSelectElement>('#lang-select')?.value).toBe('tr');
     expect(document.querySelector('.tour-progress')?.textContent).toBe('1 / 10');
     expect(document.getElementById('thesis-collision')).toBeNull();
   });
