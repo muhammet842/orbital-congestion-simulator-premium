@@ -1,5 +1,5 @@
 import { getState, subscribe } from '../state/appState';
-import { getLang, setLang, SUPPORTED_LANGS, t } from '../i18n/i18n';
+import { getLang, LANG_NAMES, onLangChange, setLang, SUPPORTED_LANGS, t, type Lang } from '../i18n/i18n';
 import { githubMark, icon } from './icons';
 
 /** Must match the max-width used for `.app-grid`'s mobile layout in style.css. */
@@ -60,13 +60,17 @@ export function createLayout(root: HTMLElement): {
           <div class="header-more" id="header-more">
             <button id="header-more-btn" class="icon-btn header-more-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="header-menu" aria-label="${t('layout.more')}" title="${t('layout.more')}" data-i18n-aria="layout.more" data-i18n-title="layout.more">${icon('more', 20)}</button>
             <div class="header-menu" id="header-menu" hidden>
-              <label class="header-menu-item header-lang">
-                ${icon('globe')}
-                <span class="header-menu-label" data-i18n="layout.language">${t('layout.language')}</span>
-                <select id="lang-select" class="lang-select" aria-label="${t('layout.lang_aria')}" data-i18n-aria="layout.lang_aria">
-                  ${SUPPORTED_LANGS.map((l) => `<option value="${l}"${l === getLang() ? ' selected' : ''}>${l.toUpperCase()}</option>`).join('')}
-                </select>
-              </label>
+              <div class="header-lang">
+                <button id="lang-toggle" class="header-menu-item" type="button" aria-expanded="false" aria-controls="lang-list">
+                  ${icon('globe')}
+                  <span class="header-menu-label" data-i18n="layout.language">${t('layout.language')}</span>
+                  <span class="header-menu-value" id="lang-current">${LANG_NAMES[getLang()]}</span>
+                  ${icon('chevronDown', 14)}
+                </button>
+                <div class="lang-list" id="lang-list" role="group" aria-label="${t('layout.lang_aria')}" data-i18n-aria="layout.lang_aria" hidden>
+                  ${SUPPORTED_LANGS.map((l) => `<button type="button" class="lang-option" data-lang="${l}" lang="${l}" aria-pressed="${l === getLang()}">${LANG_NAMES[l]}${icon('check', 15)}</button>`).join('')}
+                </div>
+              </div>
               <a
                 class="header-menu-item header-github"
                 href="https://github.com/muhammet842/orbital-congestion-simulator-premium"
@@ -100,7 +104,7 @@ export function createLayout(root: HTMLElement): {
 
   setupMobilePanelToggles(root, leftPanel, rightPanel);
   setupDesktopPanelToggles(root);
-  setupLangSelect(root);
+  setupLangChoice(root);
   setupHeaderMenu(root);
 
   return { leftPanel, rightPanel, sceneContainer, timeBar };
@@ -108,8 +112,9 @@ export function createLayout(root: HTMLElement): {
 
 /**
  * The "More" menu holds what people use rarely: language, the guided tour and
- * the GitHub link. A simple disclosure (it contains a select, so not role=menu):
- * closes on an outside click, Escape, or once something in it has been used.
+ * the GitHub link. A simple disclosure (the language row opens a list inside
+ * it, so not role=menu): closes on an outside click, Escape, or once something
+ * in it has been used.
  */
 function setupHeaderMenu(root: HTMLElement): void {
   const button = root.querySelector<HTMLButtonElement>('#header-more-btn');
@@ -118,12 +123,13 @@ function setupHeaderMenu(root: HTMLElement): void {
   const setOpen = (open: boolean): void => {
     menu.hidden = !open;
     button.setAttribute('aria-expanded', String(open));
+    if (!open) setLangListOpen(root, false);
   };
   button.addEventListener('click', (event) => {
     event.stopPropagation();
     const open = Boolean(menu.hidden);
     setOpen(open);
-    if (open) menu.querySelector<HTMLElement>('select, button, a')?.focus();
+    if (open) menu.querySelector<HTMLElement>('button, a')?.focus();
   });
   document.addEventListener('click', (event) => {
     if (!menu.hidden && !menu.contains(event.target as Node)) setOpen(false);
@@ -135,16 +141,41 @@ function setupHeaderMenu(root: HTMLElement): void {
     }
   });
   menu.addEventListener('click', (event) => {
-    if ((event.target as Element).closest('a, button')) setOpen(false);
+    const used = (event.target as Element).closest('a, button');
+    if (used && used.id !== 'lang-toggle') setOpen(false);
   });
-  menu.addEventListener('change', () => setOpen(false));
 }
 
-function setupLangSelect(root: HTMLElement): void {
-  const select = root.querySelector<HTMLSelectElement>('#lang-select');
-  if (!select) return;
-  select.addEventListener('change', () => {
-    setLang(select.value as Parameters<typeof setLang>[0]);
+function setLangListOpen(root: HTMLElement, open: boolean): void {
+  const toggle = root.querySelector<HTMLButtonElement>('#lang-toggle');
+  const list = root.querySelector<HTMLElement>('#lang-list');
+  if (!toggle || !list) return;
+  list.hidden = !open;
+  toggle.setAttribute('aria-expanded', String(open));
+}
+
+/** The language row opens the list of languages right under it, inside the menu. */
+function setupLangChoice(root: HTMLElement): void {
+  const toggle = root.querySelector<HTMLButtonElement>('#lang-toggle');
+  const list = root.querySelector<HTMLElement>('#lang-list');
+  if (!toggle || !list) return;
+  toggle.addEventListener('click', () => {
+    const open = Boolean(list.hidden);
+    setLangListOpen(root, open);
+    if (open) list.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+  });
+  list.addEventListener('click', (event) => {
+    const option = (event.target as Element).closest<HTMLElement>('.lang-option');
+    if (option?.dataset.lang) setLang(option.dataset.lang as Lang);
+  });
+  // Also follows a choice made elsewhere (the first-visit language gate).
+  onLangChange(() => {
+    const lang = getLang();
+    const current = root.querySelector('#lang-current');
+    if (current) current.textContent = LANG_NAMES[lang];
+    list.querySelectorAll<HTMLElement>('.lang-option').forEach((option) => {
+      option.setAttribute('aria-pressed', String(option.dataset.lang === lang));
+    });
   });
 }
 

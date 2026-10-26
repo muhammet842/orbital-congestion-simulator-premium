@@ -146,17 +146,7 @@ body {
 }
 
 .header-lang {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-}
-
-.header-lang-icon {
-  font-size: 0.85rem;
-  opacity: 0.75;
-  line-height: 1;
-  padding-left: 4px;
+  display: block;
 }
 
 .header-github {
@@ -185,38 +175,6 @@ body {
 .header-github-icon {
   display: block;
   flex-shrink: 0;
-}
-
-/* ── Language selector dropdown ─────────────────────────────────────────── */
-.lang-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 650;
-  font-family: inherit;
-  letter-spacing: 0.04em;
-  padding: 5px 26px 5px 6px;
-  height: 32px;
-  outline: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239a958c'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  transition: border-color 0.15s, background-color 0.15s;
-}
-
-.lang-select:hover {
-  background-color: rgba(var(--accent-rgb), 0.08);
-  border-color: rgba(var(--accent-rgb), 0.28);
-}
-
-.lang-select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.16);
 }
 
 /* Every dropdown opens as a dark list: color-scheme makes the browser draw its
@@ -2112,16 +2070,8 @@ select option:checked {
   }
 
   .header-github-label,
-  .header-lang-icon,
   .header-github {
     display: none;
-  }
-
-  .lang-select {
-    height: 32px;
-    max-width: 3.4rem;
-    padding: 2px 16px 2px 6px;
-    font-size: 0.68rem;
   }
 
   .kessler-header-btn {
@@ -4184,12 +4134,35 @@ summary:focus-visible,
 .header-menu-item:hover .icon { color: var(--accent); }
 .header-menu-label { flex: 1; }
 .header-menu-item .icon--external { opacity: 0.6; }
-.header-menu .lang-select {
-  height: 30px;
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--control-bg);
+/* Language: the row shows the current one; the list opens right under it. */
+.header-menu-value { color: var(--text-muted); font-size: 0.8rem; }
+.header-lang .icon--chevronDown { transition: transform 0.18s var(--ease); }
+#lang-toggle[aria-expanded="true"] .icon--chevronDown { transform: rotate(180deg); }
+.lang-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 var(--space-1) calc(var(--space-3) + 18px);
 }
+.lang-list[hidden] { display: none; }
+.lang-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+.lang-option:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
+.lang-option .icon { visibility: hidden; }
+.lang-option[aria-pressed="true"] { color: var(--accent); }
+.lang-option[aria-pressed="true"] .icon { visibility: visible; color: var(--accent); }
 /* These used to be header buttons; inside the menu they are plain rows. */
 .header-menu .help-header-btn,
 .header-menu .header-github {
@@ -4214,7 +4187,6 @@ summary:focus-visible,
   .header-btn { padding: 0; width: 34px; min-width: 34px; }
   .header-menu .header-github,
   .header-menu .help-header-btn { display: flex; }
-  .header-menu .lang-select { max-width: none; font-size: 0.8rem; padding: 2px 22px 2px 8px; }
 }
 
 /* ── Collapsible panel sections ───────────────────────────────────────────

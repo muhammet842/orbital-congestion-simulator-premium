@@ -35,6 +35,15 @@ function detectInitialLang(): Lang {
 let _lang: Lang = detectInitialLang();
 const _subscribers = new Set<() => void>();
 
+/** Each language in its own words, so people can find theirs whatever the page is in. */
+export const LANG_NAMES: Record<Lang, string> = {
+  en: 'English',
+  tr: 'Türkçe',
+  de: 'Deutsch',
+  ru: 'Русский',
+  zh: '中文',
+};
+
 /** BCP 47 tags for <html lang>: screen readers pick their voice from it. */
 const DOCUMENT_LANG: Record<Lang, string> = { en: 'en', tr: 'tr', de: 'de', ru: 'ru', zh: 'zh-Hans' };
 
