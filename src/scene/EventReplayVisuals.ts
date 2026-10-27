@@ -22,8 +22,7 @@ import {
 } from 'three';
 import { eciToScene } from '../orbital/coordinates';
 import { getGmstRad } from './dayNight';
-import type { HistoricalEvent } from '../ui/EventCards';
-import type { EventType } from '../ui/EventCards';
+import type { EventType, HistoricalEvent } from '../ui/EventCards';
 import { EVENT_REPLAY_REWIND_MS } from '../state/appState';
 
 /** Glow sphere radius in scene units (same scale as Earth radius = 1). */

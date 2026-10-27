@@ -1,13 +1,9 @@
+import type { InstancedMesh, Object3D, PerspectiveCamera, Raycaster, Vector2 } from 'three';
 import {
   Color,
   Group,
-  InstancedMesh,
   Matrix4,
   Mesh,
-  Object3D,
-  PerspectiveCamera,
-  Raycaster,
-  Vector2,
   Vector3,
 } from 'three';
 import { eciToScene, eciVectorToScene } from '../orbital/coordinates';
@@ -287,7 +283,7 @@ export class OrbitalMeshes {
             !matchesSearch(obj, searchQuery)
           ));
 
-      let wrapper = this.detailWrappers.get(index);
+      const wrapper = this.detailWrappers.get(index);
       if (!wrapper) {
         // Debris keeps its fragment model in close-approach focus too: a
         // satellite silhouette would make a debris crossing look like two

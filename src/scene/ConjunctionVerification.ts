@@ -1,12 +1,11 @@
+import type { PerspectiveCamera, WebGLRenderer } from 'three';
 import {
   BufferAttribute,
   BufferGeometry,
   Group,
   Line,
   LineDashedMaterial,
-  PerspectiveCamera,
   Vector3,
-  WebGLRenderer,
 } from 'three';
 import {
   VERIFY_TRAIL_BACK_MS,

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { twoline2satrec } from 'satellite.js';
+import {
+  degreesLat,
+  degreesLong,
+  eciToGeodetic,
+  gstime,
+  propagate,
+  twoline2satrec,
+  type EciVec3,
+} from 'satellite.js';
 import {
   buildSkyScanPool,
   finalizeSkyScanHits,
@@ -52,14 +60,22 @@ describe('scanSkyCandidates', () => {
   });
 
   it('keeps the selected NORAD first when above horizon', () => {
-    const a = issObject();
-    const hits = scanSkyCandidates([a], observer, date, view, {
+    const iss = issObject();
+    // Stand right under the ISS so it is overhead, next to an identical twin
+    // listed first: only the selection can put the ISS ahead of it.
+    const pv = propagate(iss.satrec, date);
+    const ground = eciToGeodetic(pv!.position as EciVec3<number>, gstime(date));
+    const underIss = {
+      latitudeDeg: degreesLat(ground.latitude),
+      longitudeDeg: degreesLong(ground.longitude),
+      altitudeKm: 0,
+    };
+    const twin = { ...issObject(), noradId: 11111, name: 'TWIN' };
+    const hits = scanSkyCandidates([twin, iss], underIss, date, view, {
       selectedNoradId: 25544,
       maxCount: 5,
     });
-    if (hits.length > 0) {
-      expect(hits[0].noradId).toBe(25544);
-    }
+    expect(hits.map((h) => h.noradId)).toEqual([25544, 11111]);
   });
 
   it('buildSkyScanPool prioritizes stations and caps size', () => {

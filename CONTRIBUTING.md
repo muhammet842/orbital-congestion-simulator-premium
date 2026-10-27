@@ -23,6 +23,7 @@ npm run dev
 npm run build        # type-check + production build
 npm test             # unit tests
 npm run check:i18n   # every language has every key
+npm run lint         # catches likely bugs and tests that check nothing
 ```
 
 - New UI text goes into **all five languages** in `src/i18n/translations.ts` (en, tr, de, ru, zh). If you can't translate, copy the English text and say so in the PR.

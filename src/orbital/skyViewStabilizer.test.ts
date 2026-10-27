@@ -41,18 +41,18 @@ describe('createSkyViewStabilizer', () => {
     let t = 0;
     stab.update(0, 10, t);
     // Tip from 10° → 30° over 500ms
-    let unlocked = false;
+    let unlockedPitch: number | null = null;
     for (let i = 1; i <= 10; i++) {
       t += 50;
       const pitch = 10 + 2 * i; // +20° in 0.5s
       const out = stab.update(0, pitch, t);
       if (!stab.isFrozen()) {
-        unlocked = true;
-        expect(out.pitchDeg).toBeGreaterThan(10);
+        unlockedPitch = out.pitchDeg;
         break;
       }
     }
-    expect(unlocked).toBe(true);
+    expect(unlockedPitch).not.toBeNull();
+    expect(unlockedPitch).toBeGreaterThan(10);
   });
 
   it('re-freezes after motion stops and then ignores new drift', () => {

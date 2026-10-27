@@ -175,14 +175,9 @@ describe('openKesslerPanel / closeKesslerPanel', () => {
     const collisions = document.getElementById('kp-stat-collisions')?.textContent ?? '';
 
     // Thousands use commas, not European dots (144,357 not 144.357).
-    if (/\d{4,}/.test(total.replace(/,/g, ''))) {
-      expect(total).toMatch(/^\d{1,3}(,\d{3})*$/);
-    }
+    expect(total).toMatch(/^\d{1,3}(,\d{3})+$/);
     // Decimals use a dot (25.1), never a locale comma (25,1).
-    expect(collisions).not.toMatch(/,\d$/);
-    if (collisions.includes('.')) {
-      expect(collisions).toMatch(/^\d+(\.\d+)?$/);
-    }
+    expect(collisions).toMatch(/^\d+\.\d$/);
   });
 });
 

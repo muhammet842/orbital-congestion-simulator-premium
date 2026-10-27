@@ -38,6 +38,7 @@ import {
 } from '../orbital/skyScan';
 import { createSkyViewStabilizer } from '../orbital/skyViewStabilizer';
 import { getFunctionGroupColor } from '../orbital/classify';
+import type { SatRec } from 'satellite.js';
 import type { ObjectFunctionGroup } from '../types';
 import { getSunEci } from '../scene/dayNight';
 import { getState, isLiveMode, subscribe } from '../state/appState';
@@ -598,7 +599,7 @@ function maybeRefreshSkyScan(
 }
 
 function schedulePassCompute(
-  _satrec: import('satellite.js').SatRec,
+  _satrec: SatRec,
   location: NonNullable<SensorSnapshot['location']>,
 ): void {
   const time = getSpotterTime();

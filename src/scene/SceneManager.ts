@@ -31,7 +31,7 @@ import {
 } from '../orbital/conjunction';
 import { getDebrisUpdateStride, getPropagationResults } from '../orbital/propagationBatch';
 import { PropagationWorkerBridge } from '../orbital/PropagationWorkerBridge';
-import { eciToScene } from '../orbital/coordinates';
+import { eciToScene, getSubSatelliteScenePoints } from '../orbital/coordinates';
 import { propagateObject } from '../orbital/propagator';
 import { getVisualConjunctionLayout, PAIR_FOCUS_MAX_DISTANCE, PAIR_FOCUS_NEAR, PAIR_INSPECT_MIN_DISTANCE, GLOBE_CAMERA_NEAR } from '../orbital/visualConjunction';
 import { CameraFly } from './CameraFly';
@@ -45,7 +45,6 @@ import { OrbitalMeshes } from './OrbitalMeshes';
 import { OrbitTrail } from './OrbitTrail';
 import { SatelliteFootprint } from './SatelliteFootprint';
 import { SatelliteGroundTrack } from './SatelliteGroundTrack';
-import { getSubSatelliteScenePoints } from '../orbital/coordinates';
 import { SelectionMarker } from './SelectionMarker';
 import { LaunchPadMarker, padScenePosition } from './LaunchPadMarker';
 import { EARTH_RADIUS_KM, type TrackedObject } from '../types';
