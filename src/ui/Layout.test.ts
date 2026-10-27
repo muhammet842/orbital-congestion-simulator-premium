@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createLayout, setTourPanel } from './Layout';
-import { selectLaunch, setState } from '../state/appState';
+import { selectLaunch, setState, type AppState } from '../state/appState';
+import type { ConjunctionEvent } from '../types';
 import { getLang, setLang } from '../i18n/i18n';
 
 beforeEach(() => {
@@ -98,6 +99,32 @@ describe('mobile drawers and launches', () => {
     selectLaunch(pad);
     expect(root.querySelector('#left-panel')!.classList.contains('panel--open')).toBe(false);
     selectLaunch(null);
+    document.body.removeChild(root);
+  });
+
+  it.each<[string, Partial<AppState>]>([
+    ['a close approach', { selectedConjunction: { indexA: 1, indexB: 2 } as ConjunctionEvent }],
+    ['a historical event', { selectedEventId: 'iridium-cosmos' }],
+  ])('closes the drawer on a phone when %s starts, so the 3D view is visible', (_label, change) => {
+    mockMatchMedia(true);
+    setState({ selectedConjunction: null, selectedEventId: null });
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    createLayout(root);
+
+    root.querySelector<HTMLButtonElement>('#toggle-left-panel')!.click();
+    expect(root.querySelector('#left-panel')!.classList.contains('panel--open')).toBe(true);
+
+    setState(change);
+    expect(root.querySelector('#left-panel')!.classList.contains('panel--open')).toBe(false);
+    expect(root.querySelector('#mobile-backdrop')!.classList.contains('mobile-backdrop--visible')).toBe(false);
+
+    // Opening the list again while it plays keeps it open.
+    root.querySelector<HTMLButtonElement>('#toggle-left-panel')!.click();
+    setState({ searchQuery: '' });
+    expect(root.querySelector('#left-panel')!.classList.contains('panel--open')).toBe(true);
+
+    setState({ selectedConjunction: null, selectedEventId: null });
     document.body.removeChild(root);
   });
 

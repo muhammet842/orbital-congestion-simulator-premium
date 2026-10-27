@@ -253,6 +253,20 @@ function setupMobilePanelToggles(
     lastLaunchId = launchId;
   });
 
+  // A close approach or a historical event plays in the 3D view, so the drawer
+  // the card was tapped in closes to show it.
+  let lastConjunction: unknown = null;
+  let lastEventId: string | null = null;
+  subscribe(() => {
+    const { selectedConjunction, selectedEventId } = getState();
+    const started =
+      (selectedConjunction != null && selectedConjunction !== lastConjunction) ||
+      (selectedEventId != null && selectedEventId !== lastEventId);
+    lastConjunction = selectedConjunction;
+    lastEventId = selectedEventId;
+    if (started && mobileQuery.matches) closePanels();
+  });
+
   mobileQuery.addEventListener('change', (e) => {
     if (!e.matches) closePanels();
   });

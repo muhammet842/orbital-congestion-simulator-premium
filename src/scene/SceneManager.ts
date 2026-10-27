@@ -310,13 +310,23 @@ export class SceneManager {
 
         if (this.lastEventReplayId !== selectedEventId) {
           const comingFromReplay = this.lastEventReplayId != null;
+          // Straight from a close approach: remove its visuals and labels (the
+          // replay frames never update them), and keep the globe view saved
+          // when it started rather than saving its zoomed-in camera.
+          const comingFromConjunction = this.lastConjunctionSessionKey != null;
+          if (comingFromConjunction) {
+            this.conjunctionVerification.disposeVisuals();
+            this.conjunctionLabels.reset();
+            this.lastConjunctionSessionKey = null;
+            this.lastConjunctionRevision = -1;
+          }
           this.lastEventReplayId = selectedEventId;
           startEventReplay(selectedEventId, collisionTimeMs);
           this.eventReplayVisuals.setup(event, collisionTimeMs);
           this._eventReplayStarted = comingFromReplay;
 
           if (!comingFromReplay) {
-            this.cameraFly.captureGlobalView(this.camera, this.controls);
+            if (!comingFromConjunction) this.cameraFly.captureGlobalView(this.camera, this.controls);
             // Same close-pair orbit limits as conjunction verification so the
             // fly-in can lock onto the colliding objects instead of the globe.
             this.applyOrbitDistanceLimits(true);
