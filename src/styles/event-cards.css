@@ -1,0 +1,186 @@
+/* Historical event cards, orbit-trail button, scrollbars. */
+
+.event-cards {
+  margin-top: 4px;
+}
+
+.event-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 3px;   /* room for the scrollbar */
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 120, 200, 0.35) transparent;
+}
+
+/* Webkit (Chrome, Edge, Safari) */
+.event-accordion::-webkit-scrollbar {
+  width: 4px;
+}
+.event-accordion::-webkit-scrollbar-track {
+  background: transparent;
+}
+.event-accordion::-webkit-scrollbar-thumb {
+  background: rgba(100, 120, 200, 0.35);
+  border-radius: 2px;
+}
+.event-accordion::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 120, 200, 0.65);
+}
+
+.event-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.event-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.event-card--active {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.event-card--featured {
+  border-color: rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.06);
+}
+
+.event-card--featured.event-card--active {
+  border-color: var(--accent);
+}
+
+.event-card-kicker {
+  display: block;
+  margin: 4px 0 2px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #facc15;
+}
+
+/* Row that holds title + badge side by side */
+.event-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+.event-card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.event-card-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Event-type badge */
+.event-type-badge {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.event-type-badge--collision {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.08);
+}
+.event-type-badge--asat {
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.4);
+  background: rgba(251, 146, 60, 0.08);
+}
+.event-type-badge--docking {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.08);
+}
+.event-type-badge--breakup {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.event-detail-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.event-detail-date {
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.event-detail-description {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+
+.btn-orbit-trail {
+  width: 100%;
+  margin-top: 16px;
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-orbit-trail:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-orbit-trail.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}

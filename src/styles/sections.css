@@ -1,0 +1,74 @@
+/* Collapsible panel sections. */
+
+/* ── Collapsible panel sections ───────────────────────────────────────────
+   Each heading is a toggle; a thin rule separates sections. The short
+   explanation of a section sits behind the ⓘ button in its heading. */
+.panel-heading--section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--panel-border);
+}
+#tour-region-search > .panel-heading--section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.panel-heading--section.is-collapsed { margin-bottom: 0; }
+.section-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.section-toggle:hover { color: var(--text-primary); }
+.section-toggle .icon { transition: transform 0.18s var(--ease); }
+.section-toggle[aria-expanded='false'] .icon { transform: rotate(-90deg); }
+.section-toggle-label { min-width: 0; overflow-wrap: anywhere; }
+.section-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.75;
+}
+.section-info-btn:hover,
+.section-info-btn[aria-expanded='true'] { color: var(--accent); opacity: 1; background: var(--control-bg); }
+.section-collapsed { display: none !important; }
+.section-info:not(.section-info--open) { display: none !important; }
+.section-info--open { animation: fade-in 0.18s var(--ease); }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}
+.panel-left .panel-lede,
+.panel-left .conjunction-accuracy-note {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid rgba(var(--accent-rgb), 0.5);
+  background: var(--control-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-muted);
+}

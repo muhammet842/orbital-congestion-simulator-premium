@@ -1,0 +1,263 @@
+/* Side panels, search, object list, scene container and 3D labels. */
+
+.panel-toggle-btn {
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.panel-toggle-btn:hover,
+.panel-toggle-btn[aria-expanded='true'] {
+  background: rgba(var(--accent-rgb), 0.14);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mobile-backdrop {
+  display: none;
+}
+
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: none;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  overflow-y: auto;
+  margin: 8px;
+}
+
+.panel-left {
+  grid-area: left;
+}
+
+.panel-right {
+  grid-area: right;
+}
+
+.panel-heading {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.panel-heading:not(:first-child) {
+  margin-top: 20px;
+}
+
+.search-wrap {
+  margin-bottom: 6px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.object-list-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.object-list-viewport {
+  position: relative;
+  height: 200px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.object-list-spacer {
+  width: 100%;
+  pointer-events: none;
+}
+
+.object-list-items {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.object-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+  /* Allow vertical scrolling of the list; selection is handled as a tap. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.object-list-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.object-list-item--selected {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-left: 2px solid var(--accent);
+  padding-left: 8px;
+}
+
+.object-list-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.new-launch-badge {
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #04222a;
+  background: var(--accent);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.object-list-norad {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-container {
+  grid-area: scene;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.scene-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.scene-container--conjunction-focus::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 35%,
+    rgba(5, 5, 16, 0.35) 70%,
+    rgba(5, 5, 16, 0.75) 100%
+  );
+  z-index: 2;
+}
+
+.conjunction-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.conjunction-labels__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.conjunction-labels__leader {
+  stroke-width: 1.5;
+  opacity: 0.9;
+}
+
+.conjunction-labels__leader--a {
+  stroke: #66ccff;
+}
+
+.conjunction-labels__leader--b {
+  stroke: #ffcc44;
+}
+
+.conjunction-label {
+  position: absolute;
+  max-width: 220px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conjunction-label--a {
+  color: #031522;
+  background: #66ccff;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(102, 204, 255, 0.55);
+  transform: translate(-100%, 0);
+}
+
+.conjunction-label--b {
+  color: #1a1200;
+  background: #ffcc44;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.45),
+    0 0 0 2px rgba(255, 204, 68, 0.55);
+  transform: translate(0, 0);
+}
