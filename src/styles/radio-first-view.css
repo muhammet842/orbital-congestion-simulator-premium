@@ -1,0 +1,95 @@
+/* Satellite Radio: the simple first view. */
+
+/* ── Radio panel: simple first view ───────────────────────────────────────
+   "Over me now | All satellites" on top, the detailed filters and the notes
+   folded away (native <details>, so keyboard and screen readers just work). */
+.radio-scope {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+}
+.radio-scope-btn {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.radio-scope-btn:hover { color: var(--text-primary); }
+.radio-scope-btn--on { background: rgba(var(--accent-rgb), 0.16); color: var(--text-primary); }
+.radio-scope-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#radio-location:empty { display: none; }
+.radio-location-note { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.radio-location-note .icon { color: var(--accent); }
+
+.radio-fold {
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+}
+.radio-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.radio-fold > summary::-webkit-details-marker { display: none; }
+.radio-fold > summary:hover { color: var(--text-primary); }
+.radio-fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-md); }
+.radio-fold > summary .icon--chevronDown { transform: rotate(-90deg); transition: transform 0.18s var(--ease); }
+.radio-fold[open] > summary .icon--chevronDown { transform: none; }
+.radio-fold-title { font-weight: 600; color: var(--text-primary); }
+.radio-filter-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.radio-filter-summary::before { content: '· '; }
+.radio-fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+  animation: fade-in 0.18s var(--ease);
+}
+.radio-hint { margin: 0; font-size: 0.75rem; line-height: 1.45; }
+.radio-about { border-color: transparent; }
+.radio-about > summary { padding: 0; min-height: 32px; }
+.radio-about > summary .radio-fold-title { font-weight: 400; color: inherit; }
+.radio-about .radio-fold-body { padding: 0; }
+
+.radio-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--control-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.radio-action-btn .icon { color: var(--text-muted); }
+.radio-action-btn:hover:not(:disabled) { border-color: rgba(var(--accent-rgb), 0.45); }
+.radio-action-btn:hover:not(:disabled) .icon { color: var(--accent); }
+.radio-action-btn:disabled { opacity: 0.45; cursor: default; }
+.radio-actions { gap: var(--space-2); }

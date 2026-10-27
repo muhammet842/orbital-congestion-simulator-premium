@@ -1,0 +1,433 @@
+/* Future Projection (Kessler) window. */
+
+.kessler-panel {
+  width: min(760px, 100%);
+}
+
+.kp-subtitle {
+  margin: -4px 0 4px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.kp-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.kp-preset {
+  appearance: none;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  text-align: center;
+  line-height: 1.25;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.kp-preset:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--text-primary);
+}
+.kp-preset--active {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+}
+
+.kp-scenario-title {
+  margin-top: 16px;
+}
+
+.kp-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.kp-shell-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.kp-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+.kp-shell-lbl {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kp-shell-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.kp-baseline-note {
+  margin: 10px 0 0;
+}
+
+.kp-scrub-block {
+  margin: 12px 0 14px;
+}
+
+.kp-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 6px;
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+.kp-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.kp-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  border-radius: 1px;
+}
+.kp-swatch--total { background: var(--accent); }
+.kp-swatch--debris { background: rgba(248, 113, 113, 0.9); }
+.kp-swatch--baseline {
+  background: transparent;
+  border-top: 2px dashed rgba(255, 255, 255, 0.45);
+  height: 0;
+}
+.kp-swatch--leo,
+.kp-swatch--meo,
+.kp-swatch--geo {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.kp-swatch--leo { background: var(--accent); }
+.kp-swatch--meo { background: #a78bfa; }
+.kp-swatch--geo { background: #f472b6; }
+
+/* ── Sliders ───────────────────────────────────────────────────────────── */
+.kp-slider-row {
+  margin-bottom: 14px;
+}
+.kp-slider-row:last-of-type {
+  margin-bottom: 12px;
+}
+.kp-slider-label-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-bottom: 4px;
+}
+.kp-slider-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.kp-slider-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.kp-slider-hint {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+
+.kp-range {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+}
+.kp-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+}
+.kp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.kp-range:hover::-webkit-slider-thumb,
+.kp-range:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.2);
+}
+.kp-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+}
+.kp-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+/* ── Run / animate buttons ────────────────────────────────────────────── */
+.kp-scrub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.kp-scrub-row .kp-range { flex: 1; }
+
+.kp-animate-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 7px;
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.kp-animate-btn:hover { background: rgba(var(--accent-rgb), 0.2); }
+.kp-animate-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Charts / density canvases ────────────────────────────────────────── */
+.kp-chart-canvas,
+.kp-density-canvas {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.kp-density-wrap {
+  position: relative;
+}
+
+/* ── Narrative / prompt / disclaimer text ─────────────────────────────── */
+.kp-narrative {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+  padding: 10px 12px;
+  margin: 14px 0 0;
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+  background: rgba(var(--accent-rgb), 0.06);
+}
+.kp-narrative--concerning { border-left-color: var(--warning); background: rgba(245, 158, 11, 0.07); }
+.kp-narrative--critical,
+.kp-narrative--runaway {
+  border-left-color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.kp-disclaimer {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (min-width: 641px) {
+  .kp-presets {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .kp-preset {
+    flex: 1 1 auto;
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .tour-card {
+    width: min(100vw - 20px, 400px);
+    max-height: min(38vh, 260px);
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .tour-card--center {
+    width: min(100vw - 20px, 420px);
+    max-height: min(70vh, 480px);
+  }
+
+  .kessler-backdrop {
+    align-items: flex-end;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .kessler-panel.modal-panel {
+    width: 100%;
+    max-width: none;
+    max-height: min(94dvh, 100%);
+    border-radius: 16px 16px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .kessler-panel .modal-header {
+    padding: 14px 16px 12px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .kessler-panel .modal-title {
+    font-size: 0.92rem;
+    gap: 6px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .kessler-panel .modal-body {
+    padding: 12px 14px 20px;
+    gap: 12px;
+  }
+
+  .kessler-panel .modal-section {
+    padding: 12px;
+  }
+
+  .kessler-panel .modal-section-title {
+    margin-bottom: 10px;
+    font-size: 0.72rem;
+  }
+
+  .kp-subtitle {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .kp-preset {
+    min-height: 42px;
+    padding: 10px 8px;
+    font-size: 0.7rem;
+  }
+
+  .kp-scenario-title {
+    margin-top: 14px;
+  }
+
+  .kp-slider-row {
+    margin-bottom: 12px;
+  }
+
+  .kp-slider-hint {
+    margin-bottom: 4px;
+    font-size: 0.62rem;
+  }
+
+  .kp-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .kessler-panel .modal-metric {
+    padding: 10px 8px;
+    align-items: flex-start;
+  }
+
+  .kessler-panel .modal-metric-value {
+    font-size: 1.15rem;
+  }
+
+  .kessler-panel .modal-metric-label {
+    font-size: 0.62rem;
+    text-align: left;
+    line-height: 1.3;
+  }
+
+  .kp-shell-grid {
+    gap: 6px;
+  }
+
+  .kp-shell {
+    padding: 8px;
+  }
+
+  .kp-shell-val {
+    font-size: 0.82rem;
+  }
+
+  .kp-scrub-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .kp-animate-btn {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .kp-narrative {
+    font-size: 0.76rem;
+    padding: 10px;
+    margin-top: 12px;
+  }
+
+  .kp-disclaimer {
+    padding: 0 4px 4px;
+  }
+}

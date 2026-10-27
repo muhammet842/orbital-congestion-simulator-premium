@@ -2,7 +2,7 @@ import { getState, subscribe } from '../state/appState';
 import { getLang, LANG_NAMES, onLangChange, setLang, SUPPORTED_LANGS, t, type Lang } from '../i18n/i18n';
 import { githubMark, icon } from './icons';
 
-/** Must match the max-width used for `.app-grid`'s mobile layout in style.css. */
+/** Must match the max-width used for the mobile layout in src/styles/responsive.css. */
 export const MOBILE_BREAKPOINT_PX = 860;
 
 /** Remembered between visits: which side panels the user collapsed on desktop. */

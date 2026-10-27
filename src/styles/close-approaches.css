@@ -1,0 +1,138 @@
+/* Close-approach list and verification. */
+
+.conjunction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conjunction-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.conjunction-sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.conjunction-sort-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.conjunction-sort-option input {
+  margin: 0;
+}
+
+.conjunction-empty {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.conjunction-more {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.conjunction-alert {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  color: inherit;
+}
+
+
+.conjunction-alert-text {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.conjunction-detail-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  color: #fecaca;
+  overflow-wrap: anywhere;
+}
+
+.conjunction-detail-hint {
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+}
+
+.conjunction-colocated-note {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.08);
+  border: 1px solid rgba(252, 211, 77, 0.25);
+  border-radius: 6px;
+}
+
+.btn-exit-conjunction {
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 12px;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-exit-conjunction:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--accent);
+}
+
+.conjunction-risk--critical {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.conjunction-risk--low {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.conjunction-risk--monitor {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.conjunction-risk--confirmed {
+  color: #ff4444;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.conjunction-risk--averted {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.time-display--verify {
+  color: #fca5a5;
+}

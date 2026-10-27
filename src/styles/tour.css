@@ -1,0 +1,235 @@
+/* Guided tour. */
+
+/* ==========================================================================
+   How-to guide (first visit + header "?")
+   ========================================================================== */
+
+.help-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.help-header-btn:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  color: var(--accent);
+}
+
+/* Interactive product tour — keep above app panels/modals; never raise the
+   highlighted target above this root or the tooltip gets buried. */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  pointer-events: none;
+}
+
+.tour-dim {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  transition: background 0.2s ease;
+}
+.tour-dim--full {
+  background: rgba(5, 5, 16, 0.72);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.tour-pad {
+  position: fixed;
+  background: rgba(5, 5, 16, 0.72);
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.tour-highlight {
+  position: fixed;
+  border-radius: 12px;
+  border: 2px solid rgba(var(--accent-rgb), 0.85);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.45);
+  pointer-events: none;
+  transition: top 0.22s ease, left 0.22s ease, width 0.22s ease, height 0.22s ease;
+  z-index: 2;
+}
+
+/* Marker only — do not elevate the live UI above the tour root. */
+.tour-target--lit {
+  outline: none;
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 3;
+  pointer-events: auto;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(42vh, 280px);
+  overflow: auto;
+  padding: 14px 16px 16px;
+  border-radius: 10px;
+  background: rgba(14, 15, 18, 0.98);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+  font-family: var(--font);
+}
+
+.tour-card--center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 28px));
+}
+
+.tour-card--thesis {
+  width: min(440px, calc(100vw - 28px));
+  max-height: min(78vh, 540px);
+}
+
+.tour-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.tour-progress {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tour-skip {
+  appearance: none;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 6px;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tour-skip:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tour-title {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.tour-body {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.tour-lang-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.tour-lang-btn {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tour-lang-btn:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.45);
+}
+
+.tour-lang-native {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.tour-lang-code {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.tour-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour-primary-btn,
+.tour-secondary-btn {
+  appearance: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 9px 14px;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.tour-primary-btn {
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent);
+  margin-left: auto;
+}
+.tour-primary-btn:hover {
+  background: rgba(var(--accent-rgb), 0.26);
+  border-color: rgba(var(--accent-rgb), 0.65);
+}
+
+.tour-secondary-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+.tour-secondary-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+.tour-secondary-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

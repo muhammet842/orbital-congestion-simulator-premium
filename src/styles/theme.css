@@ -1,0 +1,126 @@
+/* Colour roles, calm cards, radius scale, loading mark, appear animation. */
+
+/* ── Colour roles: orange for actions and selection, red only for real
+   warnings. Section headings are all the same quiet style. */
+.panel-heading--alert,
+.panel-heading--alert + .panel-lede { color: var(--text-muted); }
+.conjunction-sort-option:has(input:checked) { color: var(--text-primary); }
+.conjunction-sort-option input { accent-color: var(--accent); }
+
+/* Close-approach cards: one neutral design for every pass; "By criticality"
+   sorting brings the closest ones to the top. */
+.conjunction-alert {
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.conjunction-alert:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.16); }
+.conjunction-alert-text { color: var(--text-primary); font-weight: 400; }
+.conjunction-alert--active {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.conjunction-alert--new { animation: fade-in 0.3s var(--ease); box-shadow: none; }
+.conjunction-alert--new.conjunction-alert--active { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* Empty state while the 24-hour scan runs. */
+.conjunction-empty--scanning { display: flex; align-items: center; gap: var(--space-2); }
+.conjunction-empty--scanning::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Warnings that are real stay coloured, with the same outline icon. */
+.tle-stale-banner { display: flex; align-items: flex-start; gap: var(--space-2); border-radius: var(--radius-sm); }
+.tle-stale-banner .icon { margin-top: 2px; }
+
+/* Dialog close buttons: the same icon button everywhere. */
+.modal-close,
+.spotter-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+.spotter-close:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Text values in sans, numbers aligned; monospace stays for countdowns,
+   frequencies and other columns of figures. */
+.stat-row dd,
+.detail-row dd { font-family: var(--font); font-variant-numeric: tabular-nums; }
+
+/* One radius scale: 8px for cards, 6px for controls. */
+.event-card,
+.filter-toggle-card,
+.launch-card { border-radius: var(--radius-md); }
+.filter-chip,
+.search-input,
+.object-list-item,
+.speed-btn,
+.btn-orbit-trail,
+.btn-exit-conjunction { border-radius: var(--radius-sm); }
+
+/* ── Loading screen: the brand mark with a satellite circling it. */
+.loading-screen { gap: var(--space-2); animation: fade-in 0.3s var(--ease); }
+.loading-mark {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-3);
+}
+.loading-mark__core {
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.45);
+}
+.loading-mark__orbit {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 50%;
+  animation: spin 2.4s linear infinite;
+}
+.loading-mark__sat {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--text-primary);
+}
+.loading-brand {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.loading-message { margin: 0; font-size: 0.85rem; }
+
+/* Panels appear smoothly once the app has loaded. */
+.app-header,
+.panel-left,
+.panel-right { animation: appear 0.35s var(--ease); }
+/* Opacity only: the phone drawers are positioned with transform. */
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }

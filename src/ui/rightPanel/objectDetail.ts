@@ -17,7 +17,7 @@ export function groundPositionText(snapshot: ObjectSnapshot): string {
 }
 /**
  * One table cell. `data-label` feeds the stacked card layout used in narrow
- * panels (see `.radio-frequency-section` container query in style.css), where
+ * panels (see `.radio-frequency-section` container query in src/styles/details.css), where
  * the header row is hidden and each value carries its own label.
  */
 function radioCell(label: string, value: string | undefined): string {
