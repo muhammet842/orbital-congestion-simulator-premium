@@ -316,7 +316,7 @@ describe('above my horizon now', () => {
     expect(sensors.setManual).toHaveBeenCalledWith({ latitudeDeg: 41, longitudeDeg: 29, altitudeKm: 0 });
     expect(rowNames()).toEqual(['ISS (ZARYA) Amateur', 'NOAA 19']); // 40 deg and 10 deg
     expect([...document.querySelectorAll('.radio-row-when')].map((e) => e.textContent)).toEqual(['▲ 40°', '▲ 10°']);
-    expect($('#radio-location').textContent).toContain('Your location: 41.0° N, 29.0° E');
+    expect($('#radio-location').textContent).toContain('Your location: 41.0000° N, 29.0000° E');
   });
 
   it('applies the minimum elevation to "above my horizon" (default 5°, adjustable)', () => {

@@ -237,7 +237,7 @@ function renderLocationHint(): void {
   }
   const observer = observerLocation();
   if (observer && locationState === 'idle') {
-    const pos = formatGroundPosition(observer.latitudeDeg, observer.longitudeDeg);
+    const pos = formatGroundPosition(observer.latitudeDeg, observer.longitudeDeg, 4);
     el.innerHTML = `<p class="muted radio-location-note">${icon('pin', 15)}<span>${escapeHtml(fill(t('radio.your_location'), { pos }))}</span> <button type="button" class="radio-link-btn" data-action="locate">${escapeHtml(t('radio.update_location'))}</button></p>`;
     return;
   }
@@ -441,7 +441,10 @@ async function copyLink(): Promise<void> {
   }, 2000);
 }
 
-/** One-shot location (never a continuous watch); saved the same way the Spotter saves it. */
+/**
+ * One-shot location (never a continuous watch); saved the same way the Spotter
+ * saves it. A fresh, precise fix (GPS on phones), since the person asked for it.
+ */
 function requestLocation(): void {
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
     locationState = 'unsupported';
@@ -469,7 +472,7 @@ function requestLocation(): void {
       renderLocationHint();
       renderResults();
     },
-    { enableHighAccuracy: false, timeout: 15_000, maximumAge: 600_000 },
+    { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
   );
 }
 
