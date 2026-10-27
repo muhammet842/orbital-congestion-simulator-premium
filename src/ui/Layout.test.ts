@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createLayout } from './Layout';
+import { createLayout, setTourPanel } from './Layout';
 import { selectLaunch, setState } from '../state/appState';
-import { setTourPanel } from './Layout';
 import { getLang, setLang } from '../i18n/i18n';
 
 beforeEach(() => {

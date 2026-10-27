@@ -127,7 +127,7 @@ async function main() {
       console.log('pull-data: no data-ref.json yet — keeping the committed public/data/tle.json.');
       return;
     }
-    throw new Error(`data-ref.json is unreadable: ${err.message}`);
+    throw new Error(`data-ref.json is unreadable: ${err.message}`, { cause: err });
   }
 
   try {

@@ -26,6 +26,7 @@ beforeEach(() => {
     class extends MockWorker {
       constructor(..._args: unknown[]) {
         super();
+        // oxlint-disable-next-line typescript/no-this-alias -- the test keeps the mock to drive it
         lastWorkerInstance = this;
         workerInstances.push(this);
       }
@@ -209,7 +210,7 @@ describe('PropagationWorkerBridge', () => {
 
 describe('PropagationWorkerBridge — failure handling', () => {
   function initGeneration(worker: MockWorker): number {
-    const call = worker.postMessage.mock.calls.filter((c) => c[0].type === 'init').at(-1);
+    const call = [...worker.postMessage.mock.calls].reverse().find((c) => c[0].type === 'init');
     return call![0].generation;
   }
 

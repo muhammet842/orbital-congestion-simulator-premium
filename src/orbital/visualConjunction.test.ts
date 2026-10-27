@@ -1,3 +1,4 @@
+import type { Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import {
   getConjunctionCameraPose,
@@ -44,7 +45,7 @@ describe('getVisualConjunctionLayout', () => {
 });
 
 describe('getConjunctionCameraPose', () => {
-  const dirTo = (p: { cameraPos: { clone(): any }; target: { clone(): any } }) => p.cameraPos.clone().sub(p.target).normalize();
+  const dirTo = (p: { cameraPos: Vector3; target: Vector3 }) => p.cameraPos.clone().sub(p.target).normalize();
 
   it('views the pair side-on, never along the line that joins them', () => {
     // Pair separated along the radial direction: the worst case for overlap.

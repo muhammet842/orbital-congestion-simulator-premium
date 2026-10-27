@@ -6,6 +6,9 @@
  * firstSeenAt — when THIS app’s automated fetch first saw the NORAD id
  *               (not SATCAT launch date; drives “New to this catalog”)
  */
+
+import type { SatRec } from 'satellite.js';
+
 export type OrbitLayer = 'LEO' | 'MEO' | 'GEO' | 'HEO';
 export type ObjectCategory = 'stations' | 'active' | 'debris';
 
@@ -64,7 +67,7 @@ export interface TleDataset {
 export interface TrackedObject extends TleRecord {
   country: string;
   owner: string;
-  satrec: import('satellite.js').SatRec;
+  satrec: SatRec;
   layer: OrbitLayer;
   color: [number, number, number];
   functionGroup: ObjectFunctionGroup;

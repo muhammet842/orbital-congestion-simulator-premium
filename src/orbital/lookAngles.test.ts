@@ -85,10 +85,9 @@ describe('findNextPass', () => {
     expect(pass).toHaveProperty('rise');
     expect(pass).toHaveProperty('max');
     expect(pass).toHaveProperty('set');
-    if (pass.max) {
-      expect(pass.max.elevationDeg).toBeGreaterThan(0);
-      expect(pass.max.azimuthDeg).toBeGreaterThanOrEqual(0);
-    }
+    // The ISS passes over Istanbul several times in 12 hours.
+    expect(pass.max?.elevationDeg).toBeGreaterThan(0);
+    expect(pass.max?.azimuthDeg).toBeGreaterThanOrEqual(0);
   });
 
   it('finds a future rise when the ISS is below the horizon from Istanbul', () => {
@@ -102,10 +101,8 @@ describe('findNextPass', () => {
     );
     // Either already up (rise null + max set) or a future rise within 18h.
     expect(pass.max != null || pass.rise != null).toBe(true);
-    if (pass.rise) {
-      expect(pass.rise.time.getTime()).toBeGreaterThanOrEqual(start.getTime());
-      expect(pass.rise.time.getTime()).toBeLessThanOrEqual(start.getTime() + 18 * 3_600_000);
-    }
+    const riseMs = pass.rise?.time.getTime();
+    expect(riseMs == null || (riseMs >= start.getTime() && riseMs <= start.getTime() + 18 * 3_600_000)).toBe(true);
   });
 
   it('refines max elevation similarly for coarse vs fine step sizes', () => {

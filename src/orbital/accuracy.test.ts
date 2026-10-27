@@ -86,9 +86,9 @@ describe('next useful pass', () => {
   it('skips low passes that the plain search would return first', () => {
     const first = findNextPass(satrec, observer, start, 24);
     const useful = findNextUsefulPass(satrec, observer, start, 60, 24);
-    if (first.max && first.max.elevationDeg < 60) {
-      expect(useful?.rise?.time.getTime() ?? Infinity).toBeGreaterThan(first.rise!.time.getTime());
-    }
-    if (useful) expect(useful.max!.elevationDeg).toBeGreaterThanOrEqual(60);
+    // The first pass is a low one, so the useful one must come later.
+    expect(first.max?.elevationDeg).toBeLessThan(60);
+    expect(useful?.rise?.time.getTime()).toBeGreaterThan(first.rise!.time.getTime());
+    expect(useful?.max?.elevationDeg).toBeGreaterThanOrEqual(60);
   });
 });

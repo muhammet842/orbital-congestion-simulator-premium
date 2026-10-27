@@ -36,11 +36,7 @@ describe('propagateObject', () => {
     // Decades away — SGP4 typically fails / returns bad state.
     const result = propagateObject(satrec, new Date('2100-01-01T00:00:00Z'));
     // Either null or absurd altitude; prefer null but accept failure modes.
-    if (result) {
-      expect(result.altitudeKm < 0 || result.altitudeKm > 50_000).toBe(true);
-    } else {
-      expect(result).toBeNull();
-    }
+    expect(result == null || result.altitudeKm < 0 || result.altitudeKm > 50_000).toBe(true);
   });
 });
 

@@ -81,13 +81,14 @@ npm test             # Vitest unit tests (npm run test:watch re-runs on change)
 npm run test:e2e     # Playwright (Chromium + mobile-chrome)
 npm run test:all     # unit + e2e
 npm run check:i18n   # translation key parity (en/tr/de/ru/zh)
+npm run lint         # oxlint: likely bugs, tests that check nothing, import cycles
 npm run pull-data    # fetch the latest published catalog snapshot (see Data source)
 npm run fetch-tle    # fresh pull from CelesTrak into your local public/data/tle.json
 npm run screenshot   # refresh docs/screenshot-en.png, docs/screenshot-radio.png and public/og-image.png after UI changes
                      # (no Playwright browsers? PW_CHANNEL=msedge npm run screenshot)
 ```
 
-CI (GitHub Actions): build + unit tests on every push/PR; Playwright e2e on `main` pushes and PRs into `main`.
+CI (GitHub Actions): lint + build + unit tests on every push/PR; Playwright e2e on `main` pushes and PRs into `main`.
 
 ## Project structure
 

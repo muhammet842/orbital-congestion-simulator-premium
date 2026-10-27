@@ -75,7 +75,7 @@ type Listener = (snap: SensorSnapshot) => void;
 
 let watchId: number | null = null;
 let orientationBound = false;
-let listeners = new Set<Listener>();
+const listeners = new Set<Listener>();
 /** Last heading accepted outside gimbal lock (looking straight up). */
 let lastStableHeadingDeg: number | null = null;
 let lastStableHeadingSource: Exclude<HeadingSource, null> | null = null;

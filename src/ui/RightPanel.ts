@@ -14,9 +14,9 @@ import {
 } from '../orbital/conjunction';
 import { propagateObject, toObjectSnapshot } from '../orbital/propagator';
 import { formatGroundPosition, formatSlot } from '../orbital/groundPosition';
-import type { ObjectSnapshot, TrackedObject } from '../types';
+import type { ConjunctionEvent, DockedComponent, ObjectSnapshot, RadioFrequency, TrackedObject } from '../types';
 import { tleAgeDays } from '../data/tleLoader';
-import type { ConjunctionEvent, DockedComponent } from '../types';
+
 import {
   formatUtcDateTime,
   getSimulationTime,
@@ -570,7 +570,7 @@ function renderLaunchDetail(detailEl: Element, launchId: string, fallbackName: s
   `;
 }
 
-function renderRadioFrequencies(frequencies: import('../types').RadioFrequency[] | undefined, noradId: number): string {
+function renderRadioFrequencies(frequencies: RadioFrequency[] | undefined, noradId: number): string {
   const obsUrl = satnogsLikelyObserved(frequencies) ? satnogsObservationsUrl(noradId) : null;
   const prepared = frequencies?.length ? prepareRadioRows(frequencies) : [];
   const hasMarker = prepared.some((row) => row.hasMarker);

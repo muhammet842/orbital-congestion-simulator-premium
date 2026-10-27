@@ -64,24 +64,18 @@ describe('HISTORICAL_EVENTS data integrity', () => {
   });
 
   it('objectB is null for ASAT and breakup events', () => {
-    for (const event of HISTORICAL_EVENTS) {
-      if (event.eventType === 'asat' || event.eventType === 'breakup') {
-        expect(
-          event.objectB,
-          `${event.id} (${event.eventType}) should have objectB = null`,
-        ).toBeNull();
-      }
+    const single = HISTORICAL_EVENTS.filter((e) => e.eventType === 'asat' || e.eventType === 'breakup');
+    expect(single.length).toBeGreaterThan(0);
+    for (const event of single) {
+      expect(event.objectB, `${event.id} (${event.eventType}) should have objectB = null`).toBeNull();
     }
   });
 
   it('objectB is defined for collision and docking events', () => {
-    for (const event of HISTORICAL_EVENTS) {
-      if (event.eventType === 'collision' || event.eventType === 'docking') {
-        expect(
-          event.objectB,
-          `${event.id} (${event.eventType}) should have objectB defined`,
-        ).not.toBeNull();
-      }
+    const paired = HISTORICAL_EVENTS.filter((e) => e.eventType === 'collision' || e.eventType === 'docking');
+    expect(paired.length).toBeGreaterThan(0);
+    for (const event of paired) {
+      expect(event.objectB, `${event.id} (${event.eventType}) should have objectB defined`).not.toBeNull();
     }
   });
 

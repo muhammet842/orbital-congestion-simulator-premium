@@ -159,7 +159,7 @@ export async function fetchSatcatMetadataMap(fetchImpl = fetch, opts = {}) {
   const response = await fetchImpl(SATCAT_CSV_URL, {
     headers: {
       Accept: 'text/csv,*/*',
-      ...(opts.headers ?? {}),
+      ...opts.headers,
     },
   });
   if (!response.ok) {

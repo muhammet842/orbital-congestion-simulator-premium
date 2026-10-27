@@ -1,4 +1,5 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import type { PerspectiveCamera } from 'three';
+import { Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { getConjunctionCameraPose, getVisualConjunctionLayout } from '../orbital/visualConjunction';
 import { EARTH_RADIUS_KM } from '../types';

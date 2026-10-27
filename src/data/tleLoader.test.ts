@@ -143,15 +143,10 @@ describe('createTrackedObjects', () => {
         },
       ],
     };
-    // Far outside the TLE epoch — createTrackedObjects should skip if propagate returns null.
-    const objects = createTrackedObjects(dataset, new Date('1900-01-01T00:00:00Z'));
-    // Depending on satellite.js, either empty or a warn was emitted for failure.
-    if (objects.length === 0) {
-      expect(warn).toHaveBeenCalled();
-    } else {
-      // If the library still yields a state, we at least built a tracked object.
-      expect(objects[0].noradId).toBe(25544);
-    }
+    // Decades after the TLE epoch SGP4 reports the orbit as decayed.
+    const objects = createTrackedObjects(dataset, new Date('2100-01-01T00:00:00Z'));
+    expect(objects).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Skipping ISS (ZARYA)'));
     warn.mockRestore();
   });
 

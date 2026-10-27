@@ -1003,6 +1003,8 @@ describe('getUpcomingConjunctions — async, incremental scheduling', () => {
 
     let maxCallMs = 0;
     let guard = 0;
+    // `finished` is set by the callback above, which the loop triggers.
+    // oxlint-disable-next-line no-unmodified-loop-condition
     while (!finished && guard < 30_000) {
       const cb = scheduled[scheduled.length - 1];
       const t0 = performance.now();
