@@ -1,0 +1,279 @@
+/* Phone and tablet layout (drawers). */
+
+/* ==========================================================================
+   Responsive / mobile layout
+   Below MOBILE_BREAKPOINT_PX (src/ui/Layout.ts) the left/right panels stop
+   being permanent grid columns and become off-canvas drawers toggled from
+   the header, so the 3D globe gets the full viewport on phones/tablets.
+   ========================================================================== */
+@media (max-width: 860px) {
+  .app-grid {
+    grid-template:
+      'header' 56px
+      'scene' 1fr
+      'time' auto
+      / 1fr;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .app-header {
+    padding-top: env(safe-area-inset-top, 0px);
+    min-height: 52px;
+    height: auto;
+    min-width: 0;
+  }
+
+  .header-brand {
+    gap: 6px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .header-mark {
+    width: 22px;
+    height: 22px;
+  }
+
+  .header-mark__core {
+    inset: 7px;
+  }
+
+  .header-title-full {
+    display: none;
+  }
+
+  .header-title-short {
+    display: block;
+    font-size: 0.78rem;
+  }
+
+  .header-actions {
+    gap: 2px;
+    padding: 2px;
+    margin-left: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .header-github {
+    display: none;
+  }
+
+  .kessler-header-btn {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+  }
+
+  .help-header-btn {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+  }
+
+  .panel-toggle-btn {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    font-size: 0.95rem;
+  }
+
+  .panel-left,
+  .panel-right {
+    position: fixed;
+    top: calc(52px + env(safe-area-inset-top, 0px));
+    bottom: 0;
+    width: min(72vw, 280px);
+    margin: 0;
+    border-radius: 0;
+    z-index: 20;
+    transition: transform 0.25s ease;
+    box-shadow: 0 0 32px rgba(0, 0, 0, 0.55);
+    /* Opaque: the translucent desktop fill lets the time bar bleed through. */
+    background: rgb(14, 15, 18);
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .panel-left {
+    left: 0;
+    border-right: 1px solid var(--panel-border);
+    transform: translateX(-100%);
+  }
+
+  .panel-right {
+    right: 0;
+    width: min(88vw, 380px);
+    border-left: 1px solid var(--panel-border);
+    transform: translateX(100%);
+  }
+
+  .panel--open {
+    transform: translateX(0);
+  }
+
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    top: calc(52px + env(safe-area-inset-top, 0px));
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .mobile-backdrop--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .time-bar {
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 8px 8px max(8px, env(safe-area-inset-bottom, 0px));
+    align-items: stretch;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .time-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .time-row--transport,
+  .time-row--meta {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .time-row--transport {
+    gap: 6px;
+  }
+
+  .time-row--meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .time-display {
+    flex: 1 1 100%;
+    width: 100%;
+    order: -1;
+    font-size: 0.74rem;
+    white-space: normal;
+    line-height: 1.35;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .time-mode-btns {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .time-mode-btns .btn-now,
+  .time-mode-btns .btn-live {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 36px;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+
+  .speed-controls {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .speed-label {
+    display: none;
+  }
+
+  .speed-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+  }
+
+  .speed-btn {
+    min-width: 0;
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 4px;
+    font-size: 0.78rem;
+  }
+
+  .time-buttons button {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px 8px;
+  }
+
+  .time-slider {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .object-list-viewport {
+    height: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-title-short {
+    font-size: 0.72rem;
+  }
+
+  .panel-left {
+    width: min(78vw, 260px);
+  }
+
+  .panel-right {
+    width: min(90vw, 340px);
+  }
+
+  .time-display {
+    font-size: 0.72rem;
+  }
+}
+
+@media (pointer: coarse) {
+
+  .conjunction-sort-option {
+    min-height: 40px;
+    padding: 0 10px 0 2px;
+  }
+
+  .conjunction-sort-option input {
+    width: 20px;
+    height: 20px;
+  }
+
+  .object-list-item {
+    height: 42px;
+  }
+}
+
+/* Ensure [hidden] always wins over component display rules */
+[hidden] { display: none !important; }

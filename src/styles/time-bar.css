@@ -1,0 +1,164 @@
+/* Time bar: clock, speed and live buttons. */
+
+.time-bar {
+  grid-area: time;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  margin: 0 8px 8px;
+  background: var(--panel-bg);
+  backdrop-filter: none;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+}
+
+.time-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.time-row--transport {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.time-row--meta {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 10px;
+}
+
+.time-mode-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.time-buttons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.time-buttons button,
+.btn-now,
+.btn-live,
+.speed-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  touch-action: manipulation;
+}
+
+.time-buttons button:hover,
+.btn-now:hover,
+.btn-live:hover,
+.speed-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.speed-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-live.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.time-display--live {
+  color: var(--accent);
+}
+
+.time-slider--live {
+  opacity: 0.55;
+}
+
+.time-slider--verify {
+  opacity: 1;
+  accent-color: #fca5a5;
+}
+
+.time-slider {
+  flex: 1;
+  min-width: 80px;
+  accent-color: var(--accent);
+}
+
+.time-display {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 861px) {
+  /* Collapsible side panels (the same ☰ / ℹ buttons the phone drawers use). */
+  .panel-toggle-btn {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+  }
+  /* ℹ sits at the far right, above the panel it controls. */
+  .header-actions { order: 2; }
+  #toggle-right-panel { order: 3; }
+
+  /* "Expanded" is the normal state on desktop: only highlight on hover. */
+  .panel-toggle-btn[aria-expanded='true'] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .panel-toggle-btn:hover { background: rgba(var(--accent-rgb), 0.14); border-color: var(--accent); color: var(--accent); }
+
+  .app-grid--left-collapsed { grid-template-columns: 0 1fr 280px; }
+  .app-grid--right-collapsed { grid-template-columns: 260px 1fr 0; }
+  .app-grid--left-collapsed.app-grid--right-collapsed { grid-template-columns: 0 1fr 0; }
+  .app-grid--left-collapsed .panel-left,
+  .app-grid--right-collapsed .panel-right { display: none; }
+
+  .time-display {
+    min-width: 15.5rem;
+  }
+
+  .time-slider {
+    min-width: 120px;
+  }
+}
+
+.speed-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.speed-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.speed-buttons {
+  display: flex;
+  gap: 4px;
+}

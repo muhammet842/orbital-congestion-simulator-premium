@@ -1,0 +1,158 @@
+/* Header, icon buttons and the More menu. */
+
+/* ==========================================================================
+   UI polish: one visual language
+   The header; the tokens (spacing, radii, colour roles) are in :root at the top.
+   ========================================================================== */
+.icon { display: block; flex-shrink: 0; }
+
+/* Header: same height, colour and hover for every control. */
+.app-header { gap: var(--space-3); padding: 0 var(--space-4); }
+.header-actions { gap: var(--space-1); }
+
+.icon-btn,
+.header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 34px;
+  min-width: 34px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+.icon-btn:hover,
+.header-btn:hover,
+.icon-btn[aria-expanded='true'] {
+  color: var(--accent);
+  background: var(--control-bg-hover);
+}
+.header-btn { width: auto; height: 34px; min-height: 34px; padding: 0 var(--space-3) 0 var(--space-2); font-size: 0.8rem; }
+.header-btn-label { white-space: nowrap; }
+
+/* The panel toggles show on every screen size now, with the same icon style. */
+.panel-toggle-btn {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: inherit;
+  border-color: var(--control-border);
+  background: var(--control-bg);
+  color: var(--text-muted);
+}
+.panel-toggle-btn:hover { color: var(--accent); background: var(--control-bg-hover); border-color: rgba(var(--accent-rgb), 0.35); }
+.panel-toggle-btn[aria-expanded='true'] { color: var(--text-primary); background: var(--control-bg); border-color: var(--control-border); }
+@media (min-width: 861px) {
+  .panel-toggle-btn[aria-expanded='true'] { color: var(--text-muted); }
+  .panel-toggle-btn[aria-expanded='false'] { color: var(--text-muted); opacity: 0.7; }
+}
+
+/* "More" menu */
+.header-more { position: relative; }
+.header-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: var(--space-1);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: #14151a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: menu-in 0.14s var(--ease);
+}
+.header-menu[hidden] { display: none; }
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.header-menu-item .icon { color: var(--text-muted); }
+.header-menu-item:hover { background: rgba(255, 255, 255, 0.05); text-decoration: none; }
+.header-menu-item:hover .icon { color: var(--accent); }
+.header-menu-label { flex: 1; }
+.header-menu-item .icon--external { opacity: 0.6; }
+/* Language: the row shows the current one; the list opens right under it. */
+.header-menu-value { color: var(--text-muted); font-size: 0.8rem; }
+.header-lang .icon--chevronDown { transition: transform 0.18s var(--ease); }
+#lang-toggle[aria-expanded="true"] .icon--chevronDown { transform: rotate(180deg); }
+.lang-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 var(--space-1) calc(var(--space-3) + 18px);
+}
+.lang-list[hidden] { display: none; }
+.lang-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+.lang-option:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
+.lang-option .icon { visibility: hidden; }
+.lang-option[aria-pressed="true"] { color: var(--accent); }
+.lang-option[aria-pressed="true"] .icon { visibility: visible; color: var(--accent); }
+/* These used to be header buttons; inside the menu they are plain rows. */
+.header-menu .help-header-btn,
+.header-menu .header-github {
+  width: 100%;
+  height: auto;
+  min-height: 38px;
+  justify-content: flex-start;
+  padding: 0 var(--space-3);
+  border: 0;
+  font-size: 0.84rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-primary);
+}
+
+/* Phones: icons only in the header, everything still reachable. */
+@media (max-width: 860px) {
+  /* visible, so the More menu can drop below the header */
+  .app-header { gap: var(--space-2); padding: 0 var(--space-2); overflow: visible; }
+  .header-btn-label { display: none; }
+  .header-btn { padding: 0; width: 34px; min-width: 34px; }
+  .header-menu .header-github,
+  .header-menu .help-header-btn { display: flex; }
+}

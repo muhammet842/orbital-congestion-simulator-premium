@@ -99,6 +99,7 @@ CI (GitHub Actions): build + unit tests on every push/PR; Playwright e2e on `mai
 | `src/data/` | Catalog loading and validation, object metadata, radio frequencies |
 | `src/state/`, `src/routing/` | App state store and `?object` / `?event` deep links |
 | `src/i18n/` | Translations (en/tr/de/ru/zh) |
+| `src/styles/` | Styles, one file per part of the app; `src/style.css` lists them in cascade order. Tokens (colours, spacing, radii) are in `base.css` |
 | `api/` | One Vercel serverless function, `/api/launches`, behind the Upcoming Launches panel |
 | `src/workers/` | Web Workers for batch propagation and the 24 h close-approach sweep |
 | `scripts/` | Catalog refresh and enrichment, snapshot pull, screenshot and i18n tooling |

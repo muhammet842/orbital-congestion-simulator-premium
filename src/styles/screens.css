@@ -1,0 +1,67 @@
+/* Error and loading screens, FPS counter. */
+
+.error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 24px;
+}
+
+.error-screen h1 {
+  color: var(--warning);
+  margin-bottom: 12px;
+}
+
+.error-screen code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fps-counter {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.panel-lede {
+  margin: -4px 0 10px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.panel-heading--alert + .panel-lede {
+  color: rgba(252, 165, 165, 0.9);
+}
+
+.panel-heading--alert {
+  color: var(--danger);
+}

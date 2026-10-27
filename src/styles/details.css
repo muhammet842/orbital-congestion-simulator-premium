@@ -1,0 +1,127 @@
+/* Right panel: object details, stale-data banner, radio channels. */
+
+.tle-stale-banner {
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  border: 1px solid;
+}
+
+.tle-stale-banner code {
+  font-family: monospace;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.tle-stale-banner--warn {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: var(--warning);
+}
+
+.tle-stale-banner--critical {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: var(--danger);
+}
+
+.detail-header {
+  margin-bottom: 12px;
+}
+
+.norad-id {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.object-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 4px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.detail-list--meta {
+  margin-bottom: 0;
+}
+
+.detail-list--meta + .detail-divider {
+  margin-top: 8px;
+}
+
+.detail-divider {
+  border: none;
+  border-top: 1px solid var(--panel-border);
+  margin: 12px 0;
+}
+
+.radio-frequency-section {
+  margin: 14px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+  container: radio-freq / inline-size;
+}
+
+.radio-frequency-section h3 {
+  margin: 0 0 5px;
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.radio-frequency-disclaimer {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+}
+
+.radio-frequency-scroll { overflow-x: auto; }
+
+.radio-frequency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.radio-frequency-table th,
+.radio-frequency-table td {
+  padding: 6px 5px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.radio-frequency-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.radio-frequency-table td:not(:first-child) { font-family: var(--font-mono); }
+.radio-frequency-note td,
+.radio-frequency-source td { font-family: inherit !important; color: var(--text-muted); }
+.radio-frequency-source a { color: var(--accent); }
+.radio-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 0.65em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.radio-frequency-row--other td:first-child { color: var(--text-muted); }
+.radio-frequency-marker { margin-top: 6px; }
+
+.conjunction-accuracy-note {
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
