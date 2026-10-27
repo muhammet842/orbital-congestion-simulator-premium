@@ -27,7 +27,6 @@ import {
   getUpcomingConjunctions,
   conjunctionSessionKey,
   invalidateUpcomingConjunctionCache,
-  isWithinPredictionRange,
 } from '../orbital/conjunction';
 import { getDebrisUpdateStride, getPropagationResults } from '../orbital/propagationBatch';
 import { PropagationWorkerBridge } from '../orbital/PropagationWorkerBridge';
@@ -69,6 +68,14 @@ import { EventReplayLabels } from './EventReplayLabels';
 import { getHistoricalEvent } from '../ui/EventCards';
 import { isSpotterOpen } from '../ui/SpotterPanel';
 import { renderPixelRatio } from './deviceProfile';
+import { distanceKm } from '../orbital/conjunction/vectors';
+import {
+  catalogUpdateKey,
+  clockToAdvance,
+  frameTimeSpeed,
+  overlayTargets,
+  predictionStep,
+} from './sceneFrame';
 
 /** Camera distance (as an altitude) when framing a launch pad: a regional view. */
 const LAUNCH_FRAME_ALTITUDE_KM = 3000;
@@ -390,10 +397,7 @@ export class SceneManager {
         if (propA && propB) {
           const posA = eciToScene(propA.positionEci.x, propA.positionEci.y, propA.positionEci.z);
           const posB = eciToScene(propB.positionEci.x, propB.positionEci.y, propB.positionEci.z);
-          const dx = propA.positionEci.x - propB.positionEci.x;
-          const dy = propA.positionEci.y - propB.positionEci.y;
-          const dz = propA.positionEci.z - propB.positionEci.z;
-          const liveKm = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          const liveKm = distanceKm(propA.positionEci, propB.positionEci);
           const layout = getVisualConjunctionLayout(posA, posB, liveKm);
 
           this.conjunctionVerification.update(selectedConjunction, objects, flyTime);
@@ -501,13 +505,12 @@ export class SceneManager {
     const deltaMs = now - this.lastFrameTime;
     this.lastFrameTime = now;
 
-    if (state.verificationTime?.playing && !this.cameraFly.isActive()) {
-      // Hold the verify clock during the opening fly-in so a high-speed
-      // pair does not burn its short T− window while the camera is moving.
+    const clock = clockToAdvance(state, this.cameraFly.isActive());
+    if (clock === 'verification') {
       advanceVerificationTime(deltaMs);
-    } else if (state.eventReplay?.playing) {
+    } else if (clock === 'replay') {
       advanceEventReplayTime(deltaMs);
-    } else if (state.time.mode === 'historical' && state.time.playing) {
+    } else if (clock === 'simulation') {
       advanceSimulationTime(
         new Date(state.time.current.getTime() + deltaMs * state.time.speed),
       );
@@ -615,9 +618,7 @@ export class SceneManager {
     this._eventReplayStarted = false;
 
     // ── Normal tick ──────────────────────────────────────────────────────────
-    const timeSpeed =
-      currentState.verificationTime?.speed ??
-      (currentState.time.mode === 'historical' ? currentState.time.speed : 1);
+    const timeSpeed = frameTimeSpeed(currentState);
     const conjunctionHighlightIndices = currentState.selectedConjunction
       ? [currentState.selectedConjunction.indexA, currentState.selectedConjunction.indexB]
       : null;
@@ -631,19 +632,7 @@ export class SceneManager {
     // Catalogue work (propagating and re-uploading every dot) is paced by its
     // cost on this device; see catalogPacing.ts. Anything the user changes, and
     // zoomed-in views, update immediately.
-    const catalogKey = [
-      currentState.objects.length,
-      currentState.selectedIndex,
-      currentState.selectedConjunctionSessionKey,
-      Object.values(currentState.layerFilters).join(','),
-      currentState.searchQuery,
-      currentState.colorByFunction,
-      currentState.altitudeFilter ? `${currentState.altitudeFilter.minKm}-${currentState.altitudeFilter.maxKm}` : '',
-      currentState.inclinationFilter ? `${currentState.inclinationFilter.minDeg}-${currentState.inclinationFilter.maxDeg}` : '',
-      currentState.showOnlyRecentLaunches,
-      currentState.categoryFilter,
-      timeSpeed,
-    ].join('|');
+    const catalogKey = catalogUpdateKey(currentState, timeSpeed);
     const zoomedIn = Boolean(currentState.selectedConjunction) || this.camera.position.length() < CATALOG_FULL_RATE_DISTANCE;
     const catalogDue = this.catalogPacer.isDue(now, catalogKey, zoomedIn, timeSpeed);
     if (catalogDue) this.propWorker.request(simTime.getTime(), timeSpeed);
@@ -669,10 +658,7 @@ export class SceneManager {
       const propA = propagations[currentState.selectedConjunction.indexA];
       const propB = propagations[currentState.selectedConjunction.indexB];
       if (propA && propB) {
-        const dx = propA.positionEci.x - propB.positionEci.x;
-        const dy = propA.positionEci.y - propB.positionEci.y;
-        const dz = propA.positionEci.z - propB.positionEci.z;
-        conjunctionLiveDistanceKm = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        conjunctionLiveDistanceKm = distanceKm(propA.positionEci, propB.positionEci);
       }
     }
 
@@ -699,51 +685,13 @@ export class SceneManager {
     }
     if (propagations) this.catalogPacer.done(now, catalogKey, performance.now() - catalogStart);
 
-    const footprintIndex =
-      currentState.selectedConjunction || !this.earth.mesh.visible
-        ? null
-        : currentState.selectedIndex;
-
-    this.satelliteFootprint.update(footprintIndex, currentState.objects, simTime);
-
-    // Suppress the regular single-satellite selection marker and orbit trail
-    // while verifying a close approach — otherwise a satellite selected
-    // *before* opening the conjunction view lingers as an unrelated dot and
-    // trail floating in the zoomed-in verification camera.
-    const selectionIndexForOverlays = currentState.selectedConjunction ? null : currentState.selectedIndex;
-
-    this.selectionMarker.update(
-      selectionIndexForOverlays,
-      currentState.objects,
-      simTime,
-    );
-
-    // The pad marker belongs to the global globe view only (not close-approach
-    // verification or a historical-event replay, which zoom somewhere else).
-    this.launchPadMarker.update(
-      currentState.selectedConjunction || currentState.eventReplay || !this.earth.mesh.visible
-        ? null
-        : currentState.selectedLaunch,
-      simTime,
-      performance.now(),
-    );
-
-    this.orbitTrail.update(
-      currentState.showOrbitTrail,
-      selectionIndexForOverlays,
-      currentState.objects,
-      simTime,
-    );
-
-    // Ground track: show 1.5-orbit projection on Earth surface for selected satellite.
-    // Hidden during event replay or conjunction verification views.
-    this.groundTrack.update(
-      !currentState.eventReplay && !currentState.selectedConjunction && currentState.showGroundTrack
-        ? currentState.selectedIndex
-        : null,
-      currentState.objects,
-      simTime,
-    );
+    const overlays = overlayTargets(currentState, this.earth.mesh.visible);
+    this.satelliteFootprint.update(overlays.footprintIndex, currentState.objects, simTime);
+    this.selectionMarker.update(overlays.selectionIndex, currentState.objects, simTime);
+    this.launchPadMarker.update(overlays.launchPad, simTime, performance.now());
+    this.orbitTrail.update(currentState.showOrbitTrail, overlays.selectionIndex, currentState.objects, simTime);
+    // 1.5 orbits projected on the ground under the selected satellite.
+    this.groundTrack.update(overlays.groundTrackIndex, currentState.objects, simTime);
 
     const flying = this.cameraFly.update(this.camera, this.controls, now);
 
@@ -793,20 +741,18 @@ export class SceneManager {
       this.renderer,
     );
 
-    if (!currentState.selectedConjunction) {
-      const inRange = isWithinPredictionRange(simTime.getTime(), currentState.stats.fetchedAt);
-      if (!inRange && !currentState.conjunctionsOutOfRange) {
-        // Stop a sweep in flight so its results cannot arrive afterwards.
-        invalidateUpcomingConjunctionCache();
-        setConjunctionsOutOfRange(true);
-      } else if (inRange) {
-        if (currentState.conjunctionsOutOfRange) setConjunctionsOutOfRange(false);
-        // Forward-looking: predicts the closest approaches over the next 24h
-        // rather than only reporting what's happening at this exact instant.
-        getUpcomingConjunctions(currentState.objects, simTime, (fresh) => {
-          if (!getState().conjunctionsOutOfRange) setConjunctions(fresh);
-        });
-      }
+    const prediction = predictionStep(currentState, simTime.getTime());
+    if (prediction === 'stop') {
+      // Stop a sweep in flight so its results cannot arrive afterwards.
+      invalidateUpcomingConjunctionCache();
+      setConjunctionsOutOfRange(true);
+    } else if (prediction === 'scan' || prediction === 'resume-and-scan') {
+      if (prediction === 'resume-and-scan') setConjunctionsOutOfRange(false);
+      // Forward-looking: predicts the closest approaches over the next 24h
+      // rather than only reporting what's happening at this exact instant.
+      getUpcomingConjunctions(currentState.objects, simTime, (fresh) => {
+        if (!getState().conjunctionsOutOfRange) setConjunctions(fresh);
+      });
     }
 
     this.renderer.render(this.scene, this.camera);
