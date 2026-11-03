@@ -33,7 +33,9 @@
     "screenshot": "npm run build && node scripts/capture-readme-screenshot.mjs",
     "research:tle-age": "node research/tle-age/run.mjs",
     "research:perf-node": "node --import ./research/perf/register-ts.mjs research/perf/sgp4-node.mjs",
-    "research:perf-browser": "node research/perf/browser-bench.mjs"
+    "research:perf-browser": "node research/perf/browser-bench.mjs",
+    "research:spotter-direction": "node --import ./research/perf/register-ts.mjs research/spotter/true-direction.mjs",
+    "research:spotter-analyze": "node --import ./research/perf/register-ts.mjs research/spotter/analyze.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
