@@ -105,7 +105,7 @@ CI (GitHub Actions): lint + build + unit tests on every push/PR; Playwright e2e 
 | `src/workers/` | Web Workers for batch propagation and the 24 h close-approach sweep |
 | `scripts/` | Catalog refresh and enrichment, snapshot pull, screenshot and i18n tooling |
 | `e2e/` | Playwright tests (desktop and mobile) |
-| `docs/` | Architecture overview (in Turkish), operations notes and the screenshots |
+| `docs/` | Architecture overview and AI use (in Turkish), operations notes and the screenshots |
 
 ## How to use
 
@@ -239,6 +239,10 @@ Details: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 ## Contributing
 
 Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md); security problems go through [SECURITY.md](SECURITY.md). Before opening a PR, run `npm run build`, `npm test` and `npm run check:i18n`. New UI text must be added to all five languages in `src/i18n/translations.ts` (parity is checked in CI), and PRs into `main` also run the Playwright suite. Please don't commit refreshed catalogs by hand — see [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+## AI use
+
+This project was built with heavy use of AI coding tools: **Cursor** (July – September 2026) and **Claude Code** by Anthropic (Claude Opus 5.5 and Sonnet 5.5, since October 2026). They wrote much of the code, the tests, the translations and the documentation, under the author's direction and review. From mid-October 2026 commits and PRs made with Claude Code no longer carry a `Co-Authored-By` line, so the git history shows less of this than there is. What was done with AI, how it was checked, and the author's own decisions: [docs/AI_USAGE.md](docs/AI_USAGE.md) (in Turkish).
 
 ## Author
 
