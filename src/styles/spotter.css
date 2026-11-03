@@ -309,6 +309,71 @@
 .spotter-btn:hover {
   background: rgba(var(--accent-rgb), 0.2);
 }
+.spotter-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* Measurement readout, only with ?spotter=measure (ui/spotter/measureTool.ts). */
+.spotter-measure {
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: 10px;
+  margin: 10px 0;
+  padding: 10px 12px;
+}
+.spotter-measure-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+.spotter-measure-values {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+.spotter-measure-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.72rem;
+}
+.spotter-measure-value {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.spotter-measure-details {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  margin: 6px 0 10px;
+}
+.spotter-measure-actions {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+}
+.spotter-measure-actions .spotter-btn {
+  margin-bottom: 0;
+}
+.spotter-measure-actions #spotter-measure-save {
+  font-size: 0.95rem;
+  grid-column: 1 / -1;
+  padding: 14px 10px;
+}
+.spotter-measure-actions #spotter-measure-download {
+  grid-column: 1 / -1;
+}
+.spotter-measure-count {
+  font-size: 0.78rem;
+  margin: 8px 0 0;
+  transition: color 0.3s;
+}
+.spotter-measure-count--flash {
+  color: var(--accent);
+  font-weight: 700;
+}
 
 @media (min-width: 640px) {
   .spotter-backdrop {

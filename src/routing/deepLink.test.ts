@@ -97,6 +97,22 @@ describe('initDeepLink — writing the URL when selection changes', () => {
     expect(window.location.search).toBe('');
   });
 
+  it('keeps the measurement flags when the selection changes or is cleared', () => {
+    goto('/?object=25544&spotter=measure&worker=off&limit=5000');
+    initDeepLink(makeObjects());
+    selectObject(2);
+    expect(window.location.search).toBe('?object=20580&spotter=measure&worker=off&limit=5000');
+    clearObjectSelection();
+    expect(window.location.search).toBe('?spotter=measure&worker=off&limit=5000');
+  });
+
+  it('does not keep other unknown parameters', () => {
+    goto('/?object=25544&utm_source=x');
+    initDeepLink(makeObjects());
+    selectObject(2);
+    expect(window.location.search).toBe('?object=20580');
+  });
+
   it('switches the URL from ?object= to ?event= when an event replaces a satellite selection', () => {
     initDeepLink(makeObjects());
     selectObject(0);

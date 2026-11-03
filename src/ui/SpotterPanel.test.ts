@@ -72,6 +72,22 @@ describe('SpotterPanel', () => {
     expect(document.getElementById('spotter-turn')?.textContent?.length).toBeGreaterThan(0);
   });
 
+  it('shows the measurement readout only with ?spotter=measure', () => {
+    openSpotterPanel();
+    expect(document.getElementById('spotter-measure')).toBeNull();
+    closeSpotterPanel();
+
+    window.history.replaceState(null, '', '/?spotter=measure');
+    try {
+      openSpotterPanel();
+      expect(document.getElementById('spotter-measure')).not.toBeNull();
+      // No compass in the test: nothing to save yet.
+      expect(document.querySelector<HTMLButtonElement>('#spotter-measure-save')?.disabled).toBe(true);
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
+  });
+
   it('closes on Escape', () => {
     openSpotterPanel();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));

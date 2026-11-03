@@ -52,7 +52,7 @@ describe('reading the measurement sheet', () => {
   });
 
   it('reads the semicolon CSV that a Turkish Excel saves', () => {
-    expect(parseCsv('﻿a;b\n12,5;"x; y"\n')).toEqual([{ a: '12,5', b: 'x; y' }]);
+    expect(parseCsv('\uFEFFa;b\n12,5;"x; y"\n')).toEqual([{ a: '12,5', b: 'x; y' }]);
   });
 
   it('accepts decimal commas from a Turkish Excel', () => {
