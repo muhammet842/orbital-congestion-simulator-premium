@@ -5,7 +5,12 @@
  *
  * Usage (after `npm run pull-data && npm run build`):
  *   npm run research:perf-browser [-- --repeats 10] [--sizes 1000,5000,10000,28000]
- *     [--throttle 1,4] [--scan-repeats 3] [--scan-cap-min 15] [--phase frames|scan|all] [--headless]
+ *     [--throttle 1,4] [--scan-repeats 3] [--scan-repeats-for 28000:off=1] [--scan-cap-min 15]
+ *     [--phase frames|scan|all] [--headless]
+ *
+ * --scan-repeats-for gives one object count and worker state its own number
+ * of scan repeats (comma-separated, e.g. "28000:off=1,10000:off=5"), so a
+ * case that always hits the time cap need not run as often as the others.
  *
  * It starts `vite preview` itself and opens a visible (headed) Edge window.
  * Leave the computer alone while it runs: a covered or minimised window, or
@@ -36,6 +41,21 @@ const REPEATS = Number(arg('repeats', '10'));
 const SIZES = list(arg('sizes', '1000,5000,10000,28000'));
 const THROTTLES = list(arg('throttle', '1,4'));
 const SCAN_REPEATS = Number(arg('scan-repeats', '3'));
+
+/** "28000:off=1" → Map { "28000:off" → 1 }. */
+export function parseScanRepeatOverrides(text) {
+  return new Map(
+    text
+      .split(',')
+      .filter((part) => part.trim() !== '')
+      .map((part) => {
+        const m = /^(\d+):(on|off)=(\d+)$/.exec(part.trim());
+        if (!m) throw new Error(`bad --scan-repeats-for entry "${part}" (expected e.g. 28000:off=1)`);
+        return [`${m[1]}:${m[2]}`, Number(m[3])];
+      }),
+  );
+}
+const SCAN_REPEAT_OVERRIDES = parseScanRepeatOverrides(arg('scan-repeats-for', ''));
 const SCAN_CAP_MS = Number(arg('scan-cap-min', '15')) * 60_000;
 const HEADED = !process.argv.includes('--headless');
 /** "frames" (frame time, ~2 h), "scan" (scan time, can take hours with workers off) or "all". */
@@ -314,13 +334,56 @@ async function main() {
 
   async function measureScans(outDir) {
     const scans = [];
-    for (const config of runOrder(SCAN_REPEATS, SIZES, [1])) {
-      const row = await scanRun(browser, config);
+    for (const config of scanOrder(SCAN_REPEATS, SCAN_REPEAT_OVERRIDES, SIZES)) {
+      let row;
+      try {
+        row = { ...(await scanRun(browser, config)), failure: '' };
+      } catch (err) {
+        // A run that breaks (e.g. the page never got ready) is kept, with the reason.
+        row = { ...config, finished: false, scan_s: '', cap_s: (SCAN_CAP_MS / 1000).toFixed(0), errors: '', failure: err.message.split('\n')[0] };
+      }
       scans.push(row);
-      console.log(`scan ${config.size} objects, worker ${config.worker ? 'on' : 'off'}: ${row.finished ? `${row.scan_s} s` : `not finished in ${row.cap_s} s`}`);
-      await writeFile(join(outDir, 'browser-scan.csv'), toCsv(scans));
+      const outcome = row.failure ? `FAILED (${row.failure})` : row.finished ? `${row.scan_s} s` : `not finished in ${row.cap_s} s`;
+      console.log(`scan ${config.size} objects, worker ${config.worker ? 'on' : 'off'}, repeat ${config.repeat}: ${outcome}`);
+      await writeFile(join(outDir, 'browser-scan.csv'), toCsv(scans)); // saved as it goes
+      await writeFile(join(outDir, 'browser-scan-summary.csv'), scanSummaryCsv(scans));
     }
   }
+}
+
+/**
+ * The scan runs: runOrder's alternating order, with each object count and
+ * worker state run as many times as its override says (default `repeats`).
+ */
+export function scanOrder(repeats, overrides, sizes) {
+  const repeatsFor = (c) => overrides.get(`${c.size}:${c.worker ? 'on' : 'off'}`) ?? repeats;
+  const most = Math.max(repeats, ...overrides.values());
+  return runOrder(most, sizes, [1]).filter((c) => c.repeat <= repeatsFor(c));
+}
+
+/** Per object count and worker state: runs, finished, not finished, failed, and median / std of finished scan times. */
+export function scanSummaryCsv(scans) {
+  const out = [];
+  for (const size of [...new Set(scans.map((s) => s.size))].sort((a, b) => a - b)) {
+    for (const worker of [true, false]) {
+      const group = scans.filter((s) => s.size === size && s.worker === worker);
+      if (group.length === 0) continue;
+      const finished = group.filter((s) => s.finished && !s.failure).map((s) => Number(s.scan_s));
+      const s = finished.length ? summarize(finished) : null;
+      out.push({
+        size,
+        worker: worker ? 'on' : 'off',
+        runs: group.length,
+        finished: finished.length,
+        not_finished_in_cap: group.filter((r) => !r.finished && !r.failure).length,
+        failed: group.filter((r) => r.failure).length,
+        scan_s_median: s ? s.median.toFixed(1) : '',
+        scan_s_std: s ? s.std.toFixed(1) : '',
+        cap_s: group[0].cap_s,
+      });
+    }
+  }
+  return toCsv(out);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

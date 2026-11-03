@@ -60,7 +60,7 @@ The script starts and stops the `vite preview` server itself and opens a **visib
 - `long_tasks`, `long_task_ms`: main-thread tasks longer than 50 ms (Long Tasks API).
 - `ready_ms`: time from opening the page until the catalog is ready.
 
-**Scan measurement** (each object count × workers on/off, 3 repeats by default): the time between `conjunction-scan-start` and `conjunction-scan-done`. If it has not finished after 15 minutes (the default, `--scan-cap-min`), it is recorded as not finished.
+**Scan measurement** (each object count × workers on/off, 3 repeats by default, `--scan-repeats`): the time between `conjunction-scan-start` and `conjunction-scan-done`. If it has not finished after 15 minutes (the default, `--scan-cap-min`), it is recorded as not finished, which is a result, not an error. A case that always hits the cap can be given fewer repeats, e.g. `--scan-repeats 10 --scan-repeats-for 28000:off=1`. A run that breaks (for example the page never gets ready) is kept in the file with the reason in the `failure` column. `browser-scan-summary.csv` gives, per case, the number of runs, finished, not finished and failed runs, and the median and standard deviation of the finished scan times.
 
 ### Keeping it fair
 
@@ -85,7 +85,8 @@ The script starts and stops the `vite preview` server itself and opens a **visib
 | `browser-bench.mjs` | Browser measurement (Playwright). |
 | `register-ts.mjs`, `ts-hooks.mjs` | Let Node import the app's `.ts` files. |
 | `results/sgp4-node-summary.csv`, `-runs.csv`, `-env.json` | Calculation time: summary, every measurement, environment. |
-| `results/browser-summary.csv`, `-runs.csv`, `-scan.csv`, `-env.json` | Browser: summary (median and standard deviation of each measure), every measurement, scan times, environment. |
+| `results/browser-summary.csv`, `-runs.csv`, `-scan.csv`, `-scan-summary.csv`, `-env.json` | Browser: frame summary (median and standard deviation of each measure), every frame measurement, every scan, scan summary, environment. |
+| `browser-bench.test.ts` | Tests of the scan run order and the scan summary. |
 
 ## References
 
