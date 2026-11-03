@@ -23,9 +23,9 @@ Spotter'ın normal ekranı yalnızca seçili uyduya göre "sağa 12°" gibi tam 
    - **Eğim**: arka kameranın ufuktan yüksekliği, bir ondalıkla.
    - Altında pusula kaynağı (`absolute` Android, `webkit` iPhone), uygulanan manyetik sapma ve GPS doğruluğu.
    Bunlar, Spotter'ın yönlendirmelerinde kullandığı değerlerin aynısıdır.
-3. **Kaydet**: o anki değerleri bir listeye ekler; sayaç ("Kayıt: 12") her basışta artar ve kısa bir süre renklenir. Pusula güvenilir değilken düğme kapalıdır.
+3. **Kaydet**: o anki değerleri bir listeye ekler; sayaç ("Kayıt: 12") her basışta artar ve kısa bir süre renklenir. **Pusula güvenilir değilken de kaydeder** (kutunun kenarı sarıya döner): Spotter o durumda yön değeri tutmadığı için satırda yön boş kalır, eğim kaydedilir ve satır `pusula_guvenilir = hayir` olarak, sebebiyle birlikte (`pusula_durumu`) işaretlenir.
 4. **Sonuncuyu sil**: yanlış bir basışı geri alır. **Tümünü sil**: onay sorar.
-5. **CSV indir**: kayıtları protokolün şablonuyla aynı sütunlarda bir dosya olarak indirir. Telefonun bildiği sütunlar doludur (`tarih_saat`, `tarayici`, `telefon_azimut`, `telefon_yukseklik`, `gps_dogruluk_m`, `mag_sapma`; sonda ayrıca `utc_saat`, `pusula_kaynagi`, `gps_enlem`, `gps_boylam`). Hedef, gerçek yön ve koşullar sütunlarını sonra Excel'de sen doldurursun.
+5. **CSV indir**: kayıtları protokolün şablonuyla aynı sütunlarda bir dosya olarak indirir. Telefonun bildiği sütunlar doludur: `tarih_saat`, `telefon` (tarayıcı söylüyorsa model), `tarayici`, `telefon_azimut`, `telefon_yukseklik`, `gps_dogruluk_m`, `mag_sapma`; sonda ayrıca `utc_saat`, `platform` (`iOS` / `Android` / `diger`), `isletim_sistemi` (örneğin `Android 14`, `iOS 17.5`), `pusula_kaynagi`, `pusula_guvenilir`, `pusula_durumu`, `gps_enlem`, `gps_boylam` ve tarayıcının tam kimlik metni `kullanici_araci`. iPhone'lar modelini hiçbir zaman söylemez (yalnızca "iPhone"); Android'de Chrome modeli çoğu zaman verir. Model boşsa `telefon` sütununu kendin doldur. Hedef, gerçek yön ve koşullar sütunlarını sonra Excel'de sen doldurursun.
 
 Kayıtlar telefonun tarayıcısında saklanır: sayfa yenilense ya da ekran kilitlense de kaybolmaz. Yine de her oturumun sonunda CSV'yi indir. Normal adresle (bayraksız) açıldığında Spotter'da hiçbir şey değişmez.
 
@@ -104,6 +104,8 @@ Her hedef için:
 
 Son satır, metal ve mıknatısların etkisini göstermek içindir: aynı hedefi arabanın yanında ve uzağında ölçmek, "neden açık alanda ölçmek gerekir" sorusunun sayısal cevabıdır.
 
+**Ne beklemeli:** telefon, metalin yanında da çoğu zaman pusulaya "güvenilir" der ve yine bir yön verir; yalnızca o yön yanlıştır. Bu durumda etki **azimut hatasında** görünür (aynı hedef, arabanın yanında kaç derece farklı gösteriliyor?). Spotter pusulaya güvenmeyi bırakırsa (örneğin kalibrasyon isterse), gösterge bunu sarı renkle ve "Pusula güvenilir değil" yazısıyla söyler; o kayıtlarda yön boştur, ama kaç kez olduğu `pusula_guvenilir` sütunundan sayılabilir. Raporda iki sonuç ayrı yazılmalı: yanlış yön ve hiç yön olmaması.
+
 ## Adım 4: Kayıt
 
 Ölçüm göstergesinin indirdiği CSV'yi `data/olcumler.csv` adıyla kaydet (birden çok oturumun dosyalarını Excel'de alt alta birleştirebilirsin; `olcum_no` sütununu baştan numarala) ve kâğıttaki notlarına göre hedef ve koşul sütunlarını doldur. Gösterge yoksa boş şablonu, [`data/olcum-sablonu.csv`](data/olcum-sablonu.csv), elle de doldurabilirsin. Dosya noktalı virgüllüdür, Türkçe Excel'de doğrudan sütunlara ayrılır; ondalık için virgül kullanabilirsin (12,5). Kaydederken "CSV (noktalı virgülle ayrılmış)" seç.
@@ -138,7 +140,9 @@ npm run research:spotter-analyze
 Betik `data/olcumler.csv` dosyasını okur ve iki dosya yazar:
 
 - `results/errors.csv`: her ölçümün azimut, yükseklik ve toplam hatası.
-- `results/summary.csv`: hepsi için ve telefona, hedef türüne, kalibrasyona, ortama, tutuşa göre gruplar halinde **ortalama** (sistematik sapma: telefon hep bir yöne mi kaçıyor?), **ortanca**, **standart sapma** (dağınıklık: aynı hedefi ne kadar tutarlı gösteriyor?), toplam hatanın ortancası, %95'lik değeri ve en büyüğü.
+- `results/summary.csv`: hepsi için ve platforma (iPhone / Android), işletim sistemine, telefona, hedef türüne, kalibrasyona, ortama, tutuşa, pusulanın güvenilir olup olmadığına ve platform + hedef türüne göre gruplar halinde **ortalama** (sistematik sapma: telefon hep bir yöne mi kaçıyor?), **ortanca**, **standart sapma** (dağınıklık: aynı hedefi ne kadar tutarlı gösteriyor?), toplam hatanın ortancası, %95'lik değeri ve en büyüğü.
+
+Pusula güvenilir değilken alınan satırlarda yön boş olduğu için bunlar yalnızca eğim hatasına sayılır; `n_azimut` ve `n_yukseklik` sütunları her ölçütün kaç satırdan hesaplandığını gösterir.
 
 Ortalama ile ortanca birlikte okunmalı: ortalama sıfırdan uzaksa telefonun sistematik bir sapması vardır (örneğin hep 4° sağı gösteriyor); standart sapma büyükse ölçümler dağınıktır.
 

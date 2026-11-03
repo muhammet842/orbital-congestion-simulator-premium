@@ -1,7 +1,7 @@
 /**
  * Summarizes the Spotter measurements filled in by hand.
  *
- * Usage: npm run research:spotter-analyze [-- --in research/spotter/data/olcumler.csv]
+ * Usage: npm run research:spotter-analyze [-- --in research/spotter/data/olcumler.csv] [--out <folder>]
  * Writes results/errors.csv (each measurement with its error) and
  * results/summary.csv (per group). Method: research/spotter/PROTOCOL.md.
  */
@@ -14,7 +14,16 @@ import { parseCsv, pointingError, readNumber, trueDirection } from './lib.mjs';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
 /** Groupings the summary reports, by column of the measurement sheet. */
-const GROUPINGS = [['tumu'], ['telefon'], ['hedef_turu'], ['kalibrasyon'], ['ortam'], ['tutus'], ['telefon', 'hedef_turu']];
+/**
+ * Groupings the summary reports, by column of the measurement sheet. platform,
+ * isletim_sistemi and pusula_guvenilir come from the Spotter readout's file
+ * (iPhone and Android apart; readings taken while Spotter did not trust the
+ * compass apart).
+ */
+const GROUPINGS = [
+  ['tumu'], ['platform'], ['isletim_sistemi'], ['telefon'], ['hedef_turu'], ['kalibrasyon'], ['ortam'], ['tutus'],
+  ['pusula_guvenilir'], ['platform', 'hedef_turu'], ['telefon', 'hedef_turu'],
+];
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
@@ -58,7 +67,8 @@ async function main() {
     const truth = trueOf(row);
     const phoneAz = readNumber(row.telefon_azimut);
     const phoneEl = readNumber(row.telefon_yukseklik);
-    if (!truth || !Number.isFinite(phoneAz) || !Number.isFinite(phoneEl)) {
+    // A row without the phone's azimuth (the compass was not trusted) still counts for the elevation.
+    if (!truth || !Number.isFinite(phoneEl)) {
       skipped.push(row.olcum_no || '?');
       continue;
     }
@@ -71,16 +81,16 @@ async function main() {
     );
   }
 
-  const outDir = join(HERE, 'results');
+  const outDir = arg('out', join(HERE, 'results'));
   await mkdir(outDir, { recursive: true });
   const errorRows = measured.map(({ row, truth, err }) =>
-    [row.olcum_no, row.telefon, row.hedef_turu, row.hedef_adi, f2(Number(f2(truth.az)) % 360), f2(truth.el), row.telefon_azimut, row.telefon_yukseklik, f2(err.azimuth), f2(err.elevation), f2(err.total)]
+    [row.olcum_no, row.platform, row.telefon, row.pusula_guvenilir, row.hedef_turu, row.hedef_adi, f2(Number(f2(truth.az)) % 360), f2(truth.el), row.telefon_azimut, row.telefon_yukseklik, f2(err.azimuth), f2(err.elevation), f2(err.total)]
       .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
       .join(','),
   );
   await writeFile(
     join(outDir, 'errors.csv'),
-    `olcum_no,telefon,hedef_turu,hedef_adi,gercek_azimut,gercek_yukseklik,telefon_azimut,telefon_yukseklik,azimut_hatasi,yukseklik_hatasi,toplam_hata\n${errorRows.join('\n')}\n`,
+    `olcum_no,platform,telefon,pusula_guvenilir,hedef_turu,hedef_adi,gercek_azimut,gercek_yukseklik,telefon_azimut,telefon_yukseklik,azimut_hatasi,yukseklik_hatasi,toplam_hata\n${errorRows.join('\n')}\n`,
   );
 
   // Each measure is summarized over the rows that have it (elevation-only rows have no azimuth or total).

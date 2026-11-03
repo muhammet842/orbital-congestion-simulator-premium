@@ -321,6 +321,13 @@
   margin: 10px 0;
   padding: 10px 12px;
 }
+/* Compass not trusted: Save still works, the row is marked (pusula_guvenilir = hayir). */
+.spotter-measure--untrusted {
+  border-color: var(--warning);
+}
+.spotter-measure--untrusted .spotter-measure-details {
+  color: var(--warning);
+}
 .spotter-measure-title {
   font-size: 0.72rem;
   font-weight: 700;
