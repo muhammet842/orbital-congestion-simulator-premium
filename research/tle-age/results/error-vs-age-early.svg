@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" width="760" height="460" font-family="Arial, sans-serif" font-size="12" fill="#222">
+<rect width="760" height="460" fill="#fff"/>
+<text x="70" y="24" font-size="16" font-weight="bold">TLE yaşına göre konum farkı</text>
+<text x="70" y="42" fill="#555">Erken dönem: 2026-07-03 – 2026-10-18 (47 günlük katalog). Çizgi: ortanca, bant: Q1–Q3.</text>
+<rect x="70" y="56" width="520" height="330" fill="none" stroke="#999"/>
+<line x1="70" x2="590" y1="386.0" y2="386.0" stroke="#ddd"/>
+<text x="62" y="386.0" text-anchor="end" dominant-baseline="middle">0,1</text>
+<line x1="70" x2="590" y1="320.0" y2="320.0" stroke="#ddd"/>
+<text x="62" y="320.0" text-anchor="end" dominant-baseline="middle">1</text>
+<line x1="70" x2="590" y1="254.0" y2="254.0" stroke="#ddd"/>
+<text x="62" y="254.0" text-anchor="end" dominant-baseline="middle">10</text>
+<line x1="70" x2="590" y1="188.0" y2="188.0" stroke="#ddd"/>
+<text x="62" y="188.0" text-anchor="end" dominant-baseline="middle">100</text>
+<line x1="70" x2="590" y1="122.0" y2="122.0" stroke="#ddd"/>
+<text x="62" y="122.0" text-anchor="end" dominant-baseline="middle">1.000</text>
+<line x1="70" x2="590" y1="56.0" y2="56.0" stroke="#ddd"/>
+<text x="62" y="56.0" text-anchor="end" dominant-baseline="middle">10.000</text>
+<line x1="70.0" x2="70.0" y1="386" y2="391" stroke="#666"/>
+<text x="70.0" y="406" text-anchor="middle">0</text>
+<line x1="144.3" x2="144.3" y1="386" y2="391" stroke="#666"/>
+<text x="144.3" y="406" text-anchor="middle">2</text>
+<line x1="218.6" x2="218.6" y1="386" y2="391" stroke="#666"/>
+<text x="218.6" y="406" text-anchor="middle">4</text>
+<line x1="292.9" x2="292.9" y1="386" y2="391" stroke="#666"/>
+<text x="292.9" y="406" text-anchor="middle">6</text>
+<line x1="367.1" x2="367.1" y1="386" y2="391" stroke="#666"/>
+<text x="367.1" y="406" text-anchor="middle">8</text>
+<line x1="441.4" x2="441.4" y1="386" y2="391" stroke="#666"/>
+<text x="441.4" y="406" text-anchor="middle">10</text>
+<line x1="515.7" x2="515.7" y1="386" y2="391" stroke="#666"/>
+<text x="515.7" y="406" text-anchor="middle">12</text>
+<line x1="590.0" x2="590.0" y1="386" y2="391" stroke="#666"/>
+<text x="590.0" y="406" text-anchor="middle">14</text>
+<polygon points="107.1,338.8 144.3,315.2 181.4,296.1 218.6,278.1 255.7,263.4 292.9,252.2 330.0,243.3 367.1,236.6 404.3,227.8 441.4,220.8 478.6,217.6 515.7,212.1 552.9,207.9 590.0,200.7 590.0,271.4 552.9,276.9 515.7,280.9 478.6,285.0 441.4,289.2 404.3,297.1 367.1,305.4 330.0,313.1 292.9,323.3 255.7,332.9 218.6,340.8 181.4,350.8 144.3,363.6 107.1,382.6" fill="#0072B2" fill-opacity="0.15"/>
+<polyline points="107.1,362.3 144.3,342.0 181.4,326.4 218.6,313.6 255.7,302.7 292.9,291.4 330.0,280.8 367.1,272.8 404.3,264.1 441.4,256.2 478.6,252.6 515.7,248.1 552.9,244.2 590.0,238.2" fill="none" stroke="#0072B2" stroke-width="2.2"/>
+<circle cx="107.1" cy="362.3" r="3" fill="#0072B2"/>
+<circle cx="144.3" cy="342.0" r="3" fill="#0072B2"/>
+<circle cx="181.4" cy="326.4" r="3" fill="#0072B2"/>
+<circle cx="218.6" cy="313.6" r="3" fill="#0072B2"/>
+<circle cx="255.7" cy="302.7" r="3" fill="#0072B2"/>
+<circle cx="292.9" cy="291.4" r="3" fill="#0072B2"/>
+<circle cx="330.0" cy="280.8" r="3" fill="#0072B2"/>
+<circle cx="367.1" cy="272.8" r="3" fill="#0072B2"/>
+<circle cx="404.3" cy="264.1" r="3" fill="#0072B2"/>
+<circle cx="441.4" cy="256.2" r="3" fill="#0072B2"/>
+<circle cx="478.6" cy="252.6" r="3" fill="#0072B2"/>
+<circle cx="515.7" cy="248.1" r="3" fill="#0072B2"/>
+<circle cx="552.9" cy="244.2" r="3" fill="#0072B2"/>
+<circle cx="590.0" cy="238.2" r="3" fill="#0072B2"/>
+<line x1="606" x2="630" y1="66" y2="66" stroke="#0072B2" stroke-width="3"/>
+<text x="636" y="66" dominant-baseline="middle">LEO (Starlink hariç)</text>
+<polygon points="107.1,232.8 144.3,204.2 181.4,184.2 218.6,170.2 255.7,159.8 292.9,150.0 330.0,141.3 367.1,135.9 404.3,130.5 441.4,122.9 478.6,118.2 515.7,113.0 552.9,109.0 590.0,104.1 590.0,126.7 552.9,130.5 515.7,133.7 478.6,140.4 441.4,144.2 404.3,151.1 367.1,157.4 330.0,165.0 292.9,172.6 255.7,181.7 218.6,193.6 181.4,208.9 144.3,231.8 107.1,269.4" fill="#56B4E9" fill-opacity="0.15"/>
+<polyline points="107.1,249.4 144.3,217.3 181.4,196.4 218.6,181.3 255.7,170.4 292.9,161.0 330.0,152.4 367.1,146.0 404.3,140.4 441.4,133.3 478.6,129.1 515.7,123.1 552.9,119.7 590.0,115.5" fill="none" stroke="#56B4E9" stroke-width="2.2"/>
+<circle cx="107.1" cy="249.4" r="3" fill="#56B4E9"/>
+<circle cx="144.3" cy="217.3" r="3" fill="#56B4E9"/>
+<circle cx="181.4" cy="196.4" r="3" fill="#56B4E9"/>
+<circle cx="218.6" cy="181.3" r="3" fill="#56B4E9"/>
+<circle cx="255.7" cy="170.4" r="3" fill="#56B4E9"/>
+<circle cx="292.9" cy="161.0" r="3" fill="#56B4E9"/>
+<circle cx="330.0" cy="152.4" r="3" fill="#56B4E9"/>
+<circle cx="367.1" cy="146.0" r="3" fill="#56B4E9"/>
+<circle cx="404.3" cy="140.4" r="3" fill="#56B4E9"/>
+<circle cx="441.4" cy="133.3" r="3" fill="#56B4E9"/>
+<circle cx="478.6" cy="129.1" r="3" fill="#56B4E9"/>
+<circle cx="515.7" cy="123.1" r="3" fill="#56B4E9"/>
+<circle cx="552.9" cy="119.7" r="3" fill="#56B4E9"/>
+<circle cx="590.0" cy="115.5" r="3" fill="#56B4E9"/>
+<line x1="606" x2="630" y1="88" y2="88" stroke="#56B4E9" stroke-width="3"/>
+<text x="636" y="88" dominant-baseline="middle">Starlink</text>
+<polygon points="107.1,343.7 144.3,327.4 181.4,316.3 218.6,307.6 255.7,297.4 292.9,291.1 330.0,287.9 367.1,280.0 404.3,275.1 441.4,271.4 478.6,267.7 515.7,263.5 552.9,261.0 590.0,258.9 590.0,301.6 552.9,302.0 515.7,304.7 478.6,308.1 441.4,311.0 404.3,313.9 367.1,317.8 330.0,323.2 292.9,327.2 255.7,333.1 218.6,340.5 181.4,348.5 144.3,361.3 107.1,379.2" fill="#E69F00" fill-opacity="0.15"/>
+<polyline points="107.1,364.0 144.3,347.7 181.4,336.6 218.6,329.2 255.7,321.0 292.9,314.2 330.0,311.4 367.1,303.1 404.3,299.0 441.4,294.5 478.6,290.0 515.7,285.8 552.9,281.9 590.0,282.7" fill="none" stroke="#E69F00" stroke-width="2.2"/>
+<circle cx="107.1" cy="364.0" r="3" fill="#E69F00"/>
+<circle cx="144.3" cy="347.7" r="3" fill="#E69F00"/>
+<circle cx="181.4" cy="336.6" r="3" fill="#E69F00"/>
+<circle cx="218.6" cy="329.2" r="3" fill="#E69F00"/>
+<circle cx="255.7" cy="321.0" r="3" fill="#E69F00"/>
+<circle cx="292.9" cy="314.2" r="3" fill="#E69F00"/>
+<circle cx="330.0" cy="311.4" r="3" fill="#E69F00"/>
+<circle cx="367.1" cy="303.1" r="3" fill="#E69F00"/>
+<circle cx="404.3" cy="299.0" r="3" fill="#E69F00"/>
+<circle cx="441.4" cy="294.5" r="3" fill="#E69F00"/>
+<circle cx="478.6" cy="290.0" r="3" fill="#E69F00"/>
+<circle cx="515.7" cy="285.8" r="3" fill="#E69F00"/>
+<circle cx="552.9" cy="281.9" r="3" fill="#E69F00"/>
+<circle cx="590.0" cy="282.7" r="3" fill="#E69F00"/>
+<line x1="606" x2="630" y1="110" y2="110" stroke="#E69F00" stroke-width="3"/>
+<text x="636" y="110" dominant-baseline="middle">MEO</text>
+<polygon points="107.1,280.7 144.3,255.4 181.4,242.6 218.6,232.5 255.7,225.2 292.9,218.3 330.0,211.7 367.1,206.7 404.3,200.7 441.4,196.5 478.6,191.6 515.7,188.1 552.9,184.5 590.0,180.1 590.0,227.5 552.9,234.2 515.7,236.8 478.6,240.8 441.4,245.5 404.3,250.0 367.1,255.1 330.0,261.8 292.9,269.1 255.7,277.6 218.6,287.9 181.4,299.6 144.3,313.9 107.1,337.5" fill="#D55E00" fill-opacity="0.15"/>
+<polyline points="107.1,315.2 144.3,289.5 181.4,273.6 218.6,261.2 255.7,252.3 292.9,243.8 330.0,236.2 367.1,231.2 404.3,224.5 441.4,219.6 478.6,213.7 515.7,209.0 552.9,204.8 590.0,199.0" fill="none" stroke="#D55E00" stroke-width="2.2"/>
+<circle cx="107.1" cy="315.2" r="3" fill="#D55E00"/>
+<circle cx="144.3" cy="289.5" r="3" fill="#D55E00"/>
+<circle cx="181.4" cy="273.6" r="3" fill="#D55E00"/>
+<circle cx="218.6" cy="261.2" r="3" fill="#D55E00"/>
+<circle cx="255.7" cy="252.3" r="3" fill="#D55E00"/>
+<circle cx="292.9" cy="243.8" r="3" fill="#D55E00"/>
+<circle cx="330.0" cy="236.2" r="3" fill="#D55E00"/>
+<circle cx="367.1" cy="231.2" r="3" fill="#D55E00"/>
+<circle cx="404.3" cy="224.5" r="3" fill="#D55E00"/>
+<circle cx="441.4" cy="219.6" r="3" fill="#D55E00"/>
+<circle cx="478.6" cy="213.7" r="3" fill="#D55E00"/>
+<circle cx="515.7" cy="209.0" r="3" fill="#D55E00"/>
+<circle cx="552.9" cy="204.8" r="3" fill="#D55E00"/>
+<circle cx="590.0" cy="199.0" r="3" fill="#D55E00"/>
+<line x1="606" x2="630" y1="132" y2="132" stroke="#D55E00" stroke-width="3"/>
+<text x="636" y="132" dominant-baseline="middle">GEO</text>
+<polygon points="107.1,270.5 144.3,251.9 181.4,232.4 218.6,219.3 255.7,202.4 292.9,194.0 330.0,183.5 367.1,178.4 404.3,171.6 441.4,160.7 478.6,150.4 515.7,163.1 552.9,144.5 590.0,145.6 590.0,235.7 552.9,242.5 515.7,249.0 478.6,250.6 441.4,254.6 404.3,260.9 367.1,268.2 330.0,271.9 292.9,274.0 255.7,282.7 218.6,290.0 181.4,301.4 144.3,314.8 107.1,334.7" fill="#CC79A7" fill-opacity="0.15"/>
+<polyline points="107.1,308.4 144.3,287.3 181.4,270.8 218.6,261.1 255.7,247.5 292.9,237.9 330.0,232.7 367.1,228.7 404.3,219.4 441.4,214.5 478.6,207.8 515.7,206.9 552.9,198.9 590.0,195.4" fill="none" stroke="#CC79A7" stroke-width="2.2"/>
+<circle cx="107.1" cy="308.4" r="3" fill="#CC79A7"/>
+<circle cx="144.3" cy="287.3" r="3" fill="#CC79A7"/>
+<circle cx="181.4" cy="270.8" r="3" fill="#CC79A7"/>
+<circle cx="218.6" cy="261.1" r="3" fill="#CC79A7"/>
+<circle cx="255.7" cy="247.5" r="3" fill="#CC79A7"/>
+<circle cx="292.9" cy="237.9" r="3" fill="#CC79A7"/>
+<circle cx="330.0" cy="232.7" r="3" fill="#CC79A7"/>
+<circle cx="367.1" cy="228.7" r="3" fill="#CC79A7"/>
+<circle cx="404.3" cy="219.4" r="3" fill="#CC79A7"/>
+<circle cx="441.4" cy="214.5" r="3" fill="#CC79A7"/>
+<circle cx="478.6" cy="207.8" r="3" fill="#CC79A7"/>
+<circle cx="515.7" cy="206.9" r="3" fill="#CC79A7"/>
+<circle cx="552.9" cy="198.9" r="3" fill="#CC79A7"/>
+<circle cx="590.0" cy="195.4" r="3" fill="#CC79A7"/>
+<line x1="606" x2="630" y1="154" y2="154" stroke="#CC79A7" stroke-width="3"/>
+<text x="636" y="154" dominant-baseline="middle">HEO</text>
+<text x="330" y="426" text-anchor="middle">TLE yaşı (gün, satır 1 epoch’larından)</text>
+<text transform="translate(18 221) rotate(-90)" text-anchor="middle">Konum farkı (km, logaritmik ölçek)</text>
+<text x="70" y="450" fill="#a33" font-size="11">Gerçek hata değildir: yeni TLE yalnızca daha güncel bir tahmindir; değerler iki TLE arasındaki farktır.</text>
+</svg>

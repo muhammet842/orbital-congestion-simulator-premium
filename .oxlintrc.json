@@ -46,6 +46,7 @@
     {
       "files": [
         "scripts/**",
+        "research/**",
         "api/**",
         "e2e/**",
         "*.config.ts"
