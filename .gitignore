@@ -32,3 +32,6 @@ test-results
 *.sw?
 
 .vercel
+
+# Local copies of the TLE archive (scripts/backfill-tle-archive.mjs, gh release download)
+tle-archive/

@@ -20,9 +20,21 @@ The ~5 MB catalog is **not committed to `main`** by the bot any more — every c
 **Fails closed:** if the snapshot named by `data-ref.json` can't be fetched or fails validation, the Vercel build fails and Vercel keeps serving the previous good deployment. Set `PULL_DATA_OPTIONAL=1` on Vercel to turn that into a warning (the build then ships the seed — only do this to unblock an urgent code deploy).
 
 **If something is wrong:** the live site shows the in-app staleness warning after ~3 days. Check Actions → TLE Refresh and the latest Vercel deployment's build log for `pull-data:` lines. Don't delete the `data` branch (the next refresh recreates it, but builds in between fail until it exists).
+
 - In-app UI warns when `fetchedAt` is older than ~3 days — keep Actions green.
 - Verify on GitHub → **Actions → TLE Refresh** that the latest run succeeded.
 - Live catalog: open the deployed app and check **Live Stats → TLE data updated**. `/data/data-ref.json` on the live site shows which snapshot is deployed.
+
+### TLE archive
+
+The `data` branch keeps only the latest snapshot, so each day's catalog is also kept in the **`tle-archive` GitHub Release** ([Releases → TLE archive](https://github.com/muhammet842/orbital-congestion-simulator-premium/releases/tag/tle-archive)). The measurements in `research/` read these files.
+
+- **One file per day:** `tle-YYYY-MM-DD.3le.gz`, named by the UTC day the catalog was fetched. It holds the standard three-line TLE format (name, line 1, line 2), gzip-compressed (~1.5 MB for 28,000 objects). Country, owner and radio fields are left out.
+- **Why a release, not a branch:** `git clone` downloads every branch, so a growing archive branch would make every clone bigger. Release files are stored outside the git history.
+- **Written by** the "Add the snapshot to the TLE archive release" step of the refresh workflow, with `scripts/archive-tle.mjs`. A failure there only shows a warning; it never stops the site update. Re-running the workflow on the same day replaces that day's file.
+- **Older days** (2026-07-03 → 2026-11-02, 60 days with gaps) were rebuilt once with `scripts/backfill-tle-archive.mjs` from main's history. Catalogs before 2026-10-19 hold ~10,000–12,000 objects; later ones ~28,000. Days with no file were never saved.
+- **Limit:** a release holds at most 1,000 files (about 2.7 years). Before that, start a `tle-archive-2` release by changing `ARCHIVE_RELEASE` in the workflow.
+- **Download everything:** `gh release download tle-archive --dir tle-archive`
 
 ## CI
 

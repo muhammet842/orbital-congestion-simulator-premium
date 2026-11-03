@@ -13,7 +13,8 @@ name: TLE Refresh
 # single-commit `data` branch holding tle.json, then commits only a tiny
 # pointer (public/data/data-ref.json) to `main`. That pointer commit is what
 # triggers the Vercel deploy, whose build downloads the snapshot by commit SHA
-# (scripts/pull-data.mjs). See docs/OPERATIONS.md.
+# (scripts/pull-data.mjs). Each day's catalog is also kept, compressed, in the
+# `tle-archive` release for the measurements in research/. See docs/OPERATIONS.md.
 on:
   schedule:
     - cron: "17 3 * * *"
@@ -26,6 +27,7 @@ concurrency:
 
 env:
   DATA_BRANCH: data
+  ARCHIVE_RELEASE: tle-archive
 
 jobs:
   refresh-tle:
@@ -96,6 +98,25 @@ jobs:
           git commit -q -m "data: TLE snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${DATA_BRANCH}"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Long-term archive: the data branch keeps only the latest snapshot, so
+      # each day's catalog is also added as one gzip-compressed 3LE file to the
+      # `tle-archive` release. Release files are not part of the git history,
+      # so clones stay small. Archiving must never hold up the site update: a
+      # failure here shows as a warning and the job carries on.
+      - name: Add the snapshot to the TLE archive release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          FILE="$(node scripts/archive-tle.mjs --in public/data/tle.json --out-dir "$RUNNER_TEMP")"
+          if ! gh release view "$ARCHIVE_RELEASE" >/dev/null 2>&1; then
+            gh release create "$ARCHIVE_RELEASE" --latest=false --title "TLE archive" \
+              --notes "One file per day: the public catalog as fetched from CelesTrak, in three-line TLE format (gzip). Used by the measurements in research/. See docs/OPERATIONS.md."
+          fi
+          gh release upload "$ARCHIVE_RELEASE" "$FILE" --clobber
 
       # `main` keeps its (stale) seed tle.json for local dev and tests; only the
       # pointer changes. This small commit is what makes Vercel redeploy.
