@@ -52,6 +52,7 @@ import { escapeHtml } from './escapeHtml';
 import { icon } from './icons';
 import { attachModalKeyboard } from './modalKeyboard';
 import { drawSkyChart, SKY_CSS_H, SKY_CSS_W } from './spotter/skyChart';
+import { bindMeasureTool, measureModeEnabled, measureToolHtml, updateMeasureTool } from './spotter/measureTool';
 
 let backdropEl: HTMLElement | null = null;
 let panelEl: HTMLElement | null = null;
@@ -304,6 +305,7 @@ function renderShell(): void {
       <div class="spotter-chips" id="spotter-chips"></div>
       <p class="spotter-light" id="spotter-light"></p>
       ${!isLiveMode() ? `<p class="spotter-realtime-note">${t('spotter.realtime_only')}</p>` : ''}
+      ${measureModeEnabled() ? measureToolHtml() : ''}
 
       <details class="spotter-sensors" ${needLoc ? 'open' : ''}>
         <summary>${t('spotter.location')} · <span id="spotter-loc-status">${locationStatusText(sensors)}</span></summary>
@@ -345,6 +347,7 @@ function bindShellEvents(): void {
     setManualLocation({ latitudeDeg, longitudeDeg, altitudeKm: 0 });
   });
   bindSkyZoomControls();
+  if (panelEl && measureModeEnabled()) bindMeasureTool(panelEl, getSensorSnapshot);
 }
 
 function clampSkyFov(fov: number): number {
@@ -441,6 +444,8 @@ function tick(): void {
 
   const locStatus = panelEl.querySelector('#spotter-loc-status');
   if (locStatus) locStatus.textContent = locationStatusText(sensors);
+  // Measurement readout (?spotter=measure): updated even with no satellite selected.
+  updateMeasureTool(panelEl, sensors);
 
   if (state.selectedIndex == null || !sensors.location) {
     lastLook = null;

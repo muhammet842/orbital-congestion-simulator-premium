@@ -15,7 +15,19 @@ Her ölçümde iki hata hesaplanır: **azimut hatası** (telefonun gösterdiği 
 
 ## Telefonun gösterdiği değeri okumak
 
-Spotter şu an telefonun yönünü ve eğimini sayı olarak göstermiyor; yalnızca seçili uyduya göre "sağa 12°" gibi tam sayılı ve ±3°'lik ölü bölgeli yönlendirmeler veriyor. Bu ölçüm için **ondalıklı bir okuma gerekir**: `?spotter=measure` adresiyle açılan küçük bir ölçüm göstergesi önerildi (yön, eğim, pusula kaynağı, manyetik sapma). Gösterge eklenene kadar bu protokol uygulanamaz. *(Bu not, gösterge eklenince güncellenecek.)*
+Spotter'ın normal ekranı yalnızca seçili uyduya göre "sağa 12°" gibi tam sayılı yönlendirmeler verir (hedefe 3°'den yakınsa "hedefte" der); ölçüm için bu yeterince hassas değildir. Bu yüzden ölçümde **ölçüm göstergesi** kullanılır:
+
+1. Siteyi telefonda adresin sonuna `?spotter=measure` ekleyerek aç, örneğin `https://orbital-congestion.vercel.app/?object=25544&spotter=measure` (uydu fark etmez, Spotter'ı açmak için bir uydu seçili olmalıdır).
+2. Sağ paneldeki **Spotter** düğmesine bas. Panelde "Ölçüm (araştırma)" kutusu görünür:
+   - **Yön**: arka kameranın baktığı yön, coğrafi kuzeyden (manyetik sapma düzeltilmiş), bir ondalıkla.
+   - **Eğim**: arka kameranın ufuktan yüksekliği, bir ondalıkla.
+   - Altında pusula kaynağı (`absolute` Android, `webkit` iPhone), uygulanan manyetik sapma ve GPS doğruluğu.
+   Bunlar, Spotter'ın yönlendirmelerinde kullandığı değerlerin aynısıdır.
+3. **Kaydet**: o anki değerleri bir listeye ekler; sayaç ("Kayıt: 12") her basışta artar ve kısa bir süre renklenir. Pusula güvenilir değilken düğme kapalıdır.
+4. **Sonuncuyu sil**: yanlış bir basışı geri alır. **Tümünü sil**: onay sorar.
+5. **CSV indir**: kayıtları protokolün şablonuyla aynı sütunlarda bir dosya olarak indirir. Telefonun bildiği sütunlar doludur (`tarih_saat`, `tarayici`, `telefon_azimut`, `telefon_yukseklik`, `gps_dogruluk_m`, `mag_sapma`; sonda ayrıca `utc_saat`, `pusula_kaynagi`, `gps_enlem`, `gps_boylam`). Hedef, gerçek yön ve koşullar sütunlarını sonra Excel'de sen doldurursun.
+
+Kayıtlar telefonun tarayıcısında saklanır: sayfa yenilense ya da ekran kilitlense de kaybolmaz. Yine de her oturumun sonunda CSV'yi indir. Normal adresle (bayraksız) açıldığında Spotter'da hiçbir şey değişmez.
 
 ## Gerekenler
 
@@ -74,7 +86,7 @@ Her hedef için:
 
 1. Telefonu desteğe tak ve arka kamerası hedefe bakacak şekilde nişan al. Nişan almak için ekranın üst kenarının ortasından hedefe bak; ekran, bakış çizgine dik olsun.
 2. **5 saniye kıpırdatmadan bekle.** Spotter, titremeyi azaltmak için sensör değerlerini yumuşatır; değerin oturması birkaç saniye sürer.
-3. Ölçüm göstergesindeki **azimut** ve **yükseklik** değerini olduğu gibi yaz (`telefon_azimut`, `telefon_yukseklik`).
+3. Ölçüm göstergesinde **Kaydet**'e bas. (Telefona dokunmak onu oynatabilir; tripoddaysan dokunduktan sonra değerin değişmediğini kontrol et, değiştiyse **Sonuncuyu sil** ve yeniden bekle.) Hangi kaydın hangi hedefe ait olduğunu bir kâğıda not et: "Kayıt 1–10: minare".
 4. **Telefonu çıkar, başka bir yöne çevir, sonra yeniden nişan al ve tekrar oku.** Her okuma ayrı bir nişan almadan gelmeli; aksi halde aynı okumayı on kez yazmış olursun.
 5. Her hedefte **10 okuma** yap.
 
@@ -94,7 +106,7 @@ Son satır, metal ve mıknatısların etkisini göstermek içindir: aynı hedefi
 
 ## Adım 4: Kayıt
 
-[`data/olcum-sablonu.csv`](data/olcum-sablonu.csv) dosyasını `data/olcumler.csv` adıyla kopyala ve Excel'de doldur. Şablon noktalı virgüllüdür, Türkçe Excel'de doğrudan sütunlara ayrılır; ondalık için virgül kullanabilirsin (12,5). Kaydederken "CSV (noktalı virgülle ayrılmış)" seç.
+Ölçüm göstergesinin indirdiği CSV'yi `data/olcumler.csv` adıyla kaydet (birden çok oturumun dosyalarını Excel'de alt alta birleştirebilirsin; `olcum_no` sütununu baştan numarala) ve kâğıttaki notlarına göre hedef ve koşul sütunlarını doldur. Gösterge yoksa boş şablonu, [`data/olcum-sablonu.csv`](data/olcum-sablonu.csv), elle de doldurabilirsin. Dosya noktalı virgüllüdür, Türkçe Excel'de doğrudan sütunlara ayrılır; ondalık için virgül kullanabilirsin (12,5). Kaydederken "CSV (noktalı virgülle ayrılmış)" seç.
 
 | Sütun | Ne yazılır | Örnek |
 |---|---|---|
@@ -152,6 +164,8 @@ Ortalama ile ortanca birlikte okunmalı: ortalama sıfırdan uzaksa telefonun si
 
 | Dosya | Görev |
 |---|---|
+| [`../../src/ui/spotter/measureTool.ts`](../../src/ui/spotter/measureTool.ts) | Uygulamadaki ölçüm göstergesi (`?spotter=measure`): okuma, kaydetme, CSV indirme. |
+| [`sheet.test.ts`](sheet.test.ts) | Göstergenin indirdiği dosyanın şablonla aynı sütunlarda olduğunu ve analizin onu okuyabildiğini denetler. |
 | [`data/olcum-sablonu.csv`](data/olcum-sablonu.csv) | Boş şablon (noktalı virgüllü, Excel'e uygun). |
 | [`true-direction.mjs`](true-direction.mjs) | İki koordinattan gerçek azimut, yükseklik açısı ve uzaklık. |
 | [`analyze.mjs`](analyze.mjs) | Doldurulmuş tabloyu özetler. |

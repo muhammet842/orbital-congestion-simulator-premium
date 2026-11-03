@@ -70,7 +70,7 @@ export function pointingError(trueAzDeg, trueElDeg, phoneAzDeg, phoneElDeg) {
  */
 export function parseCsv(text) {
   const lines = text
-    .replace(/^﻿/, '')
+    .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .filter((l) => l.trim() !== '' && !l.startsWith('#'));
   const sep = lines[0]?.includes(';') ? ';' : ',';

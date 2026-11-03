@@ -64,7 +64,12 @@ async function main() {
     }
     measured.push({ row, truth, err: pointingError(truth.az, truth.el, phoneAz, phoneEl) });
   }
-  if (measured.length === 0) throw new Error(`no complete measurements in ${input}`);
+  if (measured.length === 0) {
+    throw new Error(
+      `no complete measurements in ${input}. Each row needs the phone's values and the true direction ` +
+        '(gercek_azimut and gercek_yukseklik, or the observer and target coordinates); see PROTOCOL.md, step 4.',
+    );
+  }
 
   const outDir = join(HERE, 'results');
   await mkdir(outDir, { recursive: true });

@@ -38,11 +38,23 @@ function getParam(key: string): string | null {
   return new URLSearchParams(window.location.search).get(key);
 }
 
+/**
+ * Measurement flags (?spotter=measure, ?worker=off, ?limit=N; see perfFlags.ts
+ * and ui/spotter/measureTool.ts) stay in the address when the selection
+ * changes, so picking another satellite or reloading keeps them on.
+ */
+const KEPT_PARAMS = ['spotter', 'worker', 'limit'];
+
 function buildSearch(key: string | null, value: string | null): string {
-  if (!key || !value) return '';
+  const current = new URLSearchParams(window.location.search);
   const p = new URLSearchParams();
-  p.set(key, value);
-  return '?' + p.toString();
+  if (key && value) p.set(key, value);
+  for (const kept of KEPT_PARAMS) {
+    const v = current.get(kept);
+    if (v != null) p.set(kept, v);
+  }
+  const search = p.toString();
+  return search ? `?${search}` : '';
 }
 
 /** NORAD ID → array index lookup built once from the objects list. */
@@ -107,7 +119,7 @@ function onStateChange(objects: TrackedObject[]): void {
   }
 
   // Nothing selected — replace (don't pollute history with empty entries).
-  writeUrl('', false);
+  writeUrl(buildSearch(null, null), false);
 }
 
 /**
