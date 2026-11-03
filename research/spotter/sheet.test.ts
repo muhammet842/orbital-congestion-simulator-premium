@@ -34,24 +34,24 @@ const records = [
 
 describe('the downloaded measurement file', () => {
   it('has the protocol sheet’s columns, in its order, before the extra ones', () => {
-    const template = readFileSync(join(__dirname, 'data', 'olcum-sablonu.csv'), 'utf8').trim();
+    const template = readFileSync(join(__dirname, 'data', 'sheet-template.csv'), 'utf8').trim();
     const header = measurementsCsv(records).replace(/^\uFEFF/, '').split('\r\n')[0];
     expect(header.startsWith(`${template};`)).toBe(true);
-    expect(header.endsWith(';platform;isletim_sistemi;pusula_kaynagi;pusula_guvenilir;pusula_durumu;gps_enlem;gps_boylam;kullanici_araci')).toBe(true);
+    expect(header.endsWith(';platform;os;compass_source;compass_trusted;compass_state;gps_lat;gps_lon;user_agent')).toBe(true);
   });
 
   it('is read back by the analysis with the same numbers and device details', () => {
     const rows = parseCsv(measurementsCsv(records));
     expect(rows).toHaveLength(3);
-    expect(readNumber(rows[0].telefon_azimut)).toBe(48.5);
-    expect(readNumber(rows[0].telefon_yukseklik)).toBe(3.1);
-    expect(readNumber(rows[0].mag_sapma)).toBe(5.9);
-    expect([rows[0].telefon, rows[0].platform, rows[0].isletim_sistemi, rows[0].pusula_kaynagi]).toEqual(['Pixel 7', 'Android', 'Android 14', 'absolute']);
-    expect([rows[1].telefon, rows[1].platform, rows[1].isletim_sistemi]).toEqual(['iPhone', 'iOS', 'iOS 17.5']);
-    expect(rows[1].kullanici_araci).toBe(IPHONE);
-    expect(rows[1].gps_dogruluk_m).toBe('');
-    expect([rows[2].pusula_guvenilir, rows[2].telefon_azimut]).toEqual(['hayir', '']);
-    expect(rows[0].hedef_turu).toBe(''); // filled in by hand in Excel
+    expect(readNumber(rows[0].phone_azimuth)).toBe(48.5);
+    expect(readNumber(rows[0].phone_elevation)).toBe(3.1);
+    expect(readNumber(rows[0].declination)).toBe(5.9);
+    expect([rows[0].phone_model, rows[0].platform, rows[0].os, rows[0].compass_source]).toEqual(['Pixel 7', 'Android', 'Android 14', 'absolute']);
+    expect([rows[1].phone_model, rows[1].platform, rows[1].os]).toEqual(['iPhone', 'iOS', 'iOS 17.5']);
+    expect(rows[1].user_agent).toBe(IPHONE);
+    expect(rows[1].gps_accuracy_m).toBe('');
+    expect([rows[2].compass_trusted, rows[2].phone_azimuth]).toEqual(['no', '']);
+    expect(rows[0].target_type).toBe(''); // filled in by hand in Excel
   });
 
   it('analyses iPhone and Android apart, and counts an untrusted-compass row for the tilt only', () => {
@@ -59,19 +59,19 @@ describe('the downloaded measurement file', () => {
     const filled = measurementsCsv(records).split('\r\n').map((line, i) => {
       if (i === 0 || line === '') return line;
       const f = line.split(';');
-      f[4] = 'yer_isareti'; // hedef_turu
-      f[12] = '50'; // gercek_azimut
-      f[13] = '3'; // gercek_yukseklik
+      f[4] = 'landmark'; // target_type
+      f[12] = '50'; // true_azimuth
+      f[13] = '3'; // true_elevation
       return f.join(';');
     }).join('\r\n');
     const dir = mkdtempSync(join(tmpdir(), 'spotter-'));
-    writeFileSync(join(dir, 'olcumler.csv'), filled);
-    const out = execFileSync(process.execPath, ['--import', './research/perf/register-ts.mjs', 'research/spotter/analyze.mjs', '--in', join(dir, 'olcumler.csv'), '--out', dir], { encoding: 'utf8' });
-    expect(out).toContain('3 ölçüm özetlendi');
+    writeFileSync(join(dir, 'measurements.csv'), filled);
+    const out = execFileSync(process.execPath, ['--import', './research/perf/register-ts.mjs', 'research/spotter/analyze.mjs', '--in', join(dir, 'measurements.csv'), '--out', dir], { encoding: 'utf8' });
+    expect(out).toContain('3 measurements summarized');
     const summary = parseCsv(readFileSync(join(dir, 'summary.csv'), 'utf8'));
-    const group = (grouping: string, name: string) => summary.find((r) => r.gruplama === grouping && r.grup === name)!;
-    expect(group('platform', 'Android')).toMatchObject({ n_azimut: '1', n_yukseklik: '2' });
-    expect(group('platform', 'iOS')).toMatchObject({ n_azimut: '1', n_yukseklik: '1' });
-    expect(group('pusula_guvenilir', 'hayir')).toMatchObject({ n_azimut: '0', n_yukseklik: '1' });
+    const group = (grouping: string, name: string) => summary.find((r) => r.grouping === grouping && r.group === name)!;
+    expect(group('platform', 'Android')).toMatchObject({ n_azimuth: '1', n_elevation: '2' });
+    expect(group('platform', 'iOS')).toMatchObject({ n_azimuth: '1', n_elevation: '1' });
+    expect(group('compass_trusted', 'no')).toMatchObject({ n_azimuth: '0', n_elevation: '1' });
   });
 });

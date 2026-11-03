@@ -90,16 +90,16 @@ describe('measurementsCsv', () => {
   });
 
   it('writes the phone, operating system, platform, browser and compass source on every row', () => {
-    expect([cell(1, 'telefon'), cell(1, 'isletim_sistemi'), cell(1, 'platform'), cell(1, 'tarayici'), cell(1, 'pusula_kaynagi')])
+    expect([cell(1, 'phone_model'), cell(1, 'os'), cell(1, 'platform'), cell(1, 'browser'), cell(1, 'compass_source')])
       .toEqual(['Pixel 7', 'Android 14', 'Android', 'Chrome 130', 'absolute']);
-    expect([cell(2, 'telefon'), cell(2, 'isletim_sistemi'), cell(2, 'platform'), cell(2, 'tarayici')])
+    expect([cell(2, 'phone_model'), cell(2, 'os'), cell(2, 'platform'), cell(2, 'browser')])
       .toEqual(['iPhone', 'iOS 17.5', 'iOS', 'Safari 17']);
   });
 
   it('marks a reading taken while the compass was not trusted, with an empty direction', () => {
-    expect([cell(1, 'pusula_guvenilir'), cell(1, 'telefon_azimut')]).toEqual(['evet', '48,5']);
-    expect([cell(2, 'pusula_guvenilir'), cell(2, 'pusula_durumu'), cell(2, 'telefon_azimut'), cell(2, 'telefon_yukseklik')])
-      .toEqual(['hayir', 'needs_compass', '', '3,1']);
+    expect([cell(1, 'compass_trusted'), cell(1, 'phone_azimuth')]).toEqual(['yes', '48,5']);
+    expect([cell(2, 'compass_trusted'), cell(2, 'compass_state'), cell(2, 'phone_azimuth'), cell(2, 'phone_elevation')])
+      .toEqual(['no', 'needs_compass', '', '3,1']);
   });
 });
 

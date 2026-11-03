@@ -10,8 +10,8 @@
  */
 
 export interface DeviceInfo {
-  /** 'iOS', 'Android' or 'diger' (anything else, e.g. a computer). */
-  platform: 'iOS' | 'Android' | 'diger';
+  /** 'iOS', 'Android' or 'other' (anything else, e.g. a computer). */
+  platform: 'iOS' | 'Android' | 'other';
   /** e.g. "Android 14", "iOS 17.5", "Windows". */
   os: string;
   /** e.g. "Pixel 7", "iPhone"; empty when the browser does not say. */
@@ -52,7 +52,7 @@ export function describeDevice(userAgent: string, hints: UserAgentHints = {}): D
   const apple = /\b(iPhone|iPad|iPod)\b/.exec(ua);
   const appleOs = /\bOS (\d+)[_.](\d+)/.exec(ua);
   const android = /Android (\d+(?:\.\d+)?)/.exec(ua);
-  let platform: DeviceInfo['platform'] = 'diger';
+  let platform: DeviceInfo['platform'] = 'other';
   let os = '';
   let model = '';
 

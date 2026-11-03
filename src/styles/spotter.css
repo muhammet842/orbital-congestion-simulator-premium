@@ -321,7 +321,7 @@
   margin: 10px 0;
   padding: 10px 12px;
 }
-/* Compass not trusted: Save still works, the row is marked (pusula_guvenilir = hayir). */
+/* Compass not trusted: Save still works, the row is marked (compass_trusted = no). */
 .spotter-measure--untrusted {
   border-color: var(--warning);
 }

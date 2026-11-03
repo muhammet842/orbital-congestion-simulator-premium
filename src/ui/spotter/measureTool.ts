@@ -59,16 +59,16 @@ export function measurementFrom(sensors: SensorSnapshot, now: Date, device: Devi
   };
 }
 
-/** The protocol sheet's columns (research/spotter/data/olcum-sablonu.csv), then extra columns. */
+/** The protocol sheet's columns (research/spotter/data/sheet-template.csv), then extra columns. */
 const SHEET_COLUMNS = [
-  'olcum_no', 'tarih_saat', 'telefon', 'tarayici', 'hedef_turu', 'hedef_adi',
-  'gozlemci_enlem', 'gozlemci_boylam', 'gozlemci_yukseklik_m', 'hedef_enlem', 'hedef_boylam', 'hedef_yukseklik_m',
-  'gercek_azimut', 'gercek_yukseklik', 'telefon_azimut', 'telefon_yukseklik', 'gps_dogruluk_m', 'mag_sapma',
-  'kalibrasyon', 'ortam', 'tutus', 'notlar',
+  'measurement_no', 'local_time', 'phone_model', 'browser', 'target_type', 'target_name',
+  'observer_lat', 'observer_lon', 'observer_height_m', 'target_lat', 'target_lon', 'target_height_m',
+  'true_azimuth', 'true_elevation', 'phone_azimuth', 'phone_elevation', 'gps_accuracy_m', 'declination',
+  'calibrated', 'surroundings', 'mount', 'notes',
 ];
 const EXTRA_COLUMNS = [
-  'utc_saat', 'platform', 'isletim_sistemi', 'pusula_kaynagi', 'pusula_guvenilir', 'pusula_durumu',
-  'gps_enlem', 'gps_boylam', 'kullanici_araci',
+  'utc_time', 'platform', 'os', 'compass_source', 'compass_trusted', 'compass_state',
+  'gps_lat', 'gps_lon', 'user_agent',
 ];
 
 /** Decimal comma, as a Turkish Excel expects next to semicolons; empty when unknown. */
@@ -98,23 +98,23 @@ function localTime(utc: string): string {
 export function measurementsCsv(records: readonly MeasurementRecord[]): string {
   const rows = records.map((r, i) => {
     const sheet: Record<string, string> = {
-      olcum_no: String(i + 1),
-      tarih_saat: localTime(r.utc),
-      telefon: r.device.model,
-      tarayici: r.device.browser,
-      telefon_azimut: decimal(r.headingDeg, 1),
-      telefon_yukseklik: decimal(r.pitchDeg, 1),
-      gps_dogruluk_m: decimal(r.gpsAccuracyM, 0),
-      mag_sapma: decimal(r.declinationDeg, 1),
-      utc_saat: r.utc,
+      measurement_no: String(i + 1),
+      local_time: localTime(r.utc),
+      phone_model: r.device.model,
+      browser: r.device.browser,
+      phone_azimuth: decimal(r.headingDeg, 1),
+      phone_elevation: decimal(r.pitchDeg, 1),
+      gps_accuracy_m: decimal(r.gpsAccuracyM, 0),
+      declination: decimal(r.declinationDeg, 1),
+      utc_time: r.utc,
       platform: r.device.platform,
-      isletim_sistemi: r.device.os,
-      pusula_kaynagi: r.headingSource,
-      pusula_guvenilir: r.headingTrusted ? 'evet' : 'hayir',
-      pusula_durumu: r.compassState,
-      gps_enlem: decimal(r.latitudeDeg, 6),
-      gps_boylam: decimal(r.longitudeDeg, 6),
-      kullanici_araci: r.device.userAgent,
+      os: r.device.os,
+      compass_source: r.headingSource,
+      compass_trusted: r.headingTrusted ? 'yes' : 'no',
+      compass_state: r.compassState,
+      gps_lat: decimal(r.latitudeDeg, 6),
+      gps_lon: decimal(r.longitudeDeg, 6),
+      user_agent: r.device.userAgent,
     };
     return [...SHEET_COLUMNS, ...EXTRA_COLUMNS].map((c) => quoted(sheet[c] ?? '')).join(';');
   });
@@ -196,7 +196,7 @@ export function bindMeasureTool(root: ParentNode, sensors: () => SensorSnapshot)
     const url = URL.createObjectURL(new Blob([measurementsCsv(records)], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `spotter-olcumler-${localTime(new Date().toISOString()).replace(/[: ]/g, '-')}.csv`;
+    a.download = `spotter-measurements-${localTime(new Date().toISOString()).replace(/[: ]/g, '-')}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });

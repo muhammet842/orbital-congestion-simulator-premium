@@ -1,0 +1,1 @@
+measurement_no;local_time;phone_model;browser;target_type;target_name;observer_lat;observer_lon;observer_height_m;target_lat;target_lon;target_height_m;true_azimuth;true_elevation;phone_azimuth;phone_elevation;gps_accuracy_m;declination;calibrated;surroundings;mount;notes

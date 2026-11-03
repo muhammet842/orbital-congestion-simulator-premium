@@ -36,9 +36,9 @@ describe('describeDevice', () => {
     expect(describeDevice(UA.ipad)).toMatchObject({ platform: 'iOS', os: 'iPadOS 16.6', model: 'iPad' });
   });
 
-  it('calls anything else "diger"', () => {
-    expect(describeDevice(UA.windowsEdge)).toMatchObject({ platform: 'diger', os: 'Windows', model: '', browser: 'Edge 156' });
-    expect(describeDevice('')).toMatchObject({ platform: 'diger', os: '', browser: '' });
+  it('calls anything else "other"', () => {
+    expect(describeDevice(UA.windowsEdge)).toMatchObject({ platform: 'other', os: 'Windows', model: '', browser: 'Edge 156' });
+    expect(describeDevice('')).toMatchObject({ platform: 'other', os: '', browser: '' });
   });
 
   it('keeps the whole User-Agent text', () => {
