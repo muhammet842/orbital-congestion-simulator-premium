@@ -1,0 +1,11 @@
+{
+  "when": "2026-11-03T08:54:50.756Z",
+  "node": "v24.17.0",
+  "cpu": "AMD Ryzen 5 7520U with Radeon Graphics         ",
+  "cores": 8,
+  "memoryGb": 8,
+  "os": "win32 10.0.26300",
+  "archiveDay": "2026-11-02",
+  "catalogObjects": 28297,
+  "warmupPasses": 5
+}

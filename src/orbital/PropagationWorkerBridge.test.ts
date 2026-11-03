@@ -51,6 +51,18 @@ function makeResultBuffer(count: number, fill: (i: number, base: number, buf: Fl
 }
 
 describe('PropagationWorkerBridge', () => {
+  it('starts no Worker when disabled (?worker=off), so the scene uses its main-thread fallback', async () => {
+    const { PropagationWorkerBridge } = await import('./PropagationWorkerBridge');
+    const bridge = new PropagationWorkerBridge({ disabled: true });
+    bridge.init(makeObjects(3));
+    bridge.request(Date.now(), 1);
+
+    expect(workerInstances).toHaveLength(0);
+    expect(bridge.isAvailable()).toBe(false);
+    expect(bridge.isStarting()).toBe(false); // the scene must not wait for a reply
+    expect(bridge.getLatestResults()).toBeNull();
+  });
+
   it('sends an init message with line1/line2 pairs when init() is called', async () => {
     const { PropagationWorkerBridge } = await import('./PropagationWorkerBridge');
     const bridge = new PropagationWorkerBridge();

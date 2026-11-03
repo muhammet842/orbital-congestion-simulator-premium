@@ -69,6 +69,7 @@ import { getHistoricalEvent } from '../ui/EventCards';
 import { isSpotterOpen } from '../ui/SpotterPanel';
 import { renderPixelRatio } from './deviceProfile';
 import { distanceKm } from '../orbital/conjunction/vectors';
+import { workersDisabled } from '../perfFlags';
 import {
   catalogUpdateKey,
   clockToAdvance,
@@ -229,7 +230,7 @@ export class SceneManager {
 
     this.eventReplayLabels = new EventReplayLabels(container);
 
-    this.propWorker = new PropagationWorkerBridge();
+    this.propWorker = new PropagationWorkerBridge({ disabled: workersDisabled() });
 
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('click', (e) => this.onClick(e));
