@@ -34,6 +34,7 @@
     "research:tle-age": "node research/tle-age/run.mjs",
     "research:perf-node": "node --import ./research/perf/register-ts.mjs research/perf/sgp4-node.mjs",
     "research:perf-browser": "node research/perf/browser-bench.mjs",
+    "research:sgp4-verify": "node research/sgp4-verify/run.mjs",
     "research:spotter-direction": "node --import ./research/perf/register-ts.mjs research/spotter/true-direction.mjs",
     "research:spotter-analyze": "node --import ./research/perf/register-ts.mjs research/spotter/analyze.mjs"
   },
