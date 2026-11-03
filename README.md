@@ -105,7 +105,7 @@ CI (GitHub Actions): lint + build + unit tests on every push/PR; Playwright e2e 
 | `src/workers/` | Web Workers for batch propagation and the 24 h close-approach sweep |
 | `scripts/` | Catalog refresh and enrichment, snapshot pull, screenshot and i18n tooling |
 | `e2e/` | Playwright tests (desktop and mobile) |
-| `docs/` | AI use and architecture notes (in Turkish), operations notes and the screenshots |
+| `docs/` | Architecture overview and AI use (in Turkish), operations notes and the screenshots |
 
 ## How to use
 
@@ -208,6 +208,7 @@ Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.g
 
 ## Operations
 
+- How it works (TLE → SGP4 → position → drawing, the 24 h close-approach sweep, the 3 km threshold, Web Workers), in Turkish: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Operations checklist: [docs/OPERATIONS.md](docs/OPERATIONS.md)
 
 ## Quick test guide (reviewers)
