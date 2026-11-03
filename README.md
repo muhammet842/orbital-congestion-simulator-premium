@@ -105,7 +105,7 @@ CI (GitHub Actions): lint + build + unit tests on every push/PR; Playwright e2e 
 | `src/workers/` | Web Workers for batch propagation and the 24 h close-approach sweep |
 | `scripts/` | Catalog refresh and enrichment, snapshot pull, screenshot and i18n tooling |
 | `e2e/` | Playwright tests (desktop and mobile) |
-| `docs/` | Architecture overview and AI use (in Turkish), operations notes and the screenshots |
+| `docs/` | Architecture overview, AI use, operations notes and the screenshots |
 
 ## How to use
 
@@ -208,7 +208,7 @@ Day and night maps sourced from [NASA Visible Earth](https://visibleearth.nasa.g
 
 ## Operations
 
-- How it works (TLE → SGP4 → position → drawing, the 24 h close-approach sweep, the 3 km threshold, Web Workers), in Turkish: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- How it works (TLE → SGP4 → position → drawing, the 24 h close-approach sweep, the 3 km threshold, Web Workers): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Operations checklist: [docs/OPERATIONS.md](docs/OPERATIONS.md)
 
 ## Quick test guide (reviewers)
@@ -242,7 +242,7 @@ Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md);
 
 ## AI use
 
-This project was built with heavy use of AI coding tools: **Cursor** (July – September 2026) and **Claude Code** by Anthropic (Claude Opus 5.5 and Sonnet 5.5, since October 2026). They wrote much of the code, the tests, the translations and the documentation, under the author's direction and review. From mid-October 2026 commits and PRs made with Claude Code no longer carry a `Co-Authored-By` line, so the git history shows less of this than there is. What was done with AI, how it was checked, and the author's own decisions: [docs/AI_USAGE.md](docs/AI_USAGE.md) (in Turkish).
+This project was built with heavy use of AI coding tools: **Cursor** (July – September 2026) and **Claude Code** by Anthropic (Claude Opus 5.5 and Sonnet 5.5, since October 2026). They wrote much of the code, the tests, the translations and the documentation, under the author's direction and review. From mid-October 2026 commits and PRs made with Claude Code no longer carry a `Co-Authored-By` line, so the git history shows less of this than there is. What was done with AI and how it was checked: [docs/AI_USAGE.md](docs/AI_USAGE.md).
 
 ## Author
 

@@ -1,178 +1,178 @@
-# Spotter doğruluğu: ölçüm protokolü
+# Spotter accuracy: measurement protocol
 
-**Soru:** Telefonu bir yöne tuttuğunda Spotter'ın "telefon şu yöne bakıyor" dediği yön, gerçek yönden kaç derece sapıyor?
+**Question:** when you point the phone in a direction, how many degrees is the direction Spotter says the phone is facing off from the true direction?
 
-Spotter, telefonun pusulasını (manyetometre) ve eğim sensörlerini (ivmeölçer, jiroskop) kullanır. Bu sensörlerin hatası, Spotter'ın "sağa 12° dön" gibi yönlendirmelerinin ne kadar güvenilir olduğunu belirler. Bu protokol o hatayı ölçer. **Uydu tahmininin doğruluğunu değil, telefonun yön bulmasının doğruluğunu ölçer**; uydu tahmini [`../tle-age/`](../tle-age/README.md) ve [`../sgp4-verify/`](../sgp4-verify/README.md) ölçümlerinin konusudur.
+Spotter uses the phone's compass (magnetometer) and tilt sensors (accelerometer, gyroscope). Their errors decide how far Spotter's cues, like "turn right 12°", can be trusted. This protocol measures that error. **It measures how well the phone finds directions, not how accurate the satellite prediction is**; the satellite prediction is the subject of the [`../tle-age/`](../tle-age/README.md) and [`../sgp4-verify/`](../sgp4-verify/README.md) measurements.
 
-## İki açı
+## Two angles
 
-- **Azimut (yön):** ufukta, coğrafi kuzeyden saat yönünde ölçülen açı. Kuzey 0°, doğu 90°, güney 180°, batı 270°.
-- **Yükseklik (eğim):** ufkun üstündeki açı. Ufuk 0°, tam tepe 90°, aşağısı eksi.
+- **Azimuth (direction):** the angle along the horizon, clockwise from true north. North 0°, east 90°, south 180°, west 270°.
+- **Elevation (tilt):** the angle above the horizon. Horizon 0°, straight up 90°, below the horizon negative.
 
-Her ölçümde iki hata hesaplanır: **azimut hatası** (telefonun gösterdiği − gerçek; artı ise telefon gerçeğin sağını gösteriyor) ve **yükseklik hatası** (artı ise telefon daha yukarıyı gösteriyor). Ayrıca ikisini birleştiren **toplam hata**: iki yön arasında gökyüzündeki açı. Bir kişinin fark edeceği sayı budur. Toplam hata, uygulamanın kendi fonksiyonuyla (`skyAngularSeparationDeg`) hesaplanır.
+Each measurement gives two errors: the **azimuth error** (phone's value − true value; positive means the phone points to the right of the truth) and the **elevation error** (positive means the phone points higher). Also the **total error** combining both: the angle on the sky between the two directions, the number a person would notice. It is computed with the app's own function (`skyAngularSeparationDeg`).
 
-**Dikkat:** Spotter'da "telefonun baktığı yön" **arka kameranın baktığı yön**dür, yani ekranın içinden geçip arkaya giden doğrultu. Telefonun üst kenarının gösterdiği yön değildir. Telefonu, ekranına bakarken arkasındaki hedefi "görecek" şekilde tutarsın.
+**Note:** in Spotter, "where the phone is facing" is **where the back camera faces**, i.e. the line going through the screen and out of the back. It is not the direction of the phone's top edge. Hold the phone so that, looking at its screen, you would "see" the target behind it.
 
-## Telefonun gösterdiği değeri okumak
+## Reading the phone's value
 
-Spotter'ın normal ekranı yalnızca seçili uyduya göre "sağa 12°" gibi tam sayılı yönlendirmeler verir (hedefe 3°'den yakınsa "hedefte" der); ölçüm için bu yeterince hassas değildir. Bu yüzden ölçümde **ölçüm göstergesi** kullanılır:
+Spotter's normal screen only gives whole-degree cues relative to the selected satellite, like "turn right 12°" (and "on target" within 3°), which is not precise enough for measuring. The measurement therefore uses the **measurement readout**:
 
-1. Siteyi telefonda adresin sonuna `?spotter=measure` ekleyerek aç, örneğin `https://orbital-congestion.vercel.app/?object=25544&spotter=measure` (uydu fark etmez, Spotter'ı açmak için bir uydu seçili olmalıdır).
-2. Sağ paneldeki **Spotter** düğmesine bas. Panelde "Ölçüm (araştırma)" kutusu görünür:
-   - **Yön**: arka kameranın baktığı yön, coğrafi kuzeyden (manyetik sapma düzeltilmiş), bir ondalıkla.
-   - **Eğim**: arka kameranın ufuktan yüksekliği, bir ondalıkla.
-   - Altında pusula kaynağı (`absolute` Android, `webkit` iPhone), uygulanan manyetik sapma ve GPS doğruluğu.
-   Bunlar, Spotter'ın yönlendirmelerinde kullandığı değerlerin aynısıdır.
-3. **Kaydet**: o anki değerleri bir listeye ekler; sayaç ("Kayıt: 12") her basışta artar ve kısa bir süre renklenir. **Pusula güvenilir değilken de kaydeder** (kutunun kenarı sarıya döner): Spotter o durumda yön değeri tutmadığı için satırda yön boş kalır, eğim kaydedilir ve satır `compass_trusted = no` olarak, sebebiyle birlikte (`compass_state`) işaretlenir.
-4. **Sonuncuyu sil**: yanlış bir basışı geri alır. **Tümünü sil**: onay sorar.
-5. **CSV indir**: kayıtları protokolün şablonuyla aynı sütunlarda bir dosya olarak indirir. Telefonun bildiği sütunlar doludur: `local_time`, `phone_model` (tarayıcı söylüyorsa model), `browser`, `phone_azimuth`, `phone_elevation`, `gps_accuracy_m`, `declination`; sonda ayrıca `utc_time`, `platform` (`iOS` / `Android` / `other`), `os` (örneğin `Android 14`, `iOS 17.5`), `compass_source`, `compass_trusted`, `compass_state`, `gps_lat`, `gps_lon` ve tarayıcının tam kimlik metni `user_agent`. iPhone'lar modelini hiçbir zaman söylemez (yalnızca "iPhone"); Android'de Chrome modeli çoğu zaman verir. Model boşsa `phone_model` sütununu kendin doldur. Hedef, gerçek yön ve koşullar sütunlarını sonra Excel'de sen doldurursun.
+1. On the phone, open the site with `?spotter=measure` at the end of the address, for example `https://orbital-congestion.vercel.app/?object=25544&spotter=measure` (any satellite works; one must be selected to open Spotter).
+2. Press **Spotter** in the right panel. The panel shows a "Measurement (research)" box (the app's buttons and labels appear in the selected language):
+   - **Direction**: where the back camera faces, from true north (declination corrected), to one decimal.
+   - **Tilt**: the back camera's elevation above the horizon, to one decimal.
+   - Below them: the compass source (`absolute` on Android, `webkit` on iPhone), the declination applied and the GPS accuracy.
+   These are the same values Spotter uses for its cues.
+3. **Save**: adds the current values to a list; the count ("Saved: 12") goes up and is highlighted briefly. **It also saves while the compass is not trusted** (the box border turns yellow): Spotter keeps no direction then, so the row has an empty direction, the tilt is saved, and the row is marked `compass_trusted = no` with the reason (`compass_state`).
+4. **Remove last**: undoes a wrong press. **Delete all**: asks first.
+5. **Download CSV**: downloads the readings as a file with the same columns as the protocol's template. The columns the phone knows are filled: `local_time`, `phone_model` (when the browser tells it), `browser`, `phone_azimuth`, `phone_elevation`, `gps_accuracy_m`, `declination`; and at the end `utc_time`, `platform` (`iOS` / `Android` / `other`), `os` (e.g. `Android 14`, `iOS 17.5`), `compass_source`, `compass_trusted`, `compass_state`, `gps_lat`, `gps_lon` and the browser's full User-Agent, `user_agent`. iPhones never give their model (only "iPhone"); Chrome on Android usually does. If the model is empty, fill in `phone_model` yourself. You fill in the target, true direction and conditions afterwards in a spreadsheet.
 
-Kayıtlar telefonun tarayıcısında saklanır: sayfa yenilense ya da ekran kilitlense de kaybolmaz. Yine de her oturumun sonunda CSV'yi indir. Normal adresle (bayraksız) açıldığında Spotter'da hiçbir şey değişmez.
+The readings are kept in the phone's browser: they survive a page reload or a locked screen. Still, download the CSV at the end of every session. Opened at the normal address (without the flag), Spotter is unchanged.
 
-## Gerekenler
+## What you need
 
-- Telefon (ve mümkünse ikinci bir telefon: sonuçların cihaza bağlı olup olmadığını görmek için).
-- **Sabit bir destek:** telefon tripodu ya da telefonu dik tutan bir tutucu. Elde tutmak da ölçülebilir ama ayrı kaydedilir.
-- **Gerçek su terazisi** (yapı marketlerde satılan; telefonun su terazisi uygulaması olmaz, çünkü ölçtüğümüz sensörü kullanır).
-- Uzaktaki yer işaretlerinin koordinatları için Google Maps (ya da benzeri bir harita).
-- Gece ölçümü için Stellarium (ücretsiz gökyüzü programı, https://stellarium-web.org) ya da benzeri.
-- Bu dosyanın yanındaki şablon: [`data/sheet-template.csv`](data/sheet-template.csv).
+- A phone (and if possible a second one, to see whether the results depend on the device).
+- **A fixed support:** a phone tripod or a holder that keeps the phone upright. Hand-held readings can be measured too, but are recorded separately.
+- **A real spirit level** (from a hardware store; not a phone level app, which uses the very sensor being measured).
+- Google Maps (or a similar map) for the coordinates of distant landmarks.
+- For night measurements, Stellarium (free planetarium software, https://stellarium-web.org) or similar.
+- The template next to this file: [`data/sheet-template.csv`](data/sheet-template.csv).
 
-## Adım 1: Hazırlık (her ölçüm oturumunun başında)
+## Step 1: Preparation (at the start of each session)
 
-1. **Açık bir alana çık.** Arabalardan, demir parmaklıklardan, beton içindeki demirden, hoparlörlerden ve elektrik kablolarından en az 2–3 m uzak dur. Manyetik pusula bunlardan etkilenir.
-2. **Mıknatıslı kılıfı ve mıknatıslı aksesuarları çıkar** (manyetik araç tutucu plakası, MagSafe cüzdan vb.).
-3. **Konumu al:** Spotter'da konum izni ver ve gösterilen GPS doğruluğunun 20 m'nin altına inmesini bekle. (Spotter yalnızca 80 m'nin üstünde uyarır; bu ölçüm için daha iyisi gerekir.) Yer işareti ölçümlerinde kendi konumunu haritadan aldığın için GPS hatası gerçek yönü etkilemez, ama Spotter'ın manyetik sapma hesabı konuma bağlıdır.
-4. **Pusulayı kalibre et:** telefonu havada büyük bir "8" çizerek birkaç kez salla. Spotter, pusula hazır değilse bunu ister. Kalibrasyon yapıp yapmadığını kaydet (`calibrated` sütunu). Kalibrasyonun etkisini görmek istersen bazı ölçümleri kalibrasyondan önce de yap.
-5. Spotter'ın gösterdiği **manyetik sapma** değerini ("Mag …°") not et (`declination` sütunu). Spotter pusulanın manyetik kuzeyini bu değerle coğrafi kuzeye çevirir; haritadaki yönler de coğrafi kuzeye göredir.
+1. **Go to an open area.** Stay at least 2–3 m away from cars, iron railings, reinforced concrete, loudspeakers and power cables. A magnetic compass is affected by all of them.
+2. **Remove magnetic cases and accessories** (magnetic car-mount plates, MagSafe wallets and the like).
+3. **Get a location fix:** allow location in Spotter and wait until the GPS accuracy shown is below 20 m. (Spotter only warns above 80 m; this measurement needs better.) For landmark measurements you take your own position from the map, so the GPS error does not affect the true direction, but Spotter's declination depends on the location.
+4. **Calibrate the compass:** move the phone in a big figure 8 in the air a few times. Spotter asks for this when the compass is not ready. Record whether you calibrated (`calibrated` column). To see the effect of calibration, take some readings before calibrating too.
+5. Note the **declination** Spotter shows ("Mag …°") (`declination` column). Spotter turns the compass's magnetic north into true north with this value; directions on a map are relative to true north too.
 
-## Adım 2: Gerçek yönü bilinen hedefler
+## Step 2: Targets with a known true direction
 
-Üç tür hedef kullan. Her biri hatanın farklı bir yanını ölçer.
+Use three kinds of target. Each measures a different side of the error.
 
-### A. Uzak yer işareti (gündüz, azimut ve yükseklik)
+### A. Distant landmark (daytime, azimuth and elevation)
 
-Uzakta, haritada yeri kesin belli bir nokta seç: minare, kule, radyo direği, belirgin bir dağ tepesi, uzak bir binanın köşesi.
+Pick a distant point whose position on the map is exact: a minaret, a tower, a radio mast, a distinct mountain top, the corner of a distant building.
 
-- **En az 1 km uzakta olsun.** Konumlardaki 10 m'lik bir hata, 1 km'de yaklaşık 0,6°, 3 km'de 0,2° yön hatası yapar. Hedef ne kadar uzaksa, gerçek yön o kadar kesin bilinir.
-- **Farklı yönlerde en az 4 hedef seç** (kabaca kuzey, doğu, güney, batı). Pusula hataları çoğu zaman yöne göre değişir; tek yönde ölçmek bunu gizler.
-- Koordinatlar: Google Maps'te noktaya uzun bas, çıkan "40.88765, 29.30012" gibi değeri kopyala. Kendi durduğun yeri de aynı şekilde, haritada bul (telefonun GPS'i birkaç metre yanılabilir; haritada durduğun yeri işaretlemek daha kesindir).
-- Yükseklikler (deniz seviyesinden, metre): haritanın yükseklik bilgisi ya da https://www.freemaptools.com/elevation-finder.htm gibi bir araç. Kule ve binalarda tepe noktasının yüksekliğini ekle. Yükseklik açısı uzak hedeflerde küçüktür; asıl ölçülen azimuttur.
-- Gerçek yönü hesapla:
+- **It should be at least 1 km away.** A 10 m error in either position gives about 0.6° of direction error at 1 km and 0.2° at 3 km. The farther the target, the more exactly its true direction is known.
+- **Pick at least 4 targets in different directions** (roughly north, east, south and west). Compass errors often change with direction; measuring in one direction would hide that.
+- Coordinates: long-press the point in Google Maps and copy the value shown, like "40.88765, 29.30012". Find your own standing point on the map the same way (the phone's GPS can be off by a few metres; marking your spot on the map is more exact).
+- Heights (above sea level, metres): the map's elevation information or a tool like https://www.freemaptools.com/elevation-finder.htm. For towers and buildings, add the height of the top. The elevation angle is small for distant targets; the azimuth is what is mainly measured.
+- Compute the true direction:
 
   ```bash
   npm run research:spotter-direction -- --from 40.88765,29.30012,35 --to 40.90510,29.33120,180
   ```
 
-  Çıktıdaki **gerçek azimut** ve **gerçek yükseklik açısı** şablona yazılır. Koordinatları şablona yazıp gerçek yön sütunlarını boş bırakırsan, analiz betiği bunları kendisi de hesaplar.
+  Write the **true azimuth** and **true elevation** from the output into the sheet. If you write the coordinates into the sheet and leave the true-direction columns empty, the analysis script computes them itself.
 
-### B. Kutup Yıldızı (gece, azimut ve yükseklik)
+### B. Polaris (night, azimuth and elevation)
 
-Kutup Yıldızı (Polaris) gökyüzünde neredeyse hiç hareket etmez: her zaman kuzeyin 1°'den daha yakınındadır ve ufuktan yüksekliği, bulunduğun yerin enlemine yaklaşık eşittir (İstanbul'da yaklaşık 41°). Ölçüm anındaki kesin azimut ve yüksekliğini Stellarium'dan oku (konumu ve saati doğru ayarla) ve şablona yaz. Yükseklik açısının sıfırdan büyük olduğu tek hedef türü budur; eğim ölçümünü yükseklikte de sınar.
+Polaris (the North Star) barely moves on the sky: it is always within 1° of north, and its height above the horizon roughly equals your latitude (about 41° in Istanbul). Read its exact azimuth and elevation at the time of measuring from Stellarium (set the location and time correctly) and write them into the sheet. It is the only target type well above the horizon, so it also tests the tilt at height.
 
-Başka parlak yıldızlar ve gezegenler de aynı şekilde kullanılabilir. **Asla Güneş'e doğru bakma ya da telefonun kamerasını Güneş'e tutma.**
+Other bright stars and planets can be used the same way. **Never look at the Sun or point the phone's camera at it.**
 
-### C. Su terazisi (yalnızca yükseklik)
+### C. Spirit level (elevation only)
 
-Eğim sensörünü yön sensöründen ayrı sınamak için:
+To test the tilt sensor apart from the compass:
 
-- **Ufuk (0°):** telefonu dik tut, ekranı sana dönük; telefonun yan kenarına su terazisini dayayıp tam dik olduğunu kontrol et. Arka kamera tam ufka bakar: gerçek yükseklik **0°**.
-- **Tepe (90°):** telefonu ekranı aşağı bakacak şekilde düz bir masaya koy (masanın düzlüğünü su terazisiyle kontrol et). Arka kamera tam tepeye bakar: **90°**.
-- Bu satırlarda **gerçek azimutu boş bırak**: azimut bilinmediği için yalnızca yükseklik hatası hesaplanır. Tepe ölçümünde azimut zaten anlamsızdır (bütün yönler tepede birleşir).
+- **Horizon (0°):** hold the phone upright with the screen facing you; put the spirit level against the phone's side edge to check it is exactly vertical. The back camera then faces the horizon exactly: true elevation **0°**.
+- **Zenith (90°):** lay the phone screen-down on a flat table (check the table with the spirit level). The back camera faces straight up: **90°**.
+- In these rows **leave the true azimuth empty**: the azimuth is unknown, so only the elevation error is computed. At the zenith the azimuth is meaningless anyway (all directions meet there).
 
-## Adım 3: Ölçüm
+## Step 3: Measuring
 
-Her hedef için:
+For each target:
 
-1. Telefonu desteğe tak ve arka kamerası hedefe bakacak şekilde nişan al. Nişan almak için ekranın üst kenarının ortasından hedefe bak; ekran, bakış çizgine dik olsun.
-2. **5 saniye kıpırdatmadan bekle.** Spotter, titremeyi azaltmak için sensör değerlerini yumuşatır; değerin oturması birkaç saniye sürer.
-3. Ölçüm göstergesinde **Kaydet**'e bas. (Telefona dokunmak onu oynatabilir; tripoddaysan dokunduktan sonra değerin değişmediğini kontrol et, değiştiyse **Sonuncuyu sil** ve yeniden bekle.) Hangi kaydın hangi hedefe ait olduğunu bir kâğıda not et: "Kayıt 1–10: minare".
-4. **Telefonu çıkar, başka bir yöne çevir, sonra yeniden nişan al ve tekrar oku.** Her okuma ayrı bir nişan almadan gelmeli; aksi halde aynı okumayı on kez yazmış olursun.
-5. Her hedefte **10 okuma** yap.
+1. Put the phone on the support and aim its back camera at the target. To aim, look at the target over the middle of the screen's top edge, with the screen perpendicular to your line of sight.
+2. **Wait 5 seconds without moving it.** Spotter smooths the sensor values to reduce jitter; the value takes a few seconds to settle.
+3. Press **Save** in the measurement readout. (Touching the phone can move it; on a tripod, check that the value did not change after the press, and if it did, use **Remove last** and wait again.) Note on paper which readings belong to which target: "readings 1–10: minaret".
+4. **Take the phone off, turn it in another direction, then aim again and take the next reading.** Each reading should come from a separate aim; otherwise you record the same reading ten times.
+5. Take **10 readings** per target.
 
-**Önerilen asgari plan** (yaklaşık 2–3 saat, iki oturuma bölünebilir):
+**Suggested minimum plan** (about 2–3 hours, can be split into two sessions):
 
-| Hedef | Koşul | Okuma |
+| Target | Condition | Readings |
 |---|---|---|
-| 4 yer işareti (K, D, G, B) | tripod, kalibrasyonlu | 4 × 10 |
-| Aynı 4 yer işareti | elde, kalibrasyonlu | 4 × 10 |
-| 1 yer işareti | tripod, kalibrasyondan önce | 10 |
-| Su terazisi: ufuk ve tepe | masa / dik | 2 × 10 |
-| Kutup Yıldızı (gece) | tripod | 10 |
-| (İsteğe bağlı) ikinci telefon | aynı plan | — |
-| (İsteğe bağlı) bir arabanın 1 m yanında | tripod | 10 |
+| 4 landmarks (N, E, S, W) | tripod, calibrated | 4 × 10 |
+| The same 4 landmarks | hand-held, calibrated | 4 × 10 |
+| 1 landmark | tripod, before calibrating | 10 |
+| Spirit level: horizon and zenith | table / upright | 2 × 10 |
+| Polaris (night) | tripod | 10 |
+| (Optional) a second phone | same plan | — |
+| (Optional) 1 m from a car | tripod | 10 |
 
-Son satır, metal ve mıknatısların etkisini göstermek içindir: aynı hedefi arabanın yanında ve uzağında ölçmek, "neden açık alanda ölçmek gerekir" sorusunun sayısal cevabıdır.
+The last row shows the effect of metal and magnets: measuring the same target next to and away from a car gives a number to the question "why measure in an open area?".
 
-**Ne beklemeli:** telefon, metalin yanında da çoğu zaman pusulaya "güvenilir" der ve yine bir yön verir; yalnızca o yön yanlıştır. Bu durumda etki **azimut hatasında** görünür (aynı hedef, arabanın yanında kaç derece farklı gösteriliyor?). Spotter pusulaya güvenmeyi bırakırsa (örneğin kalibrasyon isterse), gösterge bunu sarı renkle ve "Pusula güvenilir değil" yazısıyla söyler; o kayıtlarda yön boştur, ama kaç kez olduğu `compass_trusted` sütunundan sayılabilir. Raporda iki sonuç ayrı yazılmalı: yanlış yön ve hiç yön olmaması.
+**What to expect:** next to metal the phone usually still calls the compass trusted and gives a direction; only that direction is wrong. The effect then shows in the **azimuth error** (how many degrees off is the same target next to the car?). If Spotter stops trusting the compass (for example when it asks for calibration), the readout says so in yellow with a "compass not trusted" message; those readings have no direction, but how often it happened can be counted from the `compass_trusted` column. The two results should be reported separately: a wrong direction, and no direction at all.
 
-## Adım 4: Kayıt
+## Step 4: Recording
 
-Ölçüm göstergesinin indirdiği CSV'yi `data/measurements.csv` adıyla kaydet (birden çok oturumun dosyalarını Excel'de alt alta birleştirebilirsin; `measurement_no` sütununu baştan numarala) ve kâğıttaki notlarına göre hedef ve koşul sütunlarını doldur. Gösterge yoksa boş şablonu, [`data/sheet-template.csv`](data/sheet-template.csv), elle de doldurabilirsin. Dosya noktalı virgüllüdür, Türkçe Excel'de doğrudan sütunlara ayrılır; ondalık için virgül kullanabilirsin (12,5). Kaydederken "CSV (noktalı virgülle ayrılmış)" seç.
+Save the CSV downloaded from the measurement readout as `data/measurements.csv` (files from several sessions can be stacked in a spreadsheet; renumber the `measurement_no` column) and fill in the target and condition columns from your paper notes. Without the readout you can also fill in the empty template, [`data/sheet-template.csv`](data/sheet-template.csv), by hand. The file is semicolon-separated so that spreadsheets in decimal-comma locales (such as Turkish or German Excel) open it in columns; decimal commas are accepted (12,5). When saving, choose "CSV (semicolon delimited)".
 
-| Sütun | Ne yazılır | Örnek |
+| Column | What to write | Example |
 |---|---|---|
-| `measurement_no` | Sıra numarası | 17 |
-| `local_time` | Yerel saatle tarih ve saat | 2026-11-05 14:10 |
+| `measurement_no` | Running number | 17 |
+| `local_time` | Local date and time | 2026-11-05 14:10 |
 | `phone_model` | Model | Redmi Note 12 |
-| `browser` | Tarayıcı ve sürümü | Chrome 130 |
-| `target_type` | `landmark`, `polaris` ya da `spirit_level` | yer_isareti |
-| `target_name` | Kısa ad | Tuzla minaresi |
-| `observer_lat`, `observer_lon`, `observer_height_m` | Durduğun yer (yalnızca yer işaretinde) | 40,88765 · 29,30012 · 35 |
-| `target_lat`, `target_lon`, `target_height_m` | Hedefin yeri (yalnızca yer işaretinde) | 40,90510 · 29,33120 · 180 |
-| `true_azimuth`, `true_elevation` | Gerçek yön (betikten, Stellarium'dan ya da su terazisi testinde 0 / 90). Koordinat yazdıysan boş bırakabilirsin. Su terazisinde azimutu boş bırak. | 53,49 · 2,53 |
-| `phone_azimuth`, `phone_elevation` | Ölçüm göstergesinin gösterdiği | 48,5 · 3,1 |
-| `gps_accuracy_m` | Spotter'ın gösterdiği GPS doğruluğu | 5 |
-| `declination` | Spotter'ın gösterdiği manyetik sapma ("Mag …°") | 5,9 |
-| `calibrated` | `yes` / `no` (8 çizildi mi) | evet |
-| `surroundings` | `open_area`, `indoors` ya da `near_metal` | acik_alan |
-| `mount` | `tripod` ya da `hand` | tripod |
-| `notes` | Gerekirse: rüzgâr, uyarılar, ne oldu | araba geçti |
+| `browser` | Browser and version | Chrome 130 |
+| `target_type` | `landmark`, `polaris` or `spirit_level` | landmark |
+| `target_name` | Short name | Tuzla minaret |
+| `observer_lat`, `observer_lon`, `observer_height_m` | Where you stood (landmarks only) | 40,88765 · 29,30012 · 35 |
+| `target_lat`, `target_lon`, `target_height_m` | Where the target is (landmarks only) | 40,90510 · 29,33120 · 180 |
+| `true_azimuth`, `true_elevation` | True direction (from the script, Stellarium, or 0 / 90 for the spirit level). Can stay empty if you wrote the coordinates. Leave the azimuth empty for the spirit level. | 53,49 · 2,53 |
+| `phone_azimuth`, `phone_elevation` | What the measurement readout showed | 48,5 · 3,1 |
+| `gps_accuracy_m` | GPS accuracy shown by Spotter | 5 |
+| `declination` | Declination shown by Spotter ("Mag …°") | 5,9 |
+| `calibrated` | `yes` / `no` (figure 8 done?) | yes |
+| `surroundings` | `open_area`, `indoors` or `near_metal` | open_area |
+| `mount` | `tripod` or `hand` | tripod |
+| `notes` | If needed: wind, warnings, what happened | a car drove past |
 
-Bir satırda bir şey ters gittiyse satırı silme, `notes` sütununa yaz. Hangi ölçümlerin dışarıda bırakılacağına analizden önce, kuralı yazarak karar ver.
+If something went wrong in a row, do not delete it; write it in `notes`. Decide which readings to leave out before the analysis, by writing down the rule.
 
-## Adım 5: Analiz
+## Step 5: Analysis
 
 ```bash
 npm run research:spotter-analyze
 ```
 
-Betik `data/measurements.csv` dosyasını okur ve iki dosya yazar:
+The script reads `data/measurements.csv` and writes two files:
 
-- `results/errors.csv`: her ölçümün azimut, yükseklik ve toplam hatası.
-- `results/summary.csv`: hepsi için ve platforma (iPhone / Android), işletim sistemine, telefona, hedef türüne, kalibrasyona, ortama, tutuşa, pusulanın güvenilir olup olmadığına ve platform + hedef türüne göre gruplar halinde **ortalama** (sistematik sapma: telefon hep bir yöne mi kaçıyor?), **ortanca**, **standart sapma** (dağınıklık: aynı hedefi ne kadar tutarlı gösteriyor?), toplam hatanın ortancası, %95'lik değeri ve en büyüğü.
+- `results/errors.csv`: the azimuth, elevation and total error of every reading.
+- `results/summary.csv`: for all readings, and grouped by platform (iPhone / Android), operating system, phone, target type, calibration, surroundings, mount, whether the compass was trusted, and platform + target type: the **mean** (systematic bias: does the phone always lean one way?), **median**, **standard deviation** (spread: how consistently does it show the same target?), and the total error's median, 95th percentile and maximum.
 
-Pusula güvenilir değilken alınan satırlarda yön boş olduğu için bunlar yalnızca eğim hatasına sayılır; `n_azimuth` ve `n_elevation` sütunları her ölçütün kaç satırdan hesaplandığını gösterir.
+Readings taken while the compass was not trusted have no direction, so they count for the elevation error only; the `n_azimuth` and `n_elevation` columns show how many rows each measure is based on.
 
-Ortalama ile ortanca birlikte okunmalı: ortalama sıfırdan uzaksa telefonun sistematik bir sapması vardır (örneğin hep 4° sağı gösteriyor); standart sapma büyükse ölçümler dağınıktır.
+Read the mean and median together: a mean far from zero means the phone has a systematic bias (for example it always points 4° to the right); a large standard deviation means the readings are scattered.
 
-## Hata kaynakları (raporda tartışılabilecekler)
+## Error sources (to discuss in a write-up)
 
-| Kaynak | Etkisi | Bu protokoldeki önlem |
+| Source | Effect | Precaution in this protocol |
 |---|---|---|
-| Manyetik bozulma (metal, mıknatıs, elektrik) | Azimutta onlarca dereceye kadar | Açık alan, kılıfsız; ayrıca bilinçli bir "metal yakını" ölçümü |
-| Pusula kalibrasyonu | Azimutta birkaç ile onlarca derece | 8 çizme; kalibrasyon öncesi/sonrası karşılaştırması |
-| Nişan alma | Yaklaşık 1–2° | Tripod; her okumada yeniden nişan; elde/tripod karşılaştırması |
-| Hedefin gerçek yönü | Konum hatası / uzaklık (1 km'de 10 m → 0,6°) | En az 1 km uzak hedef, haritada işaretlenmiş konum |
-| Manyetik sapma (declination) modeli | Genelde 1°'den küçük | `declination` kaydedilir |
-| Sensör yumuşatması | Okuma oturmadan yazılırsa birkaç derece | 5 saniye bekleme |
-| Telefon modeli | Sensörler cihaza göre değişir | İsteğe bağlı ikinci telefon |
+| Magnetic disturbance (metal, magnets, electricity) | Up to tens of degrees in azimuth | Open area, no case; plus a deliberate "near metal" measurement |
+| Compass calibration | A few to tens of degrees in azimuth | Figure 8; before/after calibration comparison |
+| Aiming | About 1–2° | Tripod; a fresh aim for each reading; hand-held/tripod comparison |
+| The target's true direction | Position error / distance (10 m at 1 km → 0.6°) | Targets at least 1 km away, positions marked on the map |
+| Declination model | Usually under 1° | `declination` is recorded |
+| Sensor smoothing | A few degrees if read before it settles | 5-second wait |
+| Phone model | Sensors differ between devices | Optional second phone |
 
-## Güvenlik
+## Safety
 
-- Güneş'e asla doğrudan ya da telefonun kamerasıyla bakma.
-- Gece ölçümünde güvenli, aydınlık ve tanıdık bir yerde, yanında biriyle ol.
-- Yol kenarında ölçüm yapma.
+- Never look at the Sun, directly or through the phone's camera.
+- At night, measure in a safe, lit, familiar place, with someone with you.
+- Do not measure at the roadside.
 
-## Dosyalar
+## Files
 
-| Dosya | Görev |
+| File | Purpose |
 |---|---|
-| [`../../src/ui/spotter/measureTool.ts`](../../src/ui/spotter/measureTool.ts) | Uygulamadaki ölçüm göstergesi (`?spotter=measure`): okuma, kaydetme, CSV indirme. |
-| [`sheet.test.ts`](sheet.test.ts) | Göstergenin indirdiği dosyanın şablonla aynı sütunlarda olduğunu ve analizin onu okuyabildiğini denetler. |
-| [`data/sheet-template.csv`](data/sheet-template.csv) | Boş şablon (noktalı virgüllü, Excel'e uygun). |
-| [`true-direction.mjs`](true-direction.mjs) | İki koordinattan gerçek azimut, yükseklik açısı ve uzaklık. |
-| [`analyze.mjs`](analyze.mjs) | Doldurulmuş tabloyu özetler. |
-| [`lib.mjs`](lib.mjs), [`lib.test.ts`](lib.test.ts) | Hesaplar ve testleri (yönlerin doğruluğu, kuzeyde 359° ile 2° arasının 3° olması, Excel'in noktalı virgüllü CSV'si). |
+| [`../../src/ui/spotter/measureTool.ts`](../../src/ui/spotter/measureTool.ts) | The measurement readout in the app (`?spotter=measure`): reading, saving, CSV download. |
+| [`sheet.test.ts`](sheet.test.ts) | Checks that the file the readout downloads has the template's columns and that the analysis reads it. |
+| [`data/sheet-template.csv`](data/sheet-template.csv) | Empty template (semicolon-separated, spreadsheet-friendly). |
+| [`true-direction.mjs`](true-direction.mjs) | True azimuth, elevation angle and distance from two coordinates. |
+| [`analyze.mjs`](analyze.mjs) | Summarizes the filled-in sheet. |
+| [`lib.mjs`](lib.mjs), [`lib.test.ts`](lib.test.ts) | The calculations and their tests (correct directions, 3° between 359° and 2° across north, semicolon CSV from Excel). |
 
-Gerçek yön, iki nokta WGS-84 elipsoidi üzerinde Dünya merkezli koordinatlara çevrilip gözlemcinin doğu–kuzey–yukarı eksenlerine döndürülerek hesaplanır; Dünya'nın eğriliği bu sayede hesaba katılır. Havadaki ışık kırılması dahil değildir (birkaç km'de 0,05°'den az).
+The true direction is computed by converting both points on the WGS-84 ellipsoid to Earth-centred coordinates and turning the line between them into the observer's east–north–up axes; this takes the Earth's curvature into account. Refraction in the air is not included (under 0.05° over a few km).

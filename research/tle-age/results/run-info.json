@@ -1,6 +1,5 @@
 {
   "note": "Not the true error: the newer TLE is only a more recent estimate, so these are differences between two TLEs.",
-  "noteTr": "Gerçek hata değildir: yeni TLE yalnızca daha güncel bir tahmindir; değerler iki TLE arasındaki farktır.",
   "split": "2026-10-19",
   "periods": {
     "main": {
@@ -24,7 +23,7 @@
       "pairs": 1771754,
       "sgp4Errors": 570,
       "implausible": 0,
-      "seconds": 14
+      "seconds": 27
     },
     "early": {
       "days": [
@@ -81,7 +80,7 @@
       "pairs": 8321979,
       "sgp4Errors": 24056,
       "implausible": 11035,
-      "seconds": 84
+      "seconds": 152
     }
   }
 }

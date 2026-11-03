@@ -28,10 +28,7 @@ const GROUPS = ['LEO', 'LEO_EXCL_STARLINK', 'STARLINK', 'STATIONS', 'MEO', 'GEO'
 const BINS = ['0', ...Array.from({ length: 14 }, (_, i) => String(i + 1)), '15-30', '31+'];
 export const NOT_TRUE_ERROR =
   'Not the true error: the newer TLE is only a more recent estimate, so these are differences between two TLEs.';
-/** The same note in Turkish, for the charts (the report is in Turkish). */
-export const NOT_TRUE_ERROR_TR =
-  'Gerçek hata değildir: yeni TLE yalnızca daha güncel bir tahmindir; değerler iki TLE arasındaki farktır.';
-const PERIOD_TR = { main: 'Ana dönem', early: 'Erken dönem' };
+const PERIOD_NAME = { main: 'Main period', early: 'Early period' };
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
@@ -171,11 +168,11 @@ function summaryRows(period, cells) {
 function toCsv(rows) {
   const header = Object.keys(rows[0]);
   const body = rows.map((r) => header.map((h) => r[h]).join(','));
-  return `${[`# ${NOT_TRUE_ERROR}`, `# ${NOT_TRUE_ERROR_TR}`, header.join(','), ...body].join('\n')}\n`;
+  return `${[`# ${NOT_TRUE_ERROR}`, header.join(','), ...body].join('\n')}\n`;
 }
 
 const CHART_SERIES = [
-  { group: 'LEO_EXCL_STARLINK', label: 'LEO (Starlink hariç)', color: '#0072B2' },
+  { group: 'LEO_EXCL_STARLINK', label: 'LEO (no Starlink)', color: '#0072B2' },
   { group: 'STARLINK', label: 'Starlink', color: '#56B4E9' },
   { group: 'MEO', label: 'MEO', color: '#E69F00' },
   { group: 'GEO', label: 'GEO', color: '#D55E00' },
@@ -186,11 +183,11 @@ const MIN_PAIRS_PER_POINT = 20;
 
 function chart(period, days, cells) {
   return lineChart({
-    title: 'TLE yaşına göre konum farkı',
-    subtitle: `${PERIOD_TR[period]}: ${days[0]} – ${days.at(-1)} (${days.length} günlük katalog). Çizgi: ortanca, bant: Q1–Q3.`,
-    note: NOT_TRUE_ERROR_TR,
-    xLabel: 'TLE yaşı (gün, satır 1 epoch’larından)',
-    yLabel: 'Konum farkı (km, logaritmik ölçek)',
+    title: 'Position difference vs. TLE age',
+    subtitle: `${PERIOD_NAME[period]}: ${days[0]} to ${days.at(-1)} (${days.length} daily catalogs). Line: median, band: Q1–Q3.`,
+    note: NOT_TRUE_ERROR,
+    xLabel: 'TLE age (days, from the line-1 epochs)',
+    yLabel: 'Position difference (km, log scale)',
     xMax: 14,
     series: CHART_SERIES.map((s) => ({
       ...s,
@@ -223,7 +220,6 @@ function outliersCsv(outliers) {
   );
   return `${[
     `# ${NOT_TRUE_ERROR}`,
-    `# ${NOT_TRUE_ERROR_TR}`,
     `# The ${Math.min(OUTLIERS_LISTED, outliers.length)} largest of ${outliers.length} pairs above the Tukey limit Q3 + 3 x (Q3 - Q1) of their orbit layer and age: often a manoeuvre or a re-entering object.`,
     'period,norad_id,name,layer,age_days,older_epoch_utc,newer_epoch_utc,distance_km,along_km,radial_km,cross_km,limit_km',
     ...rows,
@@ -241,7 +237,7 @@ async function main() {
     ['main', catalogs.filter((c) => c.day >= split)],
     ['early', catalogs.filter((c) => c.day < split)],
   ];
-  const runInfo = { note: NOT_TRUE_ERROR, noteTr: NOT_TRUE_ERROR_TR, split, periods: {} };
+  const runInfo = { note: NOT_TRUE_ERROR, split, periods: {} };
   const outliers = [];
 
   for (const [period, list] of periods) {

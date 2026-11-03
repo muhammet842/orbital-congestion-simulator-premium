@@ -1,5 +1,4 @@
 # Not the true error: the newer TLE is only a more recent estimate, so these are differences between two TLEs.
-# Gerçek hata değildir: yeni TLE yalnızca daha güncel bir tahmindir; değerler iki TLE arasındaki farktır.
 # The 1000 largest of 246208 pairs above the Tukey limit Q3 + 3 x (Q3 - Q1) of their orbit layer and age: often a manoeuvre or a re-entering object.
 period,norad_id,name,layer,age_days,older_epoch_utc,newer_epoch_utc,distance_km,along_km,radial_km,cross_km,limit_km
 early,40483,"MMS 2",HEO,84.917,2026-07-19T08:00:01.999Z,2026-10-12T06:00:02.999Z,149960.971,-120353.076,-89461.890,-0.761,19075.791

@@ -1,107 +1,107 @@
-# Mimari: TLE'den ekrandaki noktaya
+# Architecture: from a TLE to a dot on the screen
 
-Bu belge, uygulamanın bir uydunun konumunu nasıl bulup çizdiğini, yakın geçişleri nasıl taradığını ve hesapları neden Web Worker'larda yaptığını kısaca anlatır. Ayrıntı için her bölümde ilgili dosyalara bağlantı var.
+This document briefly explains how the app finds and draws a satellite's position, how it screens for close approaches, and why the heavy calculations run in Web Workers. Each section links to the files involved.
 
 ```mermaid
 flowchart LR
-  A[CelesTrak<br/>TLE + SATCAT] -->|her gün, GitHub Actions| B[tle.json]
-  B -->|tarayıcı indirir| C[tleLoader<br/>TLE → satrec]
-  C --> D[Konum worker'ı<br/>SGP4: satrec + zaman → konum]
-  D -->|Float64Array| E[OrbitalMeshes<br/>konum → sahne → nokta]
-  C --> F[Yakın geçiş worker'ı<br/>24 saatlik tarama]
-  F -->|≤ 3 km çiftler| G[Sol panel kartları<br/>ve doğrulama görünümü]
+  A[CelesTrak<br/>TLE + SATCAT] -->|daily, GitHub Actions| B[tle.json]
+  B -->|downloaded by the browser| C[tleLoader<br/>TLE → satrec]
+  C --> D[Position worker<br/>SGP4: satrec + time → position]
+  D -->|Float64Array| E[OrbitalMeshes<br/>position → scene → dot]
+  C --> F[Close-approach worker<br/>24-hour sweep]
+  F -->|pairs ≤ 3 km| G[Left-panel cards<br/>and verification view]
 ```
 
-## 1. Veri: TLE nereden geliyor?
+## 1. Data: where the TLEs come from
 
-- **TLE (Two-Line Element):** Bir nesnenin yörüngesini, belirli bir andaki (epoch) yörünge elemanlarıyla anlatan iki satırlık metin. ABD Uzay Kuvvetleri'nin gözlemlerinden üretilir; [CelesTrak](https://celestrak.org) bunları herkese açık yayımlar.
-- **Günlük güncelleme:** Her gün 03:17 UTC'de bir GitHub Actions iş akışı CelesTrak'tan kataloğu indirir, SATCAT'ten ülke/sahip bilgisini ekler, denetler ve yayımlar ([`scripts/fetch-tle.mjs`](../scripts/fetch-tle.mjs), [`docs/OPERATIONS.md`](OPERATIONS.md)). Sonuç yaklaşık 28.000 nesnelik `tle.json` dosyasıdır.
-- **Arşiv:** Her günün kataloğu ayrıca `tle-archive` release'inde saklanır; `research/` ölçümleri bunları kullanır.
+- **TLE (Two-Line Element set):** two lines of text describing an object's orbit by its orbital elements at a given moment (the epoch). They are produced from US Space Force tracking; [CelesTrak](https://celestrak.org) publishes them openly.
+- **Daily update:** every day at 03:17 UTC a GitHub Actions workflow downloads the catalog from CelesTrak, adds country and owner from SATCAT, checks it and publishes it ([`scripts/fetch-tle.mjs`](../scripts/fetch-tle.mjs), [`docs/OPERATIONS.md`](OPERATIONS.md)). The result is `tle.json` with about 28,000 objects.
+- **Archive:** each day's catalog is also kept in the `tle-archive` release; the `research/` measurements use it.
 
 ## 2. TLE → satrec
 
-Tarayıcı `tle.json`'ı indirir ([`src/data/tleLoader.ts`](../src/data/tleLoader.ts)). Her nesne için:
+The browser downloads `tle.json` ([`src/data/tleLoader.ts`](../src/data/tleLoader.ts)). For each object:
 
-1. TLE satırları satellite.js kütüphanesinin `twoline2satrec` fonksiyonuyla **satrec**'e çevrilir: SGP4'ün hesaplamaya hazır, sayılara açılmış yörünge elemanları.
-2. **Katman** (LEO / MEO / GEO / HEO), nesnenin o an nerede olduğundan değil **yörüngesinin biçiminden** (ortalama yükseklik ve eksantriklik) bulunur ([`classifyOrbitFromElements`](../src/orbital/classify.ts)). Böylece aynı nesne her ziyarette aynı katmanda kalır.
-3. **TLE yaşı:** Epoch'u katalog tarihinden **7 günden** fazla uzak olan TLE "eski" işaretlenir (`STALE_TLE_AGE_DAYS`). Eski TLE'li nesneler çizilir, ama yakın geçiş taramasına alınmaz: konumları birkaç km ile onlarca km arasında yanılabilir ([TLE yaşı ölçümü](../research/tle-age/README.md)).
-4. Atmosfere girmiş nesneler ve hesaplanamayan TLE'ler çıkarılır.
+1. The TLE lines are turned into a **satrec** with satellite.js's `twoline2satrec`: the orbital elements unpacked into numbers, ready for SGP4.
+2. The **layer** (LEO / MEO / GEO / HEO) comes from the **shape of the orbit** (mean altitude and eccentricity), not from where the object happens to be ([`classifyOrbitFromElements`](../src/orbital/classify.ts)). That way an object stays in the same layer on every visit.
+3. **TLE age:** a TLE whose epoch is more than **7 days** from the catalog date is marked as old (`STALE_TLE_AGE_DAYS`). Objects with old TLEs are drawn but left out of close-approach screening: their positions can be off by kilometres to tens of kilometres ([TLE age measurement](../research/tle-age/README.md)).
+4. Decayed objects and TLEs that cannot be propagated are dropped.
 
-## 3. SGP4: satrec + zaman → konum
+## 3. SGP4: satrec + time → position
 
-**SGP4**, NORAD'ın TLE'lerle birlikte kullanmak için geliştirdiği yörünge modelidir (Hoots ve Roehrich, 1980; bugünkü sürüm Vallado vd., 2006). Bir TLE'yi ve bir zamanı alır, nesnenin o andaki konumunu ve hızını verir. Dünya'nın basık şeklini, atmosfer sürtünmesini ve Ay/Güneş'in çekimini basitleştirilmiş formüllerle hesaba katar.
+**SGP4** is the orbit model NORAD developed for use with TLEs (Hoots and Roehrich, 1980; today's version Vallado et al., 2006). It takes a TLE and a time and gives the object's position and velocity at that time. It accounts for the Earth's flattening, atmospheric drag and the Moon's and Sun's gravity with simplified formulas.
 
-- Uygulama satellite.js 7.1.0'ı kullanır. Bu kütüphanenin yayımlanmış referans sonuçlarla 1 mm içinde aynı sonucu verdiği doğrulandı ([SGP4 doğrulaması](../research/sgp4-verify/README.md)).
-- Çıktı, Dünya merkezli bir koordinat sisteminde (SGP4'ün TEME sistemi; kodda "ECI" diye geçer) kilometre cinsinden konum ve km/s cinsinden hızdır ([`propagateObject`](../src/orbital/propagator.ts)). Ayrıca yükseklik, enlem ve boylam hesaplanır.
-- **Maliyet:** Bu bilgisayarda bir nesne yaklaşık 2,2 µs sürer; **28.000 nesne yaklaşık 61 ms** ([performans ölçümü](../research/perf/README.md)). 60 Hz bir ekranda bir kareye 16,7 ms düştüğü için bu iş çizimle aynı yerde yapılamaz (bölüm 5).
+- The app uses satellite.js 7.1.0. This library was verified to agree with the published reference results within 1 mm ([SGP4 verification](../research/sgp4-verify/README.md)).
+- The output is the position in kilometres and the velocity in km/s in an Earth-centred frame (SGP4's TEME frame; called "ECI" in the code) ([`propagateObject`](../src/orbital/propagator.ts)). Altitude, latitude and longitude are computed too.
+- **Cost:** about 2.2 µs per object on the test computer; **about 61 ms for 28,000 objects** ([performance measurement](../research/perf/README.md)). A frame on a 60 Hz display has 16.7 ms, so this work cannot share a thread with the drawing (section 5).
 
-## 4. Konum → ekrandaki nokta
+## 4. Position → dot on the screen
 
-- **Ölçek:** Konum, Dünya yarıçapı (6.371 km) **1 birim** olacak şekilde küçültülür ve Three.js'in "y yukarı" eksenlerine çevrilir ([`eciToScene`](../src/orbital/coordinates.ts)).
-- **Çizim:** 28.000 nokta tek tek çizilmez. Hepsi tek bir **örneklenmiş (instanced) model**dir: ekran kartı aynı küre modelini, her nesne için ayrı konum ve renkle tek seferde çizer ([`InstancedOrbitalPoints`](../src/scene/InstancedOrbitalPoints.ts), [`OrbitalMeshes`](../src/scene/OrbitalMeshes.ts)).
-- **Ne sıklıkla güncellenir:** Dünya görünümünde bir LEO uydusu karede bir pikselden çok daha az yol alır. Bu yüzden katalog her karede değil, aralıklarla güncellenir ([`catalogPacing.ts`](../src/scene/catalogPacing.ts)): 1× hızda en fazla saniyede iki kez (bir LEO uydusu yarım saniyede yaklaşık 4 km yol alır, ekranda bir pikselden az), zaman hızlandırılınca orantılı olarak daha sık. Hızlandırılmış zamanda yavaş bir cihaz zorlanmasın diye aralık, katalog işinin süresinin 4 katından kısa olmaz (en fazla 200 ms, yani saniyede en az 5 güncelleme). Kullanıcının yaptığı her değişiklik (seçim, filtre, arama) ve yakınlaştırılmış görünümler bu kurala takılmaz, hemen güncellenir.
-- **Kare döngüsü:** [`SceneManager.ts`](../src/scene/SceneManager.ts) her karede şunları yapar: zamanı ilerletir, gerekiyorsa worker'dan yeni konumları ister, son gelen konumları noktalara yazar, seçili uydu, yer izi gibi ek çizimleri günceller ve sahneyi çizer. Bu karar mantığı test edilebilsin diye ayrı bir dosyadadır: [`sceneFrame.ts`](../src/scene/sceneFrame.ts).
+- **Scale:** positions are scaled so that the Earth's radius (6,371 km) is **1 unit**, and turned into Three.js's "y up" axes ([`eciToScene`](../src/orbital/coordinates.ts)).
+- **Drawing:** the 28,000 dots are not drawn one by one. They form one **instanced model**: the GPU draws the same sphere model with a separate position and colour for each object in a single call ([`InstancedOrbitalPoints`](../src/scene/InstancedOrbitalPoints.ts), [`OrbitalMeshes`](../src/scene/OrbitalMeshes.ts)).
+- **How often it updates:** in the globe view a LEO satellite moves much less than a pixel per frame. So the catalog is updated at intervals rather than every frame ([`catalogPacing.ts`](../src/scene/catalogPacing.ts)): at 1× at most twice per second (a LEO satellite moves about 4 km in half a second, less than a pixel on screen), and proportionally more often when time is sped up. So that a slow device is not overloaded at a fast clock, the interval is never shorter than 4 times the catalog work's duration (capped at 200 ms, i.e. at least 5 updates per second). Every change the user makes (selection, filters, search) and the zoomed-in views bypass this and update at once.
+- **Frame loop:** on every frame [`SceneManager.ts`](../src/scene/SceneManager.ts) advances the clock, asks the worker for new positions when due, writes the latest positions to the dots, updates the extra drawings (selected satellite, ground track and so on) and renders the scene. This decision logic lives in its own file so it can be tested: [`sceneFrame.ts`](../src/scene/sceneFrame.ts).
 
-## 5. Web Worker'lar
+## 5. Web Workers
 
-**Web Worker**, tarayıcıda ana iş parçacığından (main thread) ayrı çalışan bir JavaScript iş parçacığıdır. Ana iş parçacığı hem çizimi hem kullanıcının tıklamalarını yürütür; orada uzun süren bir hesap, ekranın takılmasına ve tıklamaların gecikmesine yol açar. Uygulamada iki worker vardır:
+A **Web Worker** is a JavaScript thread that runs in the browser separately from the main thread. The main thread handles both the drawing and the user's clicks; a long calculation there makes the screen stutter and clicks lag. The app has two workers:
 
-### Konum worker'ı
+### Position worker
 
-[`src/workers/propagation.worker.ts`](../src/workers/propagation.worker.ts), ana taraftaki aracısı [`PropagationWorkerBridge.ts`](../src/orbital/PropagationWorkerBridge.ts).
+[`src/workers/propagation.worker.ts`](../src/workers/propagation.worker.ts), with its main-thread counterpart [`PropagationWorkerBridge.ts`](../src/orbital/PropagationWorkerBridge.ts).
 
-1. Başlangıçta ana iş parçacığı bütün TLE'leri worker'a bir kez gönderir (`init`).
-2. Her katalog güncellemesinde yalnızca **zamanı** gönderir (`propagate`).
-3. Worker bütün nesnelerin konumunu hesaplar ve sonucu tek bir sayı dizisi (`Float64Array`, nesne başına 10 sayı) olarak geri **aktarır**. Aktarma kopyalama değildir: bellek sahipliği ana tarafa geçer, bu yüzden 28.000 nesnelik veri neredeyse bedavaya taşınır.
-4. Worker hâlâ meşgulken yeni bir zaman istenirse yalnızca **en sonuncusu** sıraya alınır; ekran hep en güncel sonucu kullanır.
-5. **Güvenlik ağı:** Worker hata verir ya da 10 saniye cevap vermezse yeniden başlatılır (en fazla 2 kez). O sırada ve sonrasında konumlar ana iş parçacığında, saniyede en fazla 4 kez hesaplanır.
+1. At start the main thread sends all TLEs to the worker once (`init`).
+2. On every catalog update it sends only the **time** (`propagate`).
+3. The worker computes every object's position and **transfers** the result back as one array of numbers (`Float64Array`, 10 numbers per object). Transferring is not copying: ownership of the memory passes to the main thread, so the data for 28,000 objects moves almost for free.
+4. If a new time is requested while the worker is still busy, only the **latest** one is queued; the screen always uses the most recent result.
+5. **Safety net:** if the worker reports an error or does not answer for 10 seconds, it is restarted (at most 2 times). Meanwhile, and after that, positions are computed on the main thread at most 4 times per second.
 
-### Yakın geçiş worker'ı
+### Close-approach worker
 
-[`src/workers/conjunction.worker.ts`](../src/workers/conjunction.worker.ts), yönetimi [`upcomingScan.ts`](../src/orbital/conjunction/upcomingScan.ts). Bölüm 6'daki 24 saatlik taramayı yapar. Bulduğu çiftleri tarama bitmeden parça parça gönderir, böylece liste boş beklemez. Sayfa görünmezken (telefon kilitliyken) pil için durur. Worker yoksa tarama ana iş parçacığında, ekranı dondurmamak için küçük parçalar halinde ve tarayıcı boşta kaldıkça yapılır. Bu yol çok daha yavaştır: 1.000 nesnede worker ile 2,6 saniye, worker olmadan 124 saniye ölçüldü.
+[`src/workers/conjunction.worker.ts`](../src/workers/conjunction.worker.ts), managed by [`upcomingScan.ts`](../src/orbital/conjunction/upcomingScan.ts). It runs the 24-hour sweep of section 6. It sends the pairs it finds in parts before the sweep finishes, so the list does not sit empty. While the page is hidden (a locked phone) it pauses to save battery. Without a worker, the sweep runs on the main thread in small pieces whenever the browser is idle, so the screen does not freeze. That path is much slower: with 1,000 objects, 2.6 seconds with the worker and 124 seconds without were measured.
 
-Ölçüm için iki worker da `?worker=off` adresiyle kapatılabilir ([`src/perfFlags.ts`](../src/perfFlags.ts)).
+Both workers can be turned off with the `?worker=off` address for measurements ([`src/perfFlags.ts`](../src/perfFlags.ts)).
 
-## 6. 24 saatlik yakın geçiş taraması
+## 6. The 24-hour close-approach sweep
 
-**Soru:** Önümüzdeki 24 saatte hangi iki nesne birbirine 3 km'den fazla yaklaşacak? 28.000 nesnede yaklaşık 400 milyon çift vardır; hepsini her saniye karşılaştırmak imkânsızdır. Tarama bunu dört adımda çözer ([`upcomingSweep.ts`](../src/orbital/conjunction/upcomingSweep.ts)):
+**Question:** which two objects will come within 3 km of each other in the next 24 hours? 28,000 objects make about 400 million pairs; comparing them all every second is impossible. The sweep solves this in four steps ([`upcomingSweep.ts`](../src/orbital/conjunction/upcomingSweep.ts)):
 
-**0. Hangi nesneler?** Yörüngesinin en alçak noktası (perigee) 2.000 km'nin altında olanlar, yani alçak yörüngeye inenler. TLE'si 7 günden eski olanlar ve aynı yörünge verisini paylaşan nesneler (birbirine kenetli modüller, kopyalar) dışarıda kalır ([`screening.ts`](../src/orbital/conjunction/screening.ts)).
+**0. Which objects?** Those whose lowest point (perigee) is below 2,000 km, i.e. that reach low Earth orbit. Objects with TLEs older than 7 days, and objects sharing the same orbit data (docked modules, copies), are left out ([`screening.ts`](../src/orbital/conjunction/screening.ts)).
 
-1. **Örnekleme:** Her **60 saniyede** bir, bütün bu nesnelerin konumu ve hızı SGP4 ile hesaplanır (24 saatte 1.440 örnek).
-2. **Uzaysal ızgara:** Uzay, kenarı yaklaşık 500 km olan küplere bölünür ve her nesne bulunduğu küpe yazılır. Yalnızca aynı ya da komşu küplerdeki nesneler karşılaştırılır; birbirinden uzak çiftlere hiç bakılmaz ([`spatialGrid.ts`](../src/orbital/conjunction/spatialGrid.ts)).
-   - **Neden 500 km?** İki LEO nesnesi birbirine en fazla yaklaşık 16 km/s hızla yaklaşabilir (karşı karşıya). İki örnek arasındaki 30 saniyede bu 480 km eder. Ağ bu yüzden 480 km + 8 km + 10 km pay = **498 km** genişliğindedir: bir sonraki örnekten önce en yakın noktasına gelecek hiçbir çift ağdan kaçamaz.
-3. **Doğrusal en yakın nokta:** Ağa takılan her çift için, iki nesnenin o 60 saniyelik pencerede **düz çizgide** hareket ettiği varsayılır ve en yakın noktaları (CPA, *closest point of approach*) basit bir formülle bulunur. 30 saniyede yan yana iki nesneyi neredeyse aynı çekim etkilediği için bu yaklaşımın hatası 1 km'nin çok altındadır. En yakın nokta bu pencerenin içindeyse ve **8 km'den** (3 km + 5 km güvenlik payı) yakınsa çift aday olur.
-4. **SGP4 ile hassaslaştırma:** Her aday için en yakın an, SGP4 ile tekrar tekrar hesaplanıp düzeltilerek milisaniyeye kadar bulunur. Son mesafe **3 km'den büyükse** çift atılır. Neredeyse aynı hızla birlikte giden çiftler (bağıl hız 0,05 km/s'nin altında) de atılır; onlar "yakın geçiş" değil, birlikte uçuş yapan nesnelerdir.
+1. **Sampling:** every **60 seconds**, the position and velocity of all these objects are computed with SGP4 (1,440 samples in 24 hours).
+2. **Spatial grid:** space is divided into cubes about 500 km on a side, and each object is put into its cube. Only objects in the same or neighbouring cubes are compared; distant pairs are never looked at ([`spatialGrid.ts`](../src/orbital/conjunction/spatialGrid.ts)).
+   - **Why about 500 km?** Two LEO objects can close on each other at up to about 16 km/s (head-on). In the 30 seconds on either side of a sample that is 480 km. So the net is 480 km + 8 km + a 10 km margin = **498 km** wide: no pair whose closest point falls before the next sample can slip through.
+3. **Linear closest approach:** for each pair caught in the net, the two objects are assumed to move in **straight lines** within that 60-second window, and their closest point of approach (CPA) is found with a simple formula. Over 30 seconds two nearby objects feel almost the same gravity, so this approximation is accurate to well under 1 km. The pair becomes a candidate if the closest point falls inside the window and is closer than **8 km** (3 km plus a 5 km margin).
+4. **SGP4 refinement:** for each candidate, the moment of closest approach is recomputed and corrected with SGP4 repeatedly until it is known to the millisecond. If the final distance is **more than 3 km**, the pair is dropped. Pairs flying together at almost the same velocity (relative speed under 0.05 km/s) are dropped too; they are flying in formation, not passing each other.
 
-Sonra aynı fiziksel olayın tekrarları birleştirilir, sonuçlar zamana göre sıralanır ve sol panelde gösterilir (önce 5, "Daha fazla göster" ile tamamı, en fazla 30 tane saklanır). Tarama en fazla **5 dakikada bir** yeniden yapılır; kullanıcı zamanı 1 saatten fazla ileri ya da geri alırsa hemen yenilenir. Saat katalog tarihinden **7 günden** fazla uzaklaşırsa tahmin yapılmaz (`PREDICTION_RANGE_DAYS`), çünkü o kadar uzakta konumlar onlarca km yanılır.
+Repeats of the same physical event are then merged, the results are sorted by time and shown in the left panel (5 at first, all of them with "Show more", at most 30 kept). The sweep reruns at most **every 5 minutes**, and at once when the user moves the clock more than 1 hour forwards or back. When the clock is more than **7 days** from the catalog date, no prediction is made (`PREDICTION_RANGE_DAYS`): that far out, positions are off by tens of kilometres.
 
-> **Not:** [`liveScan.ts`](../src/orbital/conjunction/liveScan.ts) yalnızca "şu an" yakın olan çiftleri arayan eski bir taramadır. Uygulamada artık kullanılmıyor; yalnızca geliştirme modundaki bir hata ayıklama aracı ve testler onu çağırır.
+> **Note:** [`liveScan.ts`](../src/orbital/conjunction/liveScan.ts) is an older scan that only looks for pairs that are close right now. The app no longer uses it; only a debugging helper in development mode and its tests call it.
 
-## 7. 3 km eşiği ne anlama geliyor?
+## 7. What the 3 km threshold means
 
-- **Ne:** Tarama, en yakın geçiş mesafesi **3 km veya daha az** olan çiftleri listeler (`THRESHOLD_KM`, [`settings.ts`](../src/orbital/conjunction/settings.ts)).
-- **Ne değildir:** Bir çarpışma olasılığı değildir. Gerçek uydu operatörleri, her konumun **belirsizlik bilgisiyle** (kovaryans) çarpışma olasılığı hesaplar ve gerekirse manevra yapar. Herkese açık TLE'lerde bu belirsizlik bilgisi yoktur.
-- **Neden 3 km bir "eleme" eşiğidir:** Herkese açık TLE'lerle hesaplanan konumlar kendi aralarında bile kilometre düzeyinde farklıdır: LEO'da (Starlink hariç) 1 günlük TLE'de ortanca 0,2 km, 7 günlükte 4 km ([TLE yaşı ölçümü](../research/tle-age/README.md)). 3 km'lik bir geçiş "dikkate değer bir yakınlık" demektir, "çarpışma riski" değil. Uygulamadaki açıklama metni de bunu söyler.
-- **Doğrulama görünümündeki sözler:** Bir karta tıklanınca açılan görünümde mesafeye göre dikkatli bir dil kullanılır: 1 km'nin altı "çok yakın", 100 m'nin altı "100 m'nin altında (tahmin)" ([`verification.ts`](../src/orbital/conjunction/verification.ts)).
+- **What it is:** the sweep lists pairs whose closest approach is **3 km or less** (`THRESHOLD_KM`, [`settings.ts`](../src/orbital/conjunction/settings.ts)).
+- **What it is not:** a collision probability. Real satellite operators compute collision probabilities with each position's **uncertainty** (covariance) and manoeuvre when needed. Public TLEs carry no uncertainty information.
+- **Why 3 km is a screening threshold:** positions computed from public TLEs differ from each other by kilometres: for LEO objects other than Starlink, the median difference is 0.2 km for 1-day-old TLEs and 4 km for 7-day-old ones ([TLE age measurement](../research/tle-age/README.md)). A 3 km pass means "a notable close approach", not "a collision risk". The app's explanatory text says the same.
+- **Wording in the verification view:** the view that opens when a card is clicked uses careful wording based on the distance, for example "VERY CLOSE (<1 km)" and "UNDER 100 m (ESTIMATE)" ([`verification.ts`](../src/orbital/conjunction/verification.ts)).
 
-## 8. Dosya haritası
+## 8. File map
 
-| Konu | Dosya |
+| Topic | Files |
 |---|---|
-| Günlük veri | [`scripts/fetch-tle.mjs`](../scripts/fetch-tle.mjs), [`.github/workflows/tle-refresh.yml`](../.github/workflows/tle-refresh.yml) |
-| TLE okuma | [`src/data/tleLoader.ts`](../src/data/tleLoader.ts) |
-| Katman, yükseklik | [`src/orbital/classify.ts`](../src/orbital/classify.ts) |
+| Daily data | [`scripts/fetch-tle.mjs`](../scripts/fetch-tle.mjs), [`.github/workflows/tle-refresh.yml`](../.github/workflows/tle-refresh.yml) |
+| Reading TLEs | [`src/data/tleLoader.ts`](../src/data/tleLoader.ts) |
+| Layer, altitude | [`src/orbital/classify.ts`](../src/orbital/classify.ts) |
 | SGP4 | [`src/orbital/propagator.ts`](../src/orbital/propagator.ts), [`propagationBatch.ts`](../src/orbital/propagationBatch.ts) |
-| Konum worker'ı | [`src/workers/propagation.worker.ts`](../src/workers/propagation.worker.ts), [`PropagationWorkerBridge.ts`](../src/orbital/PropagationWorkerBridge.ts) |
-| Çizim | [`src/scene/SceneManager.ts`](../src/scene/SceneManager.ts), [`sceneFrame.ts`](../src/scene/sceneFrame.ts), [`OrbitalMeshes.ts`](../src/scene/OrbitalMeshes.ts), [`catalogPacing.ts`](../src/scene/catalogPacing.ts) |
-| Yakın geçiş taraması | [`src/orbital/conjunction/`](../src/orbital/conjunction/) (`upcomingSweep.ts`, `upcomingScan.ts`, `spatialGrid.ts`, `screening.ts`, `settings.ts`), [`src/workers/conjunction.worker.ts`](../src/workers/conjunction.worker.ts) |
-| Ölçüm bayrakları | [`src/perfFlags.ts`](../src/perfFlags.ts) |
+| Position worker | [`src/workers/propagation.worker.ts`](../src/workers/propagation.worker.ts), [`PropagationWorkerBridge.ts`](../src/orbital/PropagationWorkerBridge.ts) |
+| Drawing | [`src/scene/SceneManager.ts`](../src/scene/SceneManager.ts), [`sceneFrame.ts`](../src/scene/sceneFrame.ts), [`OrbitalMeshes.ts`](../src/scene/OrbitalMeshes.ts), [`catalogPacing.ts`](../src/scene/catalogPacing.ts) |
+| Close-approach sweep | [`src/orbital/conjunction/`](../src/orbital/conjunction/) (`upcomingSweep.ts`, `upcomingScan.ts`, `spatialGrid.ts`, `screening.ts`, `settings.ts`), [`src/workers/conjunction.worker.ts`](../src/workers/conjunction.worker.ts) |
+| Measurement flags | [`src/perfFlags.ts`](../src/perfFlags.ts) |
 
-## Kaynaklar
+## References
 
-- Hoots, F. R. ve Roehrich, R. L. (1980). *Spacetrack Report No. 3: Models for Propagation of NORAD Element Sets.*
-- Vallado, D. A., Crawford, P., Hujsak, R. ve Kelso, T. S. (2006). *Revisiting Spacetrack Report #3.* AIAA 2006-6753.
+- Hoots, F. R. and Roehrich, R. L. (1980). *Spacetrack Report No. 3: Models for Propagation of NORAD Element Sets.*
+- Vallado, D. A., Crawford, P., Hujsak, R. and Kelso, T. S. (2006). *Revisiting Spacetrack Report #3.* AIAA 2006-6753.
 - satellite.js: https://github.com/shashwatak/satellite-js
 - CelesTrak: https://celestrak.org
 - MDN, Web Workers API: https://developer.mozilla.org/docs/Web/API/Web_Workers_API

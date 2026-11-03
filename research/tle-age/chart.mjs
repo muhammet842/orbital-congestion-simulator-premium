@@ -27,8 +27,7 @@ export function lineChart({ title, subtitle, note, xLabel, yLabel, xMax, series 
   const parts = [];
   for (let e = yMinExp; e <= yMaxExp; e += 1) {
     const yy = y(10 ** e).toFixed(1);
-    // Turkish number format, like the report: 10.000 and 0,1.
-    const label = e >= 0 ? (10 ** e).toLocaleString('tr-TR') : String(10 ** e).replace('.', ',');
+    const label = e >= 0 ? (10 ** e).toLocaleString('en-US') : String(10 ** e);
     parts.push(`<line x1="${PAD.left}" x2="${PAD.left + plotW}" y1="${yy}" y2="${yy}" stroke="#ddd"/>`);
     parts.push(`<text x="${PAD.left - 8}" y="${yy}" text-anchor="end" dominant-baseline="middle">${label}</text>`);
   }

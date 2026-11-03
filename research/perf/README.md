@@ -1,93 +1,93 @@
-# Performans: nesne sayısı ve Web Worker
+# Performance: object count and Web Workers
 
-**Sorular:**
-1. Bir anın konumlarını hesaplamak, nesne sayısına göre ne kadar sürüyor?
-2. Tarayıcıda Web Worker'lar açıkken ve kapalıyken kare süresi, ana iş parçacığının (main thread) yükü ve 24 saatlik yakın geçiş taramasının süresi nasıl değişiyor?
+**Questions:**
+1. How long does computing one moment's positions take, depending on the number of objects?
+2. In the browser, how do frame time, main-thread load and the 24-hour close-approach scan time change with the Web Workers on and off?
 
-Nesne sayıları: **1.000 / 5.000 / 10.000 / 28.000**.
+Object counts: **1,000 / 5,000 / 10,000 / 28,000**.
 
-## Uygulamadaki ölçüm bayrakları
+## Measurement flags in the app
 
-Normal kullanımda hiçbiri açık değildir; açık olmadığında uygulama birebir eskisi gibi çalışır (bkz. [`src/perfFlags.ts`](../../src/perfFlags.ts) ve testleri).
+None is set in normal use; without them the app behaves exactly as before (see [`src/perfFlags.ts`](../../src/perfFlags.ts) and its tests).
 
-| Adres | Ne yapar |
+| Address | What it does |
 |---|---|
-| `?worker=off` | Hiç Web Worker başlatılmaz. Konumlar ve yakın geçiş taraması ana iş parçacığında, uygulamanın worker'ı olmayan tarayıcılar için zaten var olan yedek yoluyla çalışır. Yeni bir hesap yolu eklenmedi. |
-| `?limit=5000` | Katalogdan 5.000 nesne seçilir: NORAD numarasına göre sıralanıp eşit aralıkla (`pickEvenly`). Her seferinde aynı nesneler seçilir ve yörünge türlerinin oranı korunur. |
-| (her zaman) | `performance.mark` işaretleri: `catalog-ready` (katalog çizilmeye hazır), `conjunction-scan-start` ve `conjunction-scan-done` (24 saatlik tarama başladı / bitti). Kullanıcıya hiçbir şey göstermez; ölçüm betiği bunları okur. |
+| `?worker=off` | No Web Worker is started. Positions and the close-approach scan run on the main thread, through the fallback the app already has for browsers without workers. No new calculation path was added. |
+| `?limit=5000` | 5,000 objects of the catalog are used, picked evenly after sorting by NORAD number (`pickEvenly`). The same objects are picked every time, and the share of each orbit type stays the same. |
+| (always) | `performance.mark` points: `catalog-ready` (catalog ready to draw), `conjunction-scan-start` and `conjunction-scan-done` (24-hour scan started / finished). They show nothing to the user; the measurement script reads them. |
 
-## 1. Hesap süresi (Node)
+## 1. Calculation time (Node)
 
 ```bash
 npm run research:perf-node
 ```
 
-- Uygulamanın kendi `propagateObject` fonksiyonu ([`src/orbital/propagator.ts`](../../src/orbital/propagator.ts)) kullanılır: konum worker'ının (ya da `?worker=off` ile ana iş parçacığının) her katalog güncellemesinde yaptığı iş budur. Çizim yoktur.
-- Nesneler, arşivin 2026-11-02 dosyasından `?limit` ile aynı `pickEvenly` fonksiyonuyla seçilir (28.000 için 28.297'den 28.000).
-- Her nesne sayısı için önce 5 ısınma turu (sayılmaz: JavaScript motoru kodu bu sırada hızlandırır), sonra **30 ölçüm**. Her ölçümde farklı bir dakika hesaplanır, böylece hiçbir sonuç yeniden kullanılamaz.
-- Node, uygulamanın `.ts` dosyalarını uzantısız içe aktarma yazımını kendisi çözemediği için küçük bir yardımcı kullanılır ([`ts-hooks.mjs`](ts-hooks.mjs)): bulunamayan bir yol için `.ts` uzantısını dener. Uygulama koduna dokunmaz.
+- It uses the app's own `propagateObject` function ([`src/orbital/propagator.ts`](../../src/orbital/propagator.ts)): the work the position worker (or, with `?worker=off`, the main thread) does on every catalog update. There is no drawing.
+- The objects come from the archive's 2026-11-02 file and are picked with the same `pickEvenly` function as `?limit` (28,000 of 28,297 for the largest size).
+- For each object count there are first 5 warm-up passes (not counted: the JavaScript engine optimises the code during them), then **30 measurements**. Each measurement computes a different minute, so no result can be reused.
+- Node cannot resolve the app's extensionless `.ts` imports by itself, so a small helper is used ([`ts-hooks.mjs`](ts-hooks.mjs)): when an import is not found, it tries the `.ts` extension. It does not touch the app's code.
 
-**Sonuç** (AMD Ryzen 5 7520U, Node 24.17.0; [`results/sgp4-node-summary.csv`](results/sgp4-node-summary.csv)):
+**Result** (AMD Ryzen 5 7520U, Node 24.17.0; [`results/sgp4-node-summary.csv`](results/sgp4-node-summary.csv)):
 
-| Nesne | Ortanca | Standart sapma | Nesne başına |
+| Objects | Median | Standard deviation | Per object |
 |---|---|---|---|
-| 1.000 | 2,27 ms | 0,42 ms | 2,27 µs |
-| 5.000 | 10,97 ms | 0,52 ms | 2,19 µs |
-| 10.000 | 22,74 ms | 1,46 ms | 2,27 µs |
-| 28.000 | 61,49 ms | 0,68 ms | 2,20 µs |
+| 1,000 | 2.27 ms | 0.42 ms | 2.27 µs |
+| 5,000 | 10.97 ms | 0.52 ms | 2.19 µs |
+| 10,000 | 22.74 ms | 1.46 ms | 2.27 µs |
+| 28,000 | 61.49 ms | 0.68 ms | 2.20 µs |
 
-Karşılaştırma için: 60 Hz bir ekranda bir kareye 16,7 ms düşer.
+For comparison: one frame on a 60 Hz display has 16.7 ms.
 
-## 2. Tarayıcı ölçümü (Playwright, Microsoft Edge)
+## 2. Browser measurement (Playwright, Microsoft Edge)
 
 ```bash
-npm run pull-data            # güncel katalog (public/data/tle.json'ı değiştirir)
+npm run pull-data            # current catalog (changes public/data/tle.json)
 npm run build
-git checkout -- public/data/tle.json   # değişikliği geri al, commit'e girmesin
-npm run research:perf-browser -- --phase frames   # kare ölçümleri, ~1,5 saat
-npm run research:perf-browser -- --phase scan     # tarama süreleri, saatler sürebilir
+git checkout -- public/data/tle.json   # undo that change so it is not committed
+npm run research:perf-browser -- --phase frames   # frame measurements, ~1.5 hours
+npm run research:perf-browser -- --phase scan     # scan times, can take hours
 ```
 
-Betik `vite preview` sunucusunu kendisi başlatır ve kapatır, **görünür (headed) bir Edge penceresi** açar.
+The script starts and stops the `vite preview` server itself and opens a **visible (headed) Edge window**.
 
-### Ölçülenler
+### What is measured
 
-**Kare ölçümü** (her nesne sayısı × worker açık/kapalı × CPU normal/4 kat yavaş, **10 tekrar**; her tekrar yeni bir sayfa):
-- Sayfa açılır, `catalog-ready` işaretinden sonra **10 saniye** beklenir (yükleme otursun), sonra **15 saniye** ölçülür.
-- `fps`, `frame_median_ms`, `frame_p95_ms`: `requestAnimationFrame` ile ölçülen kareler arası süre.
-- `frames_over_50ms`: 50 ms'den uzun süren kare sayısı (göze "takılma" olarak görünür).
-- `main_thread_busy_pct`: ana iş parçacığının ölçüm penceresinde meşgul olduğu sürenin oranı. Chrome'un kendi sayacından (`Performance.getMetrics`, `TaskDuration`) alınır. Worker'ın faydası en açık burada görünür: worker'daki iş bu sayaca girmez.
-- `long_tasks`, `long_task_ms`: 50 ms'den uzun ana iş parçacığı görevleri (Long Tasks API).
-- `ready_ms`: sayfa açılışından katalogun hazır olmasına kadar geçen süre.
+**Frame measurement** (each object count × workers on/off × normal CPU / 4× slower, **10 repeats**; each repeat is a fresh page):
+- The page opens; after the `catalog-ready` mark it waits **10 seconds** (so loading settles), then measures for **15 seconds**.
+- `fps`, `frame_median_ms`, `frame_p95_ms`: time between frames measured with `requestAnimationFrame`.
+- `frames_over_50ms`: frames that took longer than 50 ms (seen as stutter).
+- `main_thread_busy_pct`: the share of the measurement window the main thread was busy, from Chrome's own counter (`Performance.getMetrics`, `TaskDuration`). The workers' benefit shows most clearly here: work done in a worker is not counted.
+- `long_tasks`, `long_task_ms`: main-thread tasks longer than 50 ms (Long Tasks API).
+- `ready_ms`: time from opening the page until the catalog is ready.
 
-**Tarama ölçümü** (her nesne sayısı × worker açık/kapalı, varsayılan 3 tekrar): `conjunction-scan-start` ile `conjunction-scan-done` arasındaki süre. Varsayılan 15 dakikada bitmezse "bitmedi" olarak kaydedilir (`--scan-cap-min`).
+**Scan measurement** (each object count × workers on/off, 3 repeats by default): the time between `conjunction-scan-start` and `conjunction-scan-done`. If it has not finished after 15 minutes (the default, `--scan-cap-min`), it is recorded as not finished.
 
-### Adil ölçüm için
+### Keeping it fair
 
-- **Dönüşümlü sıra:** ölçümler worker açık/kapalı ve CPU hızı arasında sırayla yapılır, her tekrarda sıra tersine döner. Bilgisayar ısındıkça yavaşlarsa bu etki iki tarafa eşit dağılır.
-- **Görünür pencere:** pencere arka planda kalınca tarayıcı çizimi yavaşlatır; bunu engelleyen Chrome ayarları açıktır (`--disable-backgrounding-occluded-windows` vb.). **Yine de ölçüm sırasında bilgisayarı kullanma, başka program açma.**
-- **Ortam kaydı** (`results/browser-env.json`): tarayıcı sürümü, headed olup olmadığı, **ekran yenileme hızı** (boş bir sayfada 3 saniye kare aralığı ölçülerek), ekran kartı, işlemci, bellek, işletim sistemi, prize takılı olup olmadığı, pencere boyutu (1440×900).
-- Her ölçüm satırı yazıldığı anda dosyaya kaydedilir; ölçüm yarıda kesilirse o ana kadarki veri kaybolmaz.
+- **Alternating order:** the runs alternate between workers on/off and the CPU speeds, and the order is reversed on every repeat. If the computer slows down as it warms up, the effect is spread evenly over both sides.
+- **Visible window:** the browser slows down drawing when its window is in the background; Chrome options that prevent this are set (`--disable-backgrounding-occluded-windows` and others). **Still, do not use the computer or open other programs during the measurement.**
+- **Environment record** (`results/browser-env.json`): browser version, whether it was headed, **display refresh rate** (from 3 seconds of frame intervals on an empty page), GPU, CPU, memory, operating system, whether it was plugged in, and the window size (1440×900).
+- Each measurement row is written to the file as soon as it is done, so if the run is interrupted nothing measured so far is lost.
 
-### Yorumlarken dikkat
+### Reading the results
 
-- **Kareler ekran hızıyla sınırlıdır.** 60 Hz bir ekranda kare süresi 16,7 ms'nin altına inemez; bu yüzden ortanca kare süresi iki durumda da 16,7 ms çıkabilir. Fark `main_thread_busy_pct`, `frame_p95_ms` ve takılma sayılarında aranmalıdır.
-- **CPU yavaşlatması worker'ları yavaşlatmayabilir.** Chrome'un `Emulation.setCPUThrottlingRate` aracı sayfanın ana iş parçacığını yavaşlatır; Web Worker'ların da yavaşladığı garanti değildir. Bu, 4 kat turunda sonucu worker'ın lehine çevirebilir. Yavaş bir telefonun yerini tutmaz, yalnızca bir yaklaşık deneydir.
-- **Worker kapalıyken uygulama kendini korur.** Konumların tamamı ana iş parçacığında her kare değil, saniyede en fazla 4 kez hesaplanır (`SYNC_FALLBACK_QUANTUM_MS = 250`, [`src/scene/SceneManager.ts`](../../src/scene/SceneManager.ts)). Bu yüzden worker kapalıyken FPS beklenenden iyi görünebilir; bedeli ana iş parçacığı yükü ve takılmalardır.
-- **Worker kapalıyken tarama süresini hesap gücü değil dilimleme belirler.** Yedek yol ekranı dondurmamak için taramayı küçük parçalara böler (en fazla 1.000 nesnelik bir hesap) ve her parçayı tarayıcı boşta kaldığında (`requestIdleCallback`), çoğunlukla karede bir kez çalıştırır ([`src/orbital/conjunction/upcomingScan.ts`](../../src/orbital/conjunction/upcomingScan.ts)). 24 saatlik tarama 1.440 zaman adımıdır. Deneme ölçümünde 1.000 nesne için tarama worker açıkken 2,6 saniye, kapalıyken 124 saniye sürdü; 28.000 nesnede worker kapalıyken 10 dakikada bitmedi.
-- **Tek bir bilgisayar:** sonuçlar bu bilgisayara ve ekran kartına özgüdür; başka cihazlarda sayılar değişir, oranlar daha anlamlıdır.
+- **Frames are capped by the display.** On a 60 Hz display a frame cannot take less than 16.7 ms, so the median frame time can be 16.7 ms in both cases. Look for the difference in `main_thread_busy_pct`, `frame_p95_ms` and the stutter counts.
+- **The CPU slowdown may not slow down the workers.** Chrome's `Emulation.setCPUThrottlingRate` slows down the page's main thread; Web Workers are not guaranteed to be slowed too. This can tip the 4× round in favour of the workers. It does not stand in for a slow phone; it is only an approximate experiment.
+- **With workers off, the app protects itself.** All positions are computed on the main thread not every frame but at most 4 times per second (`SYNC_FALLBACK_QUANTUM_MS = 250`, [`src/scene/SceneManager.ts`](../../src/scene/SceneManager.ts)). So with workers off the FPS can look better than expected; the cost is main-thread load and stutter.
+- **With workers off, the scan time is set by slicing, not by computing power.** To keep the screen responsive, the fallback splits the scan into small pieces (at most 1,000 objects' positions at a time) and runs each piece when the browser is idle (`requestIdleCallback`), usually once per frame ([`src/orbital/conjunction/upcomingScan.ts`](../../src/orbital/conjunction/upcomingScan.ts)). The 24-hour scan has 1,440 time steps. In a trial run with 1,000 objects, the scan took 2.6 seconds with workers and 124 seconds without; with 28,000 objects and no workers it had not finished after 10 minutes.
+- **One computer:** the results belong to this computer and GPU; on other devices the numbers change, and the ratios are more meaningful.
 
-## Dosyalar
+## Files
 
-| Dosya | İçerik |
+| File | Contents |
 |---|---|
-| `sgp4-node.mjs` | Hesap süresi ölçümü (Node). |
-| `browser-bench.mjs` | Tarayıcı ölçümü (Playwright). |
-| `register-ts.mjs`, `ts-hooks.mjs` | Node'un uygulamanın `.ts` dosyalarını içe aktarabilmesi için. |
-| `results/sgp4-node-summary.csv`, `-runs.csv`, `-env.json` | Hesap süresi: özet, her ölçüm, ortam. |
-| `results/browser-summary.csv`, `-runs.csv`, `-scan.csv`, `-env.json` | Tarayıcı: özet (her ölçüt için ortanca ve standart sapma), her ölçüm, tarama süreleri, ortam. |
+| `sgp4-node.mjs` | Calculation time measurement (Node). |
+| `browser-bench.mjs` | Browser measurement (Playwright). |
+| `register-ts.mjs`, `ts-hooks.mjs` | Let Node import the app's `.ts` files. |
+| `results/sgp4-node-summary.csv`, `-runs.csv`, `-env.json` | Calculation time: summary, every measurement, environment. |
+| `results/browser-summary.csv`, `-runs.csv`, `-scan.csv`, `-env.json` | Browser: summary (median and standard deviation of each measure), every measurement, scan times, environment. |
 
-## Kaynaklar
+## References
 
 - Chrome DevTools Protocol: `Performance.getMetrics`, `Emulation.setCPUThrottlingRate`. https://chromedevtools.github.io/devtools-protocol/
 - W3C Long Tasks API. https://w3c.github.io/longtasks/
