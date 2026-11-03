@@ -31,7 +31,9 @@
     "check:i18n": "node scripts/check-i18n-parity.mjs",
     "lint": "oxlint --deny-warnings src scripts api e2e research vite.config.ts vitest.config.ts playwright.config.ts",
     "screenshot": "npm run build && node scripts/capture-readme-screenshot.mjs",
-    "research:tle-age": "node research/tle-age/run.mjs"
+    "research:tle-age": "node research/tle-age/run.mjs",
+    "research:perf-node": "node --import ./research/perf/register-ts.mjs research/perf/sgp4-node.mjs",
+    "research:perf-browser": "node research/perf/browser-bench.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

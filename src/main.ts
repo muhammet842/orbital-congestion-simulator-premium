@@ -29,6 +29,7 @@ import { applyTranslations, t } from './i18n/i18n';
 import { escapeHtml } from './ui/escapeHtml';
 import { initAnalytics } from './analytics';
 import { showMovedNotice } from './movedNotice';
+import { markForMeasurement, objectLimit, pickEvenly, workersDisabled } from './perfFlags';
 
 async function main(): Promise<void> {
   initAnalytics();
@@ -48,6 +49,9 @@ async function main(): Promise<void> {
     showLoading(app, t('boot.loading'));
 
     const dataset = await loadTleDataset();
+    // Measurement flag ?limit=N (research/perf): a smaller, evenly picked catalog.
+    const limit = objectLimit();
+    if (limit != null) dataset.objects = pickEvenly(dataset.objects, limit);
 
     if (dataset.objects.length === 0) {
       showError(app, t('boot.no_objects'));
@@ -72,8 +76,9 @@ async function main(): Promise<void> {
     applyTranslations(document);
 
     // 24h close-approach sweep runs in its own worker (main-thread idle-slice
-    // fallback if workers are unavailable or the worker fails).
-    if (typeof Worker !== 'undefined') {
+    // fallback if workers are unavailable or the worker fails, or with the
+    // ?worker=off measurement flag).
+    if (typeof Worker !== 'undefined' && !workersDisabled()) {
       setUpcomingConjunctionWorkerFactory(
         () =>
           new Worker(new URL('./workers/conjunction.worker.ts', import.meta.url), {
@@ -85,6 +90,7 @@ async function main(): Promise<void> {
     const sceneManager = new SceneManager(sceneContainer);
     await sceneManager.initOrbitalMeshes(objects);
     sceneManager.start();
+    markForMeasurement('catalog-ready');
 
     // Deep linking: sync ?object=NORAD / ?event=ID ↔ app state.
     // Must run after the scene is ready so a linked satellite gets framed

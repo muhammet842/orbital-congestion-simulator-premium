@@ -85,7 +85,16 @@ export class PropagationWorkerBridge {
   private hasReplied = false;
   private failed = false;
 
-  constructor() {
+  /**
+   * `disabled` (the `?worker=off` measurement flag, see perfFlags.ts) starts
+   * no Worker, as if it had failed: the scene then uses its synchronous
+   * main-thread fallback.
+   */
+  constructor({ disabled = false }: { disabled?: boolean } = {}) {
+    if (disabled) {
+      this.failed = true;
+      return;
+    }
     this.worker = this.spawn();
   }
 

@@ -4,6 +4,7 @@
 import type { OrbitLayer, TrackedObject } from '../../types';
 import type { ConjunctionRefreshListener } from './liveScan';
 import type { ConjunctionScanResult } from './settings';
+import { markForMeasurement } from '../../perfFlags';
 import {
   UPCOMING_HORIZON_MS,
   UPCOMING_MAX_SIM_DRIFT_MS,
@@ -91,6 +92,7 @@ export function hasUpcomingConjunctionScanCompleted(): boolean {
 function publishFinal(result: ConjunctionScanResult, listener: ConjunctionRefreshListener | null): void {
   upcomingResult = result;
   upcomingScanCompletedOnce = true;
+  markForMeasurement('conjunction-scan-done'); // read by research/perf
   listener?.(result);
 }
 
@@ -246,6 +248,7 @@ export function getUpcomingConjunctions(
 
   scanGeneration++;
   upcomingScanStartedWallMs = nowWallMs;
+  markForMeasurement('conjunction-scan-start'); // read by research/perf
   upcomingScanStartSimMs = simMs;
   activeSweep = null;
   workerScanId = null;
