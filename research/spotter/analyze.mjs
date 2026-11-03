@@ -69,7 +69,7 @@ async function main() {
   const outDir = join(HERE, 'results');
   await mkdir(outDir, { recursive: true });
   const errorRows = measured.map(({ row, truth, err }) =>
-    [row.olcum_no, row.telefon, row.hedef_turu, row.hedef_adi, f2(truth.az), f2(truth.el), row.telefon_azimut, row.telefon_yukseklik, f2(err.azimuth), f2(err.elevation), f2(err.total)]
+    [row.olcum_no, row.telefon, row.hedef_turu, row.hedef_adi, f2(Number(f2(truth.az)) % 360), f2(truth.el), row.telefon_azimut, row.telefon_yukseklik, f2(err.azimuth), f2(err.elevation), f2(err.total)]
       .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
       .join(','),
   );

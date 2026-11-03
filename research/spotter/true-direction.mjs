@@ -21,7 +21,9 @@ function point(name) {
 
 function main() {
   const d = trueDirection(point('from'), point('to'));
-  console.log(`Gerçek azimut (coğrafi kuzeyden, saat yönünde): ${d.azimuthDeg.toFixed(2)}°`);
+  // 359.999…° rounds to "360.00"; due north is written as 0.00.
+  const azimuth = Number(d.azimuthDeg.toFixed(2)) % 360;
+  console.log(`Gerçek azimut (coğrafi kuzeyden, saat yönünde): ${azimuth.toFixed(2)}°`);
   console.log(`Gerçek yükseklik açısı (ufkun üstü):            ${d.elevationDeg.toFixed(2)}°`);
   console.log(`Uzaklık:                                        ${d.distanceKm.toFixed(3)} km`);
   // A 10 m error in either position moves the direction by about this much.
