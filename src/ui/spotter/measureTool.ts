@@ -7,6 +7,7 @@
  */
 import { t } from '../../i18n/i18n';
 import type { SensorSnapshot } from '../observerSensors';
+import { currentDevice, describeDevice, loadUserAgentHints, type DeviceInfo } from './deviceInfo';
 
 const STORAGE_KEY = 'orbital-spotter-measurements-v1';
 
@@ -18,29 +19,43 @@ export function measureModeEnabled(search = globalThis.location?.search ?? ''): 
 /** One saved reading: what the phone reported at the moment Save was pressed. */
 export interface MeasurementRecord {
   utc: string;
-  headingDeg: number;
-  pitchDeg: number;
+  /** Null when Spotter did not trust the compass: it then keeps no direction at all. */
+  headingDeg: number | null;
+  pitchDeg: number | null;
+  /** Spotter's own verdict, the one that turns its turn cues on or off. */
+  headingTrusted: boolean;
+  /** Why the compass was not trusted (e.g. "needs_compass", "stale"); empty when it was. */
+  compassState: string;
   headingSource: string;
   declinationDeg: number | null;
   gpsAccuracyM: number | null;
   latitudeDeg: number | null;
   longitudeDeg: number | null;
-  browser: string;
+  device: DeviceInfo;
 }
 
-/** A reading from the sensors, or null when there is no trusted direction and tilt to save. */
-export function measurementFrom(sensors: SensorSnapshot, now: Date, browser = ''): MeasurementRecord | null {
-  if (!sensors.headingReliable || sensors.headingDeg == null || sensors.pitchDeg == null) return null;
+/**
+ * A reading from the sensors, or null when there is neither a direction nor
+ * a tilt. Unlike Spotter's cues, the measurement also keeps readings taken
+ * while the compass is not trusted, marked as such, so the protocol can count
+ * how often that happens (for example next to a car).
+ */
+export function measurementFrom(sensors: SensorSnapshot, now: Date, device: DeviceInfo = describeDevice('')): MeasurementRecord | null {
+  const trusted = sensors.headingReliable && sensors.headingDeg != null;
+  const headingDeg = trusted ? sensors.headingDeg : null;
+  if (headingDeg == null && sensors.pitchDeg == null) return null;
   return {
     utc: now.toISOString(),
-    headingDeg: sensors.headingDeg,
+    headingDeg,
     pitchDeg: sensors.pitchDeg,
-    headingSource: sensors.headingSource ?? '',
+    headingTrusted: trusted,
+    compassState: trusted ? '' : (sensors.headingError ?? 'unknown'),
+    headingSource: trusted ? (sensors.headingSource ?? '') : '',
     declinationDeg: sensors.declinationDeg,
     gpsAccuracyM: sensors.accuracyMeters,
     latitudeDeg: sensors.location?.latitudeDeg ?? null,
     longitudeDeg: sensors.location?.longitudeDeg ?? null,
-    browser,
+    device,
   };
 }
 
@@ -51,7 +66,10 @@ const SHEET_COLUMNS = [
   'gercek_azimut', 'gercek_yukseklik', 'telefon_azimut', 'telefon_yukseklik', 'gps_dogruluk_m', 'mag_sapma',
   'kalibrasyon', 'ortam', 'tutus', 'notlar',
 ];
-const EXTRA_COLUMNS = ['utc_saat', 'pusula_kaynagi', 'gps_enlem', 'gps_boylam'];
+const EXTRA_COLUMNS = [
+  'utc_saat', 'platform', 'isletim_sistemi', 'pusula_kaynagi', 'pusula_guvenilir', 'pusula_durumu',
+  'gps_enlem', 'gps_boylam', 'kullanici_araci',
+];
 
 /** Decimal comma, as a Turkish Excel expects next to semicolons; empty when unknown. */
 function decimal(value: number | null, digits: number): string {
@@ -71,25 +89,32 @@ function localTime(utc: string): string {
 
 /**
  * The saved readings as a semicolon CSV with the protocol sheet's columns.
- * The phone fills the columns it knows; target, true direction and
- * conditions are left empty to fill in Excel. GPS position goes in the extra
- * columns, not the observer columns: the protocol takes the observer's place
- * from the map, which is more exact than the phone's GPS.
+ * The phone fills the columns it knows (the model too, when the browser
+ * tells it); target, true direction and conditions are left empty to fill in
+ * Excel. GPS position goes in the extra columns, not the observer columns:
+ * the protocol takes the observer's place from the map, which is more exact
+ * than the phone's GPS.
  */
 export function measurementsCsv(records: readonly MeasurementRecord[]): string {
   const rows = records.map((r, i) => {
     const sheet: Record<string, string> = {
       olcum_no: String(i + 1),
       tarih_saat: localTime(r.utc),
-      tarayici: r.browser,
+      telefon: r.device.model,
+      tarayici: r.device.browser,
       telefon_azimut: decimal(r.headingDeg, 1),
       telefon_yukseklik: decimal(r.pitchDeg, 1),
       gps_dogruluk_m: decimal(r.gpsAccuracyM, 0),
       mag_sapma: decimal(r.declinationDeg, 1),
       utc_saat: r.utc,
+      platform: r.device.platform,
+      isletim_sistemi: r.device.os,
       pusula_kaynagi: r.headingSource,
+      pusula_guvenilir: r.headingTrusted ? 'evet' : 'hayir',
+      pusula_durumu: r.compassState,
       gps_enlem: decimal(r.latitudeDeg, 6),
       gps_boylam: decimal(r.longitudeDeg, 6),
+      kullanici_araci: r.device.userAgent,
     };
     return [...SHEET_COLUMNS, ...EXTRA_COLUMNS].map((c) => quoted(sheet[c] ?? '')).join(';');
   });
@@ -97,10 +122,17 @@ export function measurementsCsv(records: readonly MeasurementRecord[]): string {
   return `\uFEFF${[[...SHEET_COLUMNS, ...EXTRA_COLUMNS].join(';'), ...rows].join('\r\n')}\r\n`;
 }
 
+/** Saved readings; ones kept before device details were recorded get them from their User-Agent. */
 export function loadMeasurements(): MeasurementRecord[] {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-    return Array.isArray(parsed) ? (parsed as MeasurementRecord[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((r: MeasurementRecord & { browser?: string }) => ({
+      ...r,
+      headingTrusted: r.headingTrusted ?? r.headingDeg != null,
+      compassState: r.compassState ?? '',
+      device: r.device ?? describeDevice(r.browser ?? ''),
+    }));
   } catch {
     return [];
   }
@@ -139,9 +171,10 @@ export function measureToolHtml(): string {
 /** Wires the buttons; `sensors` gives the reading at the moment Save is pressed. */
 export function bindMeasureTool(root: ParentNode, sensors: () => SensorSnapshot): void {
   records = loadMeasurements();
+  void loadUserAgentHints(); // the real model and Android version, ready before the first Save
   const button = (id: string) => root.querySelector<HTMLButtonElement>(`#${id}`);
   button('spotter-measure-save')?.addEventListener('click', () => {
-    const record = measurementFrom(sensors(), new Date(), navigator.userAgent);
+    const record = measurementFrom(sensors(), new Date(), currentDevice());
     if (!record) return;
     records = [...records, record];
     storeMeasurements(records);
@@ -191,18 +224,21 @@ export function updateMeasureTool(root: ParentNode, sensors: SensorSnapshot): vo
   const heading = root.querySelector('#spotter-measure-heading');
   if (!heading) return;
   const reading = measurementFrom(sensors, new Date());
-  heading.textContent = reading ? deg(reading.headingDeg) : '—';
+  heading.textContent = reading?.headingDeg != null ? deg(reading.headingDeg) : '—';
   const tilt = root.querySelector('#spotter-measure-tilt');
   if (tilt) tilt.textContent = sensors.pitchDeg != null ? deg(sensors.pitchDeg) : '—';
   const details = root.querySelector('#spotter-measure-details');
   if (details) {
-    details.textContent = reading
-      ? t('spotter.measure_details')
-          .replace('{source}', reading.headingSource || '—')
-          .replace('{mag}', reading.declinationDeg != null ? reading.declinationDeg.toFixed(1) : '—')
-          .replace('{gps}', reading.gpsAccuracyM != null ? reading.gpsAccuracyM.toFixed(0) : '—')
-      : t('spotter.measure_no_compass');
+    details.textContent = !reading
+      ? t('spotter.measure_no_compass')
+      : !reading.headingTrusted
+        ? t('spotter.measure_untrusted').replace('{state}', reading.compassState)
+        : t('spotter.measure_details')
+            .replace('{source}', reading.headingSource || '—')
+            .replace('{mag}', reading.declinationDeg != null ? reading.declinationDeg.toFixed(1) : '—')
+            .replace('{gps}', reading.gpsAccuracyM != null ? reading.gpsAccuracyM.toFixed(0) : '—');
   }
+  root.querySelector('#spotter-measure')?.classList.toggle('spotter-measure--untrusted', reading != null && !reading.headingTrusted);
   const save = root.querySelector<HTMLButtonElement>('#spotter-measure-save');
   if (save) save.disabled = !reading;
 }
