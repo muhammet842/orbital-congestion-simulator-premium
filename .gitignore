@@ -35,3 +35,6 @@ test-results
 
 # Local copies of the TLE archive (scripts/backfill-tle-archive.mjs, gh release download)
 tle-archive/
+
+# Downloaded TLE archive for research/ (npm run research:tle-age fetches it)
+research/data/
