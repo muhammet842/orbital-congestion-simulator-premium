@@ -1,0 +1,34 @@
+case,norad_id,description,times_planned,reference_points,compared_points,max_position_diff_mm,max_velocity_diff_mm_s,max_position_diff_mm_vs_fortran,max_position_diff_mm_afspc_mode,reference_stops_early,satellitejs_error_after_reference,satellitejs_error_at_start,stops_where_reference_stops
+1,5,"# TEME example",13,13,13,0.007,0.001,0.007,0.007,no,,,yes
+2,4632,"## fig show lyddane fix error with gsfc ver",5,5,5,0.006,0.001,0.006,0.006,no,,,yes
+3,6251,"# perigee = 377.26km, so moderate drag case",25,25,25,0.007,0.001,0.007,0.007,no,,,yes
+4,8195,"MOLNIYA 2-14 # 12h resonant ecc in 0.65 to 0.7 range",25,25,25,0.006,0.001,0.006,0.006,no,,,yes
+5,9880,"MOLNIYA 1-36 ## fig 12h resonant ecc in 0.7 to 0.715 range",25,25,25,0.007,0.001,0.007,0.007,no,,,yes
+6,9998,"SMS 1 AKM # show the integrator problem with gsfc ver",14,14,14,0.008,0.001,0.008,0.008,no,,,yes
+7,11801,"# Original STR#3 SDP4 test",5,5,5,0.007,0.001,0.007,0.007,no,,,yes
+8,14128,"EUTELSAT 1-F1 (ECS1)## fig lyddane choice in GSFC at 2080 min",25,25,25,0.007,0.001,0.007,0.007,no,,,yes
+9,16925,"# s4 > 20 mod",13,13,13,0.008,0.001,0.008,0.008,no,,,yes
+10,20413,"SL-12 R/B # Shows Lyddane choice at 1860 and 4700 min",26,26,26,0.008,0.001,0.008,0.008,no,,,yes
+11,21897,"MOLNIYA 1-83 # 12h resonant, ecc > 0.715 (negative BSTAR)",25,25,25,0.008,0.001,0.008,0.008,no,,,yes
+12,22312,"SL-6 R/B(2) # last tle given, decayed 2006-04-04, day 94",72,23,23,0.006,0.001,0.006,0.006,yes,1,,yes
+13,22674,"SL-6 R/B(2) # 12h resonant ecc in the > 0.715 range",25,25,25,0.007,0.001,0.007,0.007,no,,,yes
+14,23177,"# no quadrant fix",13,13,13,0.007,0.001,0.007,0.007,no,,,yes
+15,23333,"WIND # STR#3 Kepler failes past about 200 min",15,15,15,0.007,0.001,0.080,0.007,no,,,yes
+16,23599,"ARIANE 42P+3 R/B ## fig Lyddane bug at > 280.5 min for AcTan()",37,37,37,963987.424,389.232,963987.424,0.008,no,,,yes
+17,24208,"ITALSAT 2 # 24h resonant GEO, inclination > 3 deg",13,13,13,0.007,0.001,0.007,0.007,no,,,yes
+18,25954,"## gsfc version from 240 to 1440 min",26,26,26,0.008,0.001,0.008,0.008,no,,,yes
+19,26900,"# 270 deg Lyddane bug at 37606 min",4,4,4,0.005,0.000,0.005,0.005,no,,,yes
+20,26975,"COSMOS 1024 DEB # 12h resonant ecc in 0.5 to 0.65 range",25,25,25,0.008,0.001,0.008,0.008,no,,,yes
+21,28057,"# drop certain normal drag terms",25,25,25,0.007,0.001,0.007,0.007,no,,,yes
+22,28129,"NAVSTAR 53 (USA 175)# 12h non-resonant GPS (ecc < 0.5 ecc)",13,13,13,0.007,0.001,0.007,0.007,no,,,yes
+23,28350,"COSMOS 2405 # Near Earth, perigee = 127.20 (< 156) s4 mod",25,13,13,0.006,0.001,0.006,0.006,yes,1,,yes
+24,28623,"H-2 R/B # Deep space, perigee = 135.75 (<156) s4 mod",13,13,13,0.006,0.001,0.006,0.006,no,,,yes
+25,28626,"# negative around 1130 min",13,13,13,0.007,0.001,0.007,0.007,no,,,yes
+26,28872,"#(perigee = -51km), lost in 50 minutes",13,11,11,0.007,0.001,0.007,0.007,yes,6,,yes
+27,29141,"SL-14 DEB # Last stage of decay - lost in under 420 min",23,22,22,0.007,0.001,0.007,0.007,yes,6,,yes
+28,29238,"# simplified drag eq",13,13,13,0.007,0.001,0.007,0.007,no,,,yes
+29,88888,"# Original STR#3 SGP4 test",13,13,13,0.006,0.001,0.006,0.006,no,,,yes
+30,33333,"# check error code 4",31,5,5,0.007,0.001,0.007,0.007,yes,4,,yes
+31,33334,"# try and check error code 2 but this",1441,1,0,0.000,0.000,0.000,0.000,yes,3,3,yes
+32,33335,"# try to check error code 3 looks like ep never goes below zero, tied close to ecc",73,73,73,0.008,0.001,0.008,0.008,no,,,yes
+33,20413,"SL-12 R/B # Shows Lyddane choice at 1860 and 4700 min",222,70,70,0.008,0.001,0.073,0.008,yes,6,,yes
