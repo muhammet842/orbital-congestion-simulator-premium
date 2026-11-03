@@ -1,7 +1,7 @@
 /**
  * Summarizes the Spotter measurements filled in by hand.
  *
- * Usage: npm run research:spotter-analyze [-- --in research/spotter/data/olcumler.csv]
+ * Usage: npm run research:spotter-analyze [-- --in research/spotter/data/measurements.csv] [--out <folder>]
  * Writes results/errors.csv (each measurement with its error) and
  * results/summary.csv (per group). Method: research/spotter/PROTOCOL.md.
  */
@@ -14,7 +14,16 @@ import { parseCsv, pointingError, readNumber, trueDirection } from './lib.mjs';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
 /** Groupings the summary reports, by column of the measurement sheet. */
-const GROUPINGS = [['tumu'], ['telefon'], ['hedef_turu'], ['kalibrasyon'], ['ortam'], ['tutus'], ['telefon', 'hedef_turu']];
+/**
+ * Groupings the summary reports, by column of the measurement sheet. platform,
+ * os and compass_trusted come from the Spotter readout's file
+ * (iPhone and Android apart; readings taken while Spotter did not trust the
+ * compass apart).
+ */
+const GROUPINGS = [
+  ['all'], ['platform'], ['os'], ['phone_model'], ['target_type'], ['calibrated'], ['surroundings'], ['mount'],
+  ['compass_trusted'], ['platform', 'target_type'], ['phone_model', 'target_type'],
+];
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
@@ -28,9 +37,9 @@ function arg(name, fallback) {
  * elevation only.
  */
 function trueOf(row) {
-  const az = readNumber(row.gercek_azimut);
-  const el = readNumber(row.gercek_yukseklik);
-  if (Number.isFinite(el) && (Number.isFinite(az) || String(row.gercek_azimut ?? '').trim() === '')) {
+  const az = readNumber(row.true_azimuth);
+  const el = readNumber(row.true_elevation);
+  if (Number.isFinite(el) && (Number.isFinite(az) || String(row.true_azimuth ?? '').trim() === '')) {
     const fromCoordinates = !Number.isFinite(az) ? coordinateDirection(row) : null;
     return fromCoordinates ?? { az, el };
   }
@@ -38,8 +47,8 @@ function trueOf(row) {
 }
 
 function coordinateDirection(row) {
-  const from = { latDeg: readNumber(row.gozlemci_enlem), lonDeg: readNumber(row.gozlemci_boylam), heightM: readNumber(row.gozlemci_yukseklik_m) || 0 };
-  const to = { latDeg: readNumber(row.hedef_enlem), lonDeg: readNumber(row.hedef_boylam), heightM: readNumber(row.hedef_yukseklik_m) || 0 };
+  const from = { latDeg: readNumber(row.observer_lat), lonDeg: readNumber(row.observer_lon), heightM: readNumber(row.observer_height_m) || 0 };
+  const to = { latDeg: readNumber(row.target_lat), lonDeg: readNumber(row.target_lon), heightM: readNumber(row.target_height_m) || 0 };
   if ([from.latDeg, from.lonDeg, to.latDeg, to.lonDeg].every(Number.isFinite)) {
     const d = trueDirection(from, to);
     return { az: d.azimuthDeg, el: d.elevationDeg };
@@ -50,16 +59,17 @@ function coordinateDirection(row) {
 const f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '');
 
 async function main() {
-  const input = arg('in', join(HERE, 'data', 'olcumler.csv'));
+  const input = arg('in', join(HERE, 'data', 'measurements.csv'));
   const rows = parseCsv(await readFile(input, 'utf8'));
   const measured = [];
   const skipped = [];
   for (const row of rows) {
     const truth = trueOf(row);
-    const phoneAz = readNumber(row.telefon_azimut);
-    const phoneEl = readNumber(row.telefon_yukseklik);
-    if (!truth || !Number.isFinite(phoneAz) || !Number.isFinite(phoneEl)) {
-      skipped.push(row.olcum_no || '?');
+    const phoneAz = readNumber(row.phone_azimuth);
+    const phoneEl = readNumber(row.phone_elevation);
+    // A row without the phone's azimuth (the compass was not trusted) still counts for the elevation.
+    if (!truth || !Number.isFinite(phoneEl)) {
+      skipped.push(row.measurement_no || '?');
       continue;
     }
     measured.push({ row, truth, err: pointingError(truth.az, truth.el, phoneAz, phoneEl) });
@@ -67,20 +77,20 @@ async function main() {
   if (measured.length === 0) {
     throw new Error(
       `no complete measurements in ${input}. Each row needs the phone's values and the true direction ` +
-        '(gercek_azimut and gercek_yukseklik, or the observer and target coordinates); see PROTOCOL.md, step 4.',
+        '(true_azimuth and true_elevation, or the observer and target coordinates); see PROTOCOL.md, step 4.',
     );
   }
 
-  const outDir = join(HERE, 'results');
+  const outDir = arg('out', join(HERE, 'results'));
   await mkdir(outDir, { recursive: true });
   const errorRows = measured.map(({ row, truth, err }) =>
-    [row.olcum_no, row.telefon, row.hedef_turu, row.hedef_adi, f2(Number(f2(truth.az)) % 360), f2(truth.el), row.telefon_azimut, row.telefon_yukseklik, f2(err.azimuth), f2(err.elevation), f2(err.total)]
+    [row.measurement_no, row.platform, row.phone_model, row.compass_trusted, row.target_type, row.target_name, f2(Number(f2(truth.az)) % 360), f2(truth.el), row.phone_azimuth, row.phone_elevation, f2(err.azimuth), f2(err.elevation), f2(err.total)]
       .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
       .join(','),
   );
   await writeFile(
     join(outDir, 'errors.csv'),
-    `olcum_no,telefon,hedef_turu,hedef_adi,gercek_azimut,gercek_yukseklik,telefon_azimut,telefon_yukseklik,azimut_hatasi,yukseklik_hatasi,toplam_hata\n${errorRows.join('\n')}\n`,
+    `measurement_no,platform,phone_model,compass_trusted,target_type,target_name,true_azimuth,true_elevation,phone_azimuth,phone_elevation,azimuth_error,elevation_error,total_error\n${errorRows.join('\n')}\n`,
   );
 
   // Each measure is summarized over the rows that have it (elevation-only rows have no azimuth or total).
@@ -88,11 +98,11 @@ async function main() {
     const ok = values.filter(Number.isFinite);
     return ok.length ? { ...summarize(ok), max: Math.max(...ok) } : { n: 0 };
   };
-  const lines = ['gruplama,grup,n_azimut,azimut_hatasi_ortalama,azimut_hatasi_ortanca,azimut_hatasi_std,n_yukseklik,yukseklik_hatasi_ortalama,yukseklik_hatasi_ortanca,yukseklik_hatasi_std,toplam_hata_ortanca,toplam_hata_p95,toplam_hata_en_buyuk'];
+  const lines = ['grouping,group,n_azimuth,azimuth_error_mean,azimuth_error_median,azimuth_error_std,n_elevation,elevation_error_mean,elevation_error_median,elevation_error_std,total_error_median,total_error_p95,total_error_max'];
   for (const keys of GROUPINGS) {
     const groups = new Map();
     for (const m of measured) {
-      const label = keys[0] === 'tumu' ? 'tumu' : keys.map((k) => m.row[k] || '(bos)').join(' / ');
+      const label = keys[0] === 'all' ? 'all' : keys.map((k) => m.row[k] || '(empty)').join(' / ');
       groups.set(label, [...(groups.get(label) ?? []), m]);
     }
     for (const [label, list] of [...groups.entries()].sort()) {
@@ -105,8 +115,8 @@ async function main() {
     }
   }
   await writeFile(join(outDir, 'summary.csv'), `${lines.join('\n')}\n`);
-  console.log(`${measured.length} ölçüm özetlendi${skipped.length ? `, ${skipped.length} eksik satır atlandı (${skipped.join(', ')})` : ''}.`);
-  console.log(`Sonuçlar: ${join(outDir, 'summary.csv')} ve errors.csv`);
+  console.log(`${measured.length} measurements summarized${skipped.length ? `, ${skipped.length} incomplete rows skipped (${skipped.join(', ')})` : ''}.`);
+  console.log(`Results: ${join(outDir, 'summary.csv')} and errors.csv`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

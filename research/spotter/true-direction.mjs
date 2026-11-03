@@ -23,11 +23,11 @@ function main() {
   const d = trueDirection(point('from'), point('to'));
   // 359.999…° rounds to "360.00"; due north is written as 0.00.
   const azimuth = Number(d.azimuthDeg.toFixed(2)) % 360;
-  console.log(`Gerçek azimut (coğrafi kuzeyden, saat yönünde): ${azimuth.toFixed(2)}°`);
-  console.log(`Gerçek yükseklik açısı (ufkun üstü):            ${d.elevationDeg.toFixed(2)}°`);
-  console.log(`Uzaklık:                                        ${d.distanceKm.toFixed(3)} km`);
+  console.log(`True azimuth (from true north, clockwise):   ${azimuth.toFixed(2)}°`);
+  console.log(`True elevation (above the horizon):          ${d.elevationDeg.toFixed(2)}°`);
+  console.log(`Distance:                                    ${d.distanceKm.toFixed(3)} km`);
   // A 10 m error in either position moves the direction by about this much.
-  console.log(`10 m konum hatasının yön etkisi (yaklaşık):     ${((0.01 / d.distanceKm) * (180 / Math.PI)).toFixed(2)}°`);
+  console.log(`Effect of a 10 m position error (approx.):   ${((0.01 / d.distanceKm) * (180 / Math.PI)).toFixed(2)}°`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setLang } from '../../i18n/i18n';
 import type { SensorSnapshot } from '../observerSensors';
+import { describeDevice } from './deviceInfo';
 import {
   bindMeasureTool,
   loadMeasurements,
@@ -26,6 +27,12 @@ const sensors = (over: Partial<SensorSnapshot> = {}): SensorSnapshot => ({
   orientationPermission: 'granted',
   ...over,
 });
+/** What Spotter's sensors report when they stop trusting the compass: no direction at all. */
+const untrusted = (headingError = 'needs_compass') =>
+  sensors({ headingDeg: null, headingReliable: false, headingSource: null, headingError });
+
+const PIXEL = 'Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A.240205.004) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 
 beforeEach(() => {
   setLang('en');
@@ -43,30 +50,56 @@ describe('measureModeEnabled', () => {
 });
 
 describe('measurementFrom', () => {
-  it('saves nothing without a trusted direction and tilt', () => {
-    const now = new Date();
-    expect(measurementFrom(sensors({ headingReliable: false }), now)).toBeNull();
-    expect(measurementFrom(sensors({ headingDeg: null }), now)).toBeNull();
-    expect(measurementFrom(sensors({ pitchDeg: null }), now)).toBeNull();
+  it('keeps the full values, rounded only when written out', () => {
+    const r = measurementFrom(sensors(), new Date('2026-11-05T11:10:07Z'))!;
+    expect(r).toMatchObject({ utc: '2026-11-05T11:10:07.000Z', headingDeg: 48.456, pitchDeg: 3.14, headingSource: 'absolute', headingTrusted: true, compassState: '' });
   });
 
-  it('keeps the full values, rounded only when written out', () => {
-    const r = measurementFrom(sensors(), new Date('2026-11-05T11:10:07Z'), 'UA')!;
-    expect(r).toMatchObject({ utc: '2026-11-05T11:10:07.000Z', headingDeg: 48.456, pitchDeg: 3.14, headingSource: 'absolute' });
+  it('keeps a reading while the compass is not trusted: the tilt, no direction, and why', () => {
+    const r = measurementFrom(untrusted('stale'), new Date())!;
+    expect(r).toMatchObject({ headingDeg: null, pitchDeg: 3.14, headingTrusted: false, compassState: 'stale', headingSource: '' });
+  });
+
+  it('never saves a direction Spotter itself does not trust', () => {
+    // headingReliable false with a leftover number: the number is not kept.
+    expect(measurementFrom(sensors({ headingReliable: false }), new Date())!.headingDeg).toBeNull();
+  });
+
+  it('saves nothing when there is neither a direction nor a tilt', () => {
+    expect(measurementFrom(sensors({ headingDeg: null, headingReliable: false, pitchDeg: null }), new Date())).toBeNull();
   });
 });
 
 describe('measurementsCsv', () => {
   const records = [
-    measurementFrom(sensors(), new Date('2026-11-05T11:10:07Z'), 'Mozilla/5.0 (Linux; Android 14)')!,
-    measurementFrom(sensors({ headingDeg: 359.96, accuracyMeters: null }), new Date('2026-11-05T11:11:00Z'), 'x')!,
+    measurementFrom(sensors(), new Date('2026-11-05T11:10:07Z'), describeDevice(PIXEL))!,
+    measurementFrom(untrusted(), new Date('2026-11-05T11:11:00Z'), describeDevice(IPHONE))!,
   ];
+  const csv = measurementsCsv(records);
+  const lines = csv.replace(/^\uFEFF/, '').trim().split('\r\n');
+  const header = lines[0].split(';');
+  const cell = (row: number, column: string) => {
+    // The User-Agent is quoted and contains semicolons; it is the last column, so split before it.
+    const fields = lines[row].slice(0, lines[row].lastIndexOf(';"')).split(';');
+    return fields[header.indexOf(column)];
+  };
 
-  it('writes decimal commas and quotes a browser name that contains a semicolon', () => {
-    const csv = measurementsCsv(records);
+  it('starts with a UTF-8 mark for Excel and quotes the User-Agent, which contains semicolons', () => {
     expect(csv.startsWith('\uFEFF')).toBe(true);
-    expect(csv).toContain('"Mozilla/5.0 (Linux; Android 14)"');
-    expect(csv).toContain(';48,5;3,1;6;5,9;');
+    expect(csv).toContain(`"${PIXEL}"`);
+  });
+
+  it('writes the phone, operating system, platform, browser and compass source on every row', () => {
+    expect([cell(1, 'phone_model'), cell(1, 'os'), cell(1, 'platform'), cell(1, 'browser'), cell(1, 'compass_source')])
+      .toEqual(['Pixel 7', 'Android 14', 'Android', 'Chrome 130', 'absolute']);
+    expect([cell(2, 'phone_model'), cell(2, 'os'), cell(2, 'platform'), cell(2, 'browser')])
+      .toEqual(['iPhone', 'iOS 17.5', 'iOS', 'Safari 17']);
+  });
+
+  it('marks a reading taken while the compass was not trusted, with an empty direction', () => {
+    expect([cell(1, 'compass_trusted'), cell(1, 'phone_azimuth')]).toEqual(['yes', '48,5']);
+    expect([cell(2, 'compass_trusted'), cell(2, 'compass_state'), cell(2, 'phone_azimuth'), cell(2, 'phone_elevation')])
+      .toEqual(['no', 'needs_compass', '', '3,1']);
   });
 });
 
@@ -104,10 +137,32 @@ describe('the readout', () => {
     expect(loadMeasurements()).toHaveLength(1);
   });
 
-  it('cannot save while the compass is not trusted', () => {
+  it('still saves while the compass is not trusted, says so, and marks the row', () => {
     const { root, set } = mount(sensors());
-    set(sensors({ headingReliable: false }));
+    set(untrusted());
     expect(text(root, 'spotter-measure-heading')).toBe('—');
+    expect(text(root, 'spotter-measure-details')).toBe('Compass not trusted (needs_compass). Save keeps the tilt and marks the row.');
+    expect(root.querySelector('#spotter-measure')!.classList.contains('spotter-measure--untrusted')).toBe(true);
+    expect(root.querySelector<HTMLButtonElement>('#spotter-measure-save')!.disabled).toBe(false);
+
+    click(root, 'spotter-measure-save');
+    expect(loadMeasurements()[0]).toMatchObject({ headingTrusted: false, headingDeg: null, compassState: 'needs_compass' });
+
+    set(sensors());
+    expect(root.querySelector('#spotter-measure')!.classList.contains('spotter-measure--untrusted')).toBe(false);
+  });
+
+  it('cannot save when there is neither a direction nor a tilt', () => {
+    const { root, set } = mount(sensors());
+    set(sensors({ headingDeg: null, headingReliable: false, pitchDeg: null }));
     expect(root.querySelector<HTMLButtonElement>('#spotter-measure-save')!.disabled).toBe(true);
+  });
+
+  it('reads readings saved before device details were recorded', () => {
+    localStorage.setItem(
+      'orbital-spotter-measurements-v1',
+      JSON.stringify([{ utc: '2026-11-03T10:48:44.346Z', headingDeg: 54.6, pitchDeg: 2, headingSource: 'absolute', declinationDeg: 6.1, gpsAccuracyM: 6, latitudeDeg: 40.9, longitudeDeg: 29.3, browser: PIXEL }]),
+    );
+    expect(loadMeasurements()[0]).toMatchObject({ headingTrusted: true, compassState: '', device: { platform: 'Android', model: 'Pixel 7' } });
   });
 });
