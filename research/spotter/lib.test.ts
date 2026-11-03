@@ -51,11 +51,11 @@ describe('reading the measurement sheet', () => {
     expect(rows).toEqual([{ a: '1', b: 'x, y', c: '3' }]);
   });
 
-  it('reads the semicolon CSV that a Turkish Excel saves', () => {
+  it('reads the semicolon CSV that Excel saves in decimal-comma locales', () => {
     expect(parseCsv('\uFEFFa;b\n12,5;"x; y"\n')).toEqual([{ a: '12,5', b: 'x; y' }]);
   });
 
-  it('accepts decimal commas from a Turkish Excel', () => {
+  it('accepts decimal commas', () => {
     expect(readNumber('12,5')).toBe(12.5);
     expect(readNumber('12.5')).toBe(12.5);
     expect(readNumber('')).toBeNaN();

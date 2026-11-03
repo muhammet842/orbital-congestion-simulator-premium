@@ -71,7 +71,7 @@ const EXTRA_COLUMNS = [
   'gps_lat', 'gps_lon', 'user_agent',
 ];
 
-/** Decimal comma, as a Turkish Excel expects next to semicolons; empty when unknown. */
+/** Decimal comma, as spreadsheets in decimal-comma locales expect next to semicolons; empty when unknown. */
 function decimal(value: number | null, digits: number): string {
   return value == null || !Number.isFinite(value) ? '' : value.toFixed(digits).replace('.', ',');
 }

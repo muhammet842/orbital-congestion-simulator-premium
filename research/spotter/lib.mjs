@@ -65,7 +65,7 @@ export function pointingError(trueAzDeg, trueElDeg, phoneAzDeg, phoneElDeg) {
 /**
  * Rows of a CSV file as objects keyed by the header; quoted fields may contain
  * the separator. The separator is a comma, or a semicolon when the header line
- * uses semicolons: Excel set to Turkish saves CSV files that way, with decimal
+ * uses semicolons: Excel in decimal-comma locales (e.g. Turkish, German) saves CSV files that way, with decimal
  * commas in the numbers.
  */
 export function parseCsv(text) {
@@ -100,7 +100,7 @@ export function parseCsv(text) {
   return body.map((fields) => Object.fromEntries(header.map((h, i) => [h, fields[i] ?? ''])));
 }
 
-/** A number written with a dot or a decimal comma (Excel in Turkish writes "12,5"); NaN when empty. */
+/** A number written with a dot or a decimal comma (as in decimal-comma locales: "12,5"); NaN when empty. */
 export function readNumber(text) {
   const s = String(text ?? '').trim().replace(',', '.');
   return s === '' ? Number.NaN : Number(s);

@@ -1,5 +1,4 @@
 # Not the true error: the newer TLE is only a more recent estimate, so these are differences between two TLEs.
-# Gerçek hata değildir: yeni TLE yalnızca daha güncel bir tahmindir; değerler iki TLE arasındaki farktır.
 period,group,age_days,n,median_km,q1_km,q3_km,p95_km,mean_km,std_km,median_abs_along_km,median_abs_radial_km,median_abs_cross_km,outlier_limit_km,outliers_n,outliers_pct
 main,LEO,0,24850,0.268,0.063,2.081,14.485,3.917,18.717,0.240,0.029,0.026,8.135,2297,9.24
 main,LEO,1,181735,1.308,0.197,9.984,48.804,15.856,93.563,1.266,0.081,0.071,39.344,11046,6.08

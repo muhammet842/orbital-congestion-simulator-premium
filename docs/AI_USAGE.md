@@ -1,65 +1,65 @@
-# Yapay zekâ kullanımı
+# AI use
 
-Bu proje geliştirilirken yapay zekâ araçları **yoğun olarak** kullanıldı. Bu belge, hangi araçların, hangi dönemde, hangi işlerde kullanıldığını ve sonuçların nasıl denetlendiğini dürüstçe anlatır. Git geçmişi hiçbir zaman yeniden yazılmadı; yapay zekânın izleri (commit satırları, `.cursor/rules/` dosyaları) depoda olduğu gibi duruyor.
+AI tools were used **heavily** in building this project. This document describes honestly which tools were used, when, for which work, and how the results were checked. The git history was never rewritten; the traces of AI use (commit trailers, the `.cursor/rules/` files) remain in the repository as they are.
 
-*Son güncelleme: 3 Kasım 2026.*
+*Last updated: 3 November 2026.*
 
-## Kullanılan araçlar ve dönemler
+## Tools and periods
 
-| Dönem | Araç | Git geçmişindeki iz |
+| Period | Tool | Trace in the git history |
 |---|---|---|
-| Temmuz – Eylül 2026 | **Cursor**: yapay zekâ destekli kod editörü | 8 Temmuz – 2 Eylül arasında **171 commit**'te `Co-authored-by: Cursor` satırı. `.cursor/rules/` klasöründeki iki dosya (`project-map.mdc`, `tle-refresh.mdc`), Cursor'daki yapay zekâya projeyi tanıtan kurallardır (2 Eylül'de eklendi). |
-| 12 Ekim 2026'dan beri | **Claude Code** (Anthropic): Claude Opus 5.5 ve Claude Sonnet 5.5 modelleri | 12–15 Ekim arasında **36 commit**'te `Co-Authored-By: Claude …` satırı; PR #1–#12'nin açıklamasında "Generated with Claude Code" notu. |
+| July – September 2026 | **Cursor**: an AI-assisted code editor | **171 commits** between 8 July and 2 September with a `Co-authored-by: Cursor` line. The two files in `.cursor/rules/` (`project-map.mdc`, `tle-refresh.mdc`) are rules that introduce the project to Cursor's AI (added on 2 September). |
+| Since 12 October 2026 | **Claude Code** (Anthropic): the Claude Opus 5.5 and Claude Sonnet 5.5 models | **36 commits** between 12 and 15 October with a `Co-Authored-By: Claude …` line; a "Generated with Claude Code" note in the descriptions of PR #1–#12. |
 
-### ⚠️ Git geçmişinde görünmeyen katkı
+### ⚠️ Contribution the git history does not show
 
-Öğrencinin isteğiyle, Claude Code PR açıklamalarına "Generated with Claude Code" notunu PR #13'ten (14 Ekim 2026) itibaren, commit'lere `Co-Authored-By: Claude` satırını 15 Ekim 2026'dan sonra **eklemedi**. Bu yüzden git geçmişi, yapay zekânın katkısını gerçekte olduğundan **az** gösterir:
+At the author's request, Claude Code stopped adding the "Generated with Claude Code" note to PR descriptions from PR #13 (14 October 2026), and the `Co-Authored-By: Claude` line to commits after 15 October 2026. So the git history shows **less** of the AI's contribution than there really is:
 
-- **PR #44 – #76**: Claude Code ile hazırlandı. Kod, testler, commit mesajları ve PR açıklamaları Claude Code tarafından yazıldı ve öğrenci tarafından okunup birleştirildi.
-- **PR #13 – #43**: aynı dönemin ve aynı çalışma biçiminin PR'larıdır. ☐ *(Öğrenci teyit edecek: hangileri Claude Code ile hazırlandı.)*
-- Dependabot PR'ları (#24–#31, #48–#51, #68) otomatik bağımlılık güncellemeleridir; yapay zekâ değil, GitHub'ın aracı açar.
-- Günlük veri commit'leri (`github-actions[bot]`, 61 commit) otomatik iş akışıdır.
+- **PR #44 – #76** were made with Claude Code. The code, tests, commit messages and PR descriptions were written by Claude Code, then read and merged by the author.
+- **PR #13 – #43** are from the same period and the same way of working. ☐ *(To be confirmed by the author: which of them were made with Claude Code.)*
+- The Dependabot PRs (#24–#31, #48–#51, #68) are automatic dependency updates, opened by a GitHub tool, not by AI.
+- The daily data commits (`github-actions[bot]`, 61 commits) come from an automated workflow.
 
-## Yapay zekânın yaptığı işler
+## What the AI did
 
-### Uygulama
+### The application
 
-- **Kodun büyük kısmı** yapay zekâ araçlarıyla yazıldı ☐ *(öğrenci teyit edecek ya da düzeltecek: elle yazdığım ya da baştan değiştirdiğim kısımlar)*: arayüz, 3B sahne (Three.js), SGP4 ile konum hesabı, 24 saatlik yakın geçiş taraması ve Web Worker'lar, Kessler projeksiyonu, Uydu Radyosu paneli, Spotter, fırlatma listesi, günlük veri iş akışı, CI ve testler. Nasıl çalıştıkları: [`docs/ARCHITECTURE.md`](ARCHITECTURE.md).
-- **Çeviriler**: Arayüzün İngilizce dışındaki dillerdeki metinleri (Türkçe, Almanca, Rusça, Çince) yapay zekâ tarafından çevrildi. ☐ *(Öğrenci teyit edecek: hangi diller bir anadili konuşan tarafından kontrol edildi.)*
-- **Testler**: 899 birim testi ve tarayıcı testlerinin büyük kısmı yapay zekâ tarafından yazıldı.
-- **Dokümantasyon**: README, `docs/` ve `research/` altındaki belgeler yapay zekâ tarafından yazıldı.
+- **Most of the code** was written with AI tools ☐ *(to be confirmed or corrected by the author: the parts written by hand or rewritten)*: the interface, the 3D scene (Three.js), position calculation with SGP4, the 24-hour close-approach sweep and the Web Workers, the Kessler projection, the Satellite Radio panel, Spotter, the launch list, the daily data workflow, CI and tests. How they work: [`docs/ARCHITECTURE.md`](ARCHITECTURE.md).
+- **Translations:** the interface texts in languages other than English (Turkish, German, Russian, Chinese) were translated by AI. ☐ *(To be confirmed by the author: which languages a native speaker has checked.)*
+- **Tests:** most of the 899 unit tests and the browser tests were written by AI.
+- **Documentation:** the README and the documents under `docs/` and `research/` were written by AI.
 
-### Araştırma altyapısı (Kasım 2026, Claude Code)
+### Research tooling (November 2026, Claude Code)
 
-Öğrencinin belirlediği yapılacaklar listesine göre:
+Following a task list set by the author:
 
-| İş | Klasör / PR |
+| Work | Folder / PR |
 |---|---|
-| Günlük TLE arşivi ve geçmiş günlerin kurtarılması | `tle-archive` release, PR #69 |
-| TLE yaşı ve konum farkı ölçümü | [`research/tle-age/`](../research/tle-age/README.md), PR #70 |
-| Performans bayrakları ve ölçüm betikleri | [`research/perf/`](../research/perf/README.md), PR #71 |
-| SGP4 doğrulaması (Vallado vd. 2006 test seti) | [`research/sgp4-verify/`](../research/sgp4-verify/README.md), PR #72 |
-| Spotter doğruluk protokolü, ölçüm göstergesi ve analiz | [`research/spotter/`](../research/spotter/PROTOCOL.md), PR #73 – #75 |
-| Mimari özeti | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), PR #76 |
+| Daily TLE archive and recovery of past days | `tle-archive` release, PR #69 |
+| TLE age vs. position difference | [`research/tle-age/`](../research/tle-age/README.md), PR #70 |
+| Performance flags and measurement scripts | [`research/perf/`](../research/perf/README.md), PR #71 |
+| SGP4 verification (Vallado et al. 2006 test set) | [`research/sgp4-verify/`](../research/sgp4-verify/README.md), PR #72 |
+| Spotter accuracy protocol, measurement readout and analysis | [`research/spotter/`](../research/spotter/PROTOCOL.md), PR #73 – #75 |
+| Architecture overview | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), PR #76 |
 
-Yapay zekâ bu işlerde betikleri yazdı, ölçümleri öğrencinin bilgisayarında çalıştırdı ve sonuç dosyalarını üretti. **Öğrencinin belirlediği** yöntem kuralları (örneğin TLE yaşının satır 1'deki epoch'tan hesaplanması, ana dönemin ayrılması, CPU yavaşlatmalı ek tur) aşağıdaki "Benim verdiğim kararlar" bölümünde öğrenci tarafından yazılacak. Yapay zekânın **kendi önerdiği** ve öğrencinin onayladığı başlıca yöntem seçimleri:
+In this work the AI wrote the scripts, ran the measurements on the author's computer and produced the result files. The method rules set by the author (for example computing TLE age from the line-1 epochs, keeping the main period apart, the extra round with CPU slowdown) are the author's own decisions. The main method choices the AI **proposed itself**, and the author approved, were:
 
-- arşivin bir dalda değil GitHub Release'te, gzip'li 3LE biçiminde tutulması;
-- SGP4'ün hata bildirmeden ürettiği anlamsız sonuçları eleyen kural (tahmin edilen konum, yeni yörüngenin en alçak–en yüksek aralığının 1.000 km dışındaysa geçersiz);
-- aykırı değerler için Tukey kuralı (Q3 + 3 × IQR) ve ana sonuç olarak ortanca;
-- SGP4 doğrulamasında MATLAB çıktısının ana referans, Fortran çıktısının çapraz kontrol olarak kullanılması ve farkın kaynağını göstermek için `afspc` kip tanısı;
-- performans ölçümünde nesnelerin NORAD sırasına göre eşit aralıkla seçilmesi, dönüşümlü ölçüm sırası, kare süresinin taramayı beklemeden sabit bir pencerede ölçülmesi;
-- Spotter protokolünde gerçek yönü bilinen hedefler (uzak yer işareti, Kutup Yıldızı, su terazisi) ve gerçek yönün WGS-84 üzerinde hesaplanması.
+- keeping the archive in a GitHub Release as gzip-compressed 3LE files rather than on a branch;
+- the rule that discards meaningless results SGP4 returns without an error (a predicted position more than 1,000 km outside the newer orbit's lowest-to-highest range is invalid);
+- Tukey's rule (Q3 + 3 × IQR) for outliers, and the median as the main result;
+- in the SGP4 verification, the MATLAB output as the main reference and the Fortran output as the cross-check, and the `afspc` mode diagnostic to show where a difference comes from;
+- in the performance measurement, picking objects evenly by NORAD number, an alternating run order, and measuring frame time in a fixed window without waiting for the sweep;
+- in the Spotter protocol, the targets with a known true direction (distant landmark, Polaris, spirit level) and computing the true direction on WGS-84.
 
-### Kod dışı
+### Outside the code
 
-- Proje başvuru formu metni ve forum duyurusu için **geri bildirim ve taslak öneriler**. Son metinler öğrenci tarafından yazılır. ☐ *(Öğrenci teyit edecek.)*
-- **Rapor metnini yapay zekâ yazmadı**; rapor öğrenci tarafından yazılır.
+- **Feedback and draft suggestions** for project description texts and a forum announcement. The final texts are written by the author. ☐ *(To be confirmed by the author.)*
+- **Written reports about the project are not written by AI**; the author writes them.
 
-## Sonuçlar nasıl denetlendi
+## How the results were checked
 
-- **Otomatik testler**: 899 birim testi; tarayıcı testleri (Playwright); her değişiklikte lint, tip kontrolü ve build. GitHub'da her PR için aynı kontroller çalışır.
-- **Bağımsız referansla doğrulama**: Uygulamanın SGP4 kütüphanesi, Vallado vd. (2006) makalesiyle yayımlanan 33 test durumunun 32'sinde 1 mm içinde aynı sonucu veriyor; kalan bir durumdaki farkın kaynağı gösterildi ([`research/sgp4-verify/`](../research/sgp4-verify/README.md)).
-- **Tekrarlanabilirlik**: Ölçümlerin hepsi bir komutla yeniden çalıştırılabilir ve aynı veriyle aynı sonucu verir. Veri kaynakları ve dosya özetleri (SHA-256) belgelerde yazılıdır.
-- **Elle denetim**: Arayüz değişiklikleri telefon ve masaüstü boyutunda tarayıcıda denendi; ekran görüntüleri incelendi.
-- **Yapay zekânın hataları**: Yapay zekâ çalışırken hatalar da yaptı ve bunların bir kısmı denetimde yakalandı. Örnekler: protokolde Spotter'ın GPS uyarı eşiğinin yanlış yazılması (20 m yerine kodda 80 m), tam kuzeyin "360.00°" yazılması, bir ölçüm bayrağının adres değişince kaybolması, tasarlanmamış bir test durumunda (su terazisi) anlamsız bir hata değeri üretilmesi. Hepsi düzeltildi.
+- **Automated tests:** 899 unit tests; browser tests (Playwright); lint, type checking and a build on every change. The same checks run on GitHub for every PR.
+- **Verification against an independent reference:** the app's SGP4 library agrees within 1 mm with 32 of the 33 test cases published with Vallado et al. (2006); the source of the difference in the remaining case is shown ([`research/sgp4-verify/`](../research/sgp4-verify/README.md)).
+- **Reproducibility:** every measurement can be rerun with one command and gives the same results with the same data. The data sources and file hashes (SHA-256) are given in the documents.
+- **Manual checks:** interface changes were tried in a browser at phone and desktop sizes, and screenshots were reviewed.
+- **The AI's mistakes:** the AI also made mistakes while working, and some were caught in review. Examples: the protocol giving the wrong GPS warning threshold for Spotter (20 m, while the code uses 80 m), due north written as "360.00°", a measurement flag lost when the address changed, and a meaningless error value produced for an unplanned case (the spirit level). All were fixed.
