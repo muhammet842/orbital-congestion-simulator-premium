@@ -1,5 +1,15 @@
 {
-  "when": "2026-11-03T08:54:50.756Z",
+  "run": {
+    "commit": "3e94aed79e748e6a8a09dacbcc5a50f43ca20f5c",
+    "date": "2026-11-03T19:15:02.813Z",
+    "command": "npm run research:perf-node",
+    "tleJson": "not used: objects from the TLE archive file of 2026-11-02 (28297 objects)",
+    "refreshHz": "not applicable (Node, no display)",
+    "browser": "not applicable (Node v24.17.0)",
+    "gpu": "not applicable (Node)",
+    "power": "plugged in, power plan Balanced, sleep and display-off disabled"
+  },
+  "when": "2026-11-03T19:15:02.813Z",
   "node": "v24.17.0",
   "cpu": "AMD Ryzen 5 7520U with Radeon Graphics         ",
   "cores": 8,
