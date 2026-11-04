@@ -50,7 +50,6 @@ import { EARTH_RADIUS_KM, type TrackedObject } from '../types';
 import {
   getState,
   getSimulationTime,
-  matchesSearchQuery,
   selectObject,
   clearObjectSelection,
   setConjunctions,
@@ -72,6 +71,7 @@ import { distanceKm } from '../orbital/conjunction/vectors';
 import { workersDisabled } from '../perfFlags';
 import {
   catalogUpdateKey,
+  clickSelectable,
   clockToAdvance,
   frameTimeSpeed,
   overlayTargets,
@@ -813,15 +813,7 @@ export class SceneManager {
       const obj = state.objects[objectIndex];
       if (!obj) return;
 
-      const propagation = propagateObject(obj.satrec, getSimulationTime());
-      if (
-        propagation &&
-        state.layerFilters[propagation.layer] &&
-        (state.categoryFilter === 'all' || obj.category === state.categoryFilter) &&
-        matchesSearchQuery(obj, state.searchQuery)
-      ) {
-        selectObject(objectIndex);
-      }
+      if (clickSelectable(obj, state)) selectObject(objectIndex);
       return;
     }
 

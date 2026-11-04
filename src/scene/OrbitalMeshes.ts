@@ -306,11 +306,10 @@ export class OrbitalMeshes {
         continue;
       }
 
-      if (
-        !isSelected &&
-        !isConjunction &&
-        (!layerFilters[result.layer] || !isVisibleFromCamera(result, cameraPosition))
-      ) {
+      // The layer filter was applied above with the fixed obj.layer, as for the
+      // dots; the layer of the current altitude is not used, so an object does
+      // not vanish while a stretched orbit takes it over a layer boundary.
+      if (!isSelected && !isConjunction && !isVisibleFromCamera(result, cameraPosition)) {
         wrapper.visible = false;
         continue;
       }

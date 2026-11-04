@@ -5,7 +5,24 @@
  * the range the close-approach prediction covers.
  */
 import { isWithinPredictionRange } from '../orbital/conjunction';
-import type { AppState, SelectedLaunch } from '../state/appState';
+import { matchesSearchQuery, type AppState, type SelectedLaunch } from '../state/appState';
+import type { TrackedObject } from '../types';
+
+/**
+ * Whether a clicked catalogue object may be selected under the current
+ * filters. It uses the object's fixed layer (`obj.layer`, from the orbit's
+ * mean altitude), the same one that decides whether its dot is drawn, not the
+ * layer of its altitude at this moment: an object in a slightly stretched LEO
+ * orbit is drawn with only LEO shown even while it is above 2,000 km, so it
+ * must be clickable there too.
+ */
+export function clickSelectable(obj: TrackedObject, state: AppState): boolean {
+  return (
+    state.layerFilters[obj.layer] &&
+    (state.categoryFilter === 'all' || obj.category === state.categoryFilter) &&
+    matchesSearchQuery(obj, state.searchQuery)
+  );
+}
 
 /** Which clock this frame moves forward, if any. */
 export type ClockToAdvance = 'verification' | 'replay' | 'simulation' | null;
