@@ -1,0 +1,43 @@
+{
+  "commit": "3e94aed79e748e6a8a09dacbcc5a50f43ca20f5c",
+  "commitDate": "2026-11-03T16:34:54+03:00",
+  "commitSubject": "Merge pull request #68 from muhammet842/dependabot/npm_and_yarn/dev-dependencies-ed19654922",
+  "workingTreeClean": true,
+  "runStarted": "2026-11-03T19:15:12.820Z",
+  "catalog": {
+    "fetchedAt": "2026-11-03T11:00:58.408Z",
+    "objects": 28294,
+    "dataBranchCommit": "7ea6dd1cacf59bf9ae11d6cf7005d43501ef07ce",
+    "source": "dist/data/tle.json built with npm run pull-data && npm run build"
+  },
+  "nodeCalculation": {
+    "command": "npm run research:perf-node",
+    "archiveDay": "2026-11-02"
+  },
+  "frames": {
+    "command": "npm run research:perf-browser -- --phase frames",
+    "finished": "2026-11-03T20:29Z (from browser-runs.csv write time)",
+    "environmentFile": "browser-env-frames.json"
+  },
+  "power": {
+    "acPower": true,
+    "plan": "Balanced (Dengeli)",
+    "sleepOnAcMin": 0,
+    "displayOffOnAcMin": 0,
+    "screenSaver": "none"
+  },
+  "note": "Display refresh rate, browser version and GPU are recorded per phase in browser-env.json.",
+  "scan": {
+    "commit": "8c257df7c01ddce8ee6f4f79fc72748168fa732e",
+    "commitNote": "Only research/perf/browser-bench.mjs, its test and README changed since 3e94aed; the app build (dist/) is the same one used for the frames.",
+    "command": "npm run research:perf-browser -- --phase scan --scan-repeats 10 --scan-repeats-for 28000:off=1 --scan-cap-min 15",
+    "started": "2026-11-03T20:35:52.321Z",
+    "environmentFile": "browser-env.json",
+    "finished": "2026-11-04T01:40:53Z (from browser-scan.csv write time)",
+    "notes": [
+      "The shell that started the scan was closed by the tool running it at about 2026-11-03T21:20Z because system memory was low; the measurement process itself kept running and finished all 71 runs.",
+      "The last line of scan-console.log (\"FAILED ... taskkill\") comes from stopping the preview server after all results were written; it does not affect the measurements.",
+      "About 1.1-1.4 GB of the 7.4 GB memory was available during the run; other programs (browser, system services) were open in the background."
+    ]
+  }
+}

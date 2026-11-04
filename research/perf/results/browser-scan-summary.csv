@@ -1,0 +1,17 @@
+# commit: 8c257df7c01ddce8ee6f4f79fc72748168fa732e
+# date: 2026-11-03T20:35:52.321Z
+# command: npm run research:perf-browser -- --phase scan --scan-repeats 10 --scan-repeats-for 28000:off=1 --scan-cap-min 15
+# tle.json: tle.json fetched 2026-11-03T11:00:58.408Z (28294 objects, data branch 7ea6dd1)
+# display refresh rate (Hz): 59.9
+# browser: Microsoft Edge 156.0.4314.58
+# GPU: ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001506) Direct3D11 vs_5_0 ps_5_0, D3D11)
+# power: plugged in, power plan Balanced, sleep and display-off disabled
+size,worker,runs,finished,not_finished_in_cap,failed,scan_s_median,scan_s_std,cap_s
+1000,on,10,10,0,0,2.3,0.1,900
+1000,off,10,10,0,0,125.3,0.2,900
+5000,on,10,10,0,0,12.4,0.2,900
+5000,off,10,10,0,0,521.0,0.2,900
+10000,on,10,10,0,0,28.9,0.9,900
+10000,off,10,0,10,0,,,900
+28000,on,10,10,0,0,134.7,10.3,900
+28000,off,1,0,1,0,,,900

@@ -1,0 +1,32 @@
+{
+  "run": {
+    "commit": "3e94aed79e748e6a8a09dacbcc5a50f43ca20f5c",
+    "date": "2026-11-03T19:15:12.820Z",
+    "command": "npm run research:perf-browser -- --phase frames",
+    "tleJson": "tle.json fetched 2026-11-03T11:00:58.408Z (28294 objects, data branch 7ea6dd1)",
+    "refreshHz": 60.2,
+    "browser": "Microsoft Edge 156.0.4314.58",
+    "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001506) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "power": "plugged in, power plan Balanced, sleep and display-off disabled"
+  },
+  "when": "2026-11-03T19:15:20.473Z",
+  "browser": "Microsoft Edge 156.0.4314.58",
+  "headed": true,
+  "refreshHz": 60.2,
+  "frameIntervalMedianMs": 16.6,
+  "screen": {
+    "width": 1440,
+    "height": 900,
+    "devicePixelRatio": 1
+  },
+  "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001506) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "cpu": "AMD Ryzen 5 7520U with Radeon Graphics         ",
+  "cores": 8,
+  "memoryGb": 8,
+  "os": "win32 10.0.26300",
+  "power": "plugged in",
+  "viewport": "1440x900",
+  "warmupMs": 10000,
+  "windowMs": 15000,
+  "cpuThrottleNote": "Emulation.setCPUThrottlingRate slows the page main thread; Web Workers may not be slowed."
+}

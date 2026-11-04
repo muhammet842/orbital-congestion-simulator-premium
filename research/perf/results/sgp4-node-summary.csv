@@ -1,5 +1,13 @@
+# commit: 3e94aed79e748e6a8a09dacbcc5a50f43ca20f5c
+# date: 2026-11-03T19:15:02.813Z
+# command: npm run research:perf-node
+# tle.json: not used: objects from the TLE archive file of 2026-11-02 (28297 objects)
+# display refresh rate (Hz): not applicable (Node, no display)
+# browser: not applicable (Node v24.17.0)
+# GPU: not applicable (Node)
+# power: plugged in, power plan Balanced, sleep and display-off disabled
 objects,repeats,median_ms,std_ms,q1_ms,q3_ms,min_ms,max_ms,median_us_per_object
-1000,30,2.270,0.420,2.011,2.615,1.930,3.349,2.270
-5000,30,10.969,0.523,10.886,11.147,10.739,13.111,2.194
-10000,30,22.740,1.461,21.938,23.787,21.450,27.063,2.274
-28000,30,61.485,0.681,61.067,61.773,60.767,63.680,2.196
+1000,30,2.148,0.412,2.031,2.622,1.958,3.777,2.148
+5000,30,10.586,0.481,10.529,10.874,10.436,12.177,2.117
+10000,30,21.243,0.953,20.987,21.544,20.859,24.312,2.124
+28000,30,59.417,0.528,59.015,59.946,58.757,60.447,2.122
