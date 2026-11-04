@@ -283,9 +283,19 @@ async function startPreview() {
   throw new Error(`vite preview did not start on port ${PORT} (${lastError}). Its output:\n${output}`);
 }
 
+/**
+ * Stops the preview server. Runs after every result is written, so a server
+ * that has already exited (taskkill then fails) only gets a warning: it must
+ * not turn a finished measurement into a failed one.
+ */
 function stopPreview(child) {
-  if (platform() === 'win32') execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
-  else child.kill();
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  try {
+    if (platform() === 'win32') execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    else child.kill();
+  } catch (err) {
+    console.warn(`browser-bench: could not stop the preview server (pid ${child.pid}): ${err.message.split('\n')[0]}`);
+  }
 }
 
 async function main() {
