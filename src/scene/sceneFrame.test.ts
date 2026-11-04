@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { getState, type AppState, type SelectedLaunch } from '../state/appState';
-import type { ConjunctionEvent } from '../types';
+import { classifyOrbit } from '../orbital/classify';
+import type { ConjunctionEvent, TrackedObject } from '../types';
 import {
   catalogUpdateKey,
+  clickSelectable,
   clockToAdvance,
   frameTimeSpeed,
   overlayTargets,
@@ -142,5 +144,36 @@ describe('predictionStep', () => {
 
   it('changes nothing while a close approach is verified', () => {
     expect(predictionStep(stateWith({ selectedConjunction: conjunction }), outOfRange)).toBe('pause');
+  });
+});
+
+describe('clickSelectable', () => {
+  const onlyLeo = { LEO: true, MEO: false, GEO: false, HEO: false } as AppState['layerFilters'];
+  const onlyMeo = { LEO: false, MEO: true, GEO: false, HEO: false } as AppState['layerFilters'];
+  // A FENGYUN 1C fragment: mean altitude 1,649 km, but its orbit reaches 2,429 km.
+  const stretchedLeo = {
+    noradId: 30000,
+    name: 'FENGYUN 1C DEB',
+    country: 'China',
+    owner: 'Unknown',
+    category: 'debris',
+    layer: 'LEO',
+    meanAltitudeKm: 1649,
+  } as TrackedObject;
+
+  it('selects an object drawn as LEO while it is above 2,000 km', () => {
+    // At this moment its altitude alone would make it MEO, the layer the click check used before.
+    expect(classifyOrbit(2300, 0.05)).toBe('MEO');
+    expect(clickSelectable(stretchedLeo, stateWith({ layerFilters: onlyLeo }))).toBe(true);
+  });
+
+  it('does not select it when its own layer is hidden, wherever it is now', () => {
+    expect(clickSelectable(stretchedLeo, stateWith({ layerFilters: onlyMeo }))).toBe(false);
+  });
+
+  it('still applies the category and search filters', () => {
+    expect(clickSelectable(stretchedLeo, stateWith({ layerFilters: onlyLeo, categoryFilter: 'active' }))).toBe(false);
+    expect(clickSelectable(stretchedLeo, stateWith({ layerFilters: onlyLeo, searchQuery: 'iss' }))).toBe(false);
+    expect(clickSelectable(stretchedLeo, stateWith({ layerFilters: onlyLeo, searchQuery: 'fengyun' }))).toBe(true);
   });
 });
