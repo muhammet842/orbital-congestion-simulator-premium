@@ -33,7 +33,7 @@ The browser downloads `tle.json` ([`src/data/tleLoader.ts`](../src/data/tleLoade
 
 - The app uses satellite.js 7.1.0. This library was verified to agree with the published reference results within 1 mm ([SGP4 verification](../research/sgp4-verify/README.md)).
 - The output is the position in kilometres and the velocity in km/s in an Earth-centred frame (SGP4's TEME frame; called "ECI" in the code) ([`propagateObject`](../src/orbital/propagator.ts)). Altitude, latitude and longitude are computed too.
-- **Cost:** about 2.2 µs per object on the test computer; **about 61 ms for 28,000 objects** ([performance measurement](../research/perf/README.md)). A frame on a 60 Hz display has 16.7 ms, so this work cannot share a thread with the drawing (section 5).
+- **Cost:** about 2.12 µs per object on the test computer; **about 59 ms for 28,000 objects** (median 59.42 ms) ([performance measurement](../research/perf/README.md)). A frame on a 60 Hz display has 16.7 ms, so this work cannot share a thread with the drawing (section 5).
 
 ## 4. Position → dot on the screen
 

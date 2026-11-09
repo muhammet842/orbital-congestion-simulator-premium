@@ -39,10 +39,13 @@ import {
  *  4. Refine each survivor with SGP4 by iterating the same linear CPA solve
  *     (Newton-style) until the CPA time converges to the millisecond.
  *
- * The old 10-minute snapshot + fixed-step refine missed ~97% of real
- * sub-3 km crossings on the live catalog (a 10–15 km/s crossing spends only
- * a few seconds inside any reasonable net). Each window of this sieve hands
- * off to the next with no gaps, so coverage does not depend on luck.
+ * The old 10-minute snapshot + fixed-step refine could miss some real
+ * sub-3 km crossings (a 10–15 km/s crossing spends only a few seconds inside
+ * any reasonable net); the share was not verified. A one-off check on
+ * 12 October 2026 (eb3afd5) gave ~97%, an estimate not confirmed by a
+ * reproducible measurement (no script or data were kept). Each window of
+ * this sieve hands off to the next with no gaps, so coverage does not
+ * depend on luck.
  */
 export const UPCOMING_HORIZON_MS = 24 * 60 * 60 * 1000;
 export const UPCOMING_SAMPLE_STEP_MS = 60 * 1000;
