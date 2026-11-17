@@ -5,7 +5,16 @@ import { getConjunctionCameraPose, getVisualConjunctionLayout } from '../orbital
 import { EARTH_RADIUS_KM } from '../types';
 
 const FLY_DURATION_MS = 1600;
-const GLOBE_FRAME_DURATION_MS = 900;
+/** Step 1 of framing a selection: moving straight out from Earth. */
+export const PULL_BACK_DURATION_MS = 650;
+/** Step 2: the turn takes this long for a tiny angle ... */
+const TURN_MIN_DURATION_MS = 550;
+/** ... plus up to this much more for a half turn (180°). */
+const TURN_EXTRA_DURATION_MS = 950;
+/** Below this (about 1°) the view does not turn at all. */
+const TURN_MIN_ANGLE_RAD = 0.017;
+/** |y| of the view direction above which "north up" is undefined (≈ 2.6° from a pole). */
+const POLE_LOOK_LIMIT = 0.999;
 const DEFAULT_FOV = 45;
 const DEFAULT_POSITION = new Vector3(0, 0, 4.5);
 const DEFAULT_TARGET = new Vector3(0, 0, 0);
@@ -30,10 +39,48 @@ function slerpDirection(from: Vector3, to: Vector3, t: number, out: Vector3): vo
     out.copy(from);
     return;
   }
+  if (Math.PI - omega < 1e-4) {
+    // Exactly opposite: every great circle is equally short, and the formula
+    // below divides by ~0. Turn sideways around Earth's axis (keeps north up);
+    // straight over a pole, use the x axis instead.
+    // The part of Earth's axis (y) perpendicular to `from`.
+    const axis = new Vector3(0, 1, 0).addScaledVector(from, -from.y);
+    if (axis.lengthSq() < 1e-8) axis.set(1, 0, 0).addScaledVector(from, -from.x);
+    out.copy(from).applyAxisAngle(axis.normalize(), t * omega);
+    return;
+  }
   const sinOmega = Math.sin(omega);
   const a = Math.sin((1 - t) * omega) / sinOmega;
   const b = Math.sin(t * omega) / sinOmega;
   out.copy(from).multiplyScalar(a).addScaledVector(to, b);
+}
+
+/** A longer turn takes longer, so the speed stays about the same. */
+export function turnDurationMs(angleRad: number): number {
+  const share = Math.min(1, Math.max(0, angleRad / Math.PI));
+  return TURN_MIN_DURATION_MS + TURN_EXTRA_DURATION_MS * share;
+}
+
+/**
+ * Where the camera is `elapsedMs` into framing a selection: first only the
+ * distance changes (pull back), then only the direction (turn). Each step
+ * eases in and out on its own.
+ */
+export function globeFramePose(
+  fromDir: Vector3,
+  toDir: Vector3,
+  fromRadius: number,
+  holdRadius: number,
+  pullMs: number,
+  turnMs: number,
+  elapsedMs: number,
+): { direction: Vector3; radius: number } {
+  const pullT = pullMs > 0 ? Math.min(1, Math.max(0, elapsedMs / pullMs)) : 1;
+  const turnT = turnMs > 0 ? Math.min(1, Math.max(0, (elapsedMs - pullMs) / turnMs)) : 1;
+  const radius = fromRadius + (holdRadius - fromRadius) * easeInOutCubic(pullT);
+  const direction = new Vector3();
+  slerpDirection(fromDir, toDir, easeInOutCubic(turnT), direction);
+  return { direction: direction.normalize(), radius };
 }
 
 interface CameraSnapshot {
@@ -63,6 +110,8 @@ export class CameraFly {
   private trackingInitialized = false;
   private trackingOnComplete = false;
   private durationMs = FLY_DURATION_MS;
+  private pullMs = 0;
+  private turnMs = 0;
 
   captureGlobalView(camera: PerspectiveCamera, controls: OrbitControls): void {
     if (this.globalSnapshot) return;
@@ -101,8 +150,19 @@ export class CameraFly {
   }
 
   /**
-   * Rotate around Earth at global zoom so the sub-satellite ground point faces
-   * the camera — Earth stays centered like the default globe view.
+   * Bring a selected object (or launch pad) to the middle of the globe view,
+   * in two steps:
+   *
+   *  1. **Pull back:** if the camera is closer than the distance that frames
+   *     the object, it first moves straight out from Earth, without turning.
+   *  2. **Turn:** at that fixed distance the view then turns the shortest way
+   *     (along a great circle) until the point under the object faces the
+   *     camera. The camera always looks at Earth's centre and keeps north up,
+   *     so on screen it looks as if Earth turns towards you.
+   *
+   * Earth itself is never rotated: its orientation is tied to real time
+   * (positions, day/night, ground track), so the camera circles it instead,
+   * which looks the same.
    */
   frameSelectedOnGlobe(
     camera: PerspectiveCamera,
@@ -112,13 +172,19 @@ export class CameraFly {
   ): void {
     const nadir = new Vector3(nadirWorld.x, nadirWorld.y, nadirWorld.z).normalize();
     const cameraDir = camera.position.clone().normalize();
-    const facing = nadir.dot(cameraDir);
-    const targetRadius = globeCameraRadiusFromAltitude(altitudeKm);
     const currentRadius = camera.position.length();
+    const frameRadius = Math.min(
+      globeCameraRadiusFromAltitude(altitudeKm),
+      controls.maxDistance ?? Number.POSITIVE_INFINITY,
+    );
+    const holdRadius = Math.max(currentRadius, frameRadius);
+    const turnAngle = Math.acos(Math.min(1, Math.max(-1, nadir.dot(cameraDir))));
 
     controls.target.set(0, 0, 0);
 
-    if (facing > 0.88 && Math.abs(currentRadius - targetRadius) < 0.12) {
+    const pullNeeded = holdRadius - currentRadius > 1e-3;
+    const turnNeeded = turnAngle > TURN_MIN_ANGLE_RAD;
+    if (!pullNeeded && !turnNeeded) {
       controls.update();
       return;
     }
@@ -127,15 +193,15 @@ export class CameraFly {
     this.fromDir.copy(cameraDir);
     this.toDir.copy(nadir);
     this.fromOrbitRadius = currentRadius;
-    this.toOrbitRadius = targetRadius;
-    this.fromTarget.copy(controls.target);
+    this.toOrbitRadius = holdRadius;
+    this.fromTarget.set(0, 0, 0);
     this.toTarget.set(0, 0, 0);
-    this.fromPos.copy(camera.position);
-    this.toPos.copy(this.toDir).multiplyScalar(targetRadius);
     this.fromFov = camera.fov;
     this.toFov = camera.fov;
     this.trackingOnComplete = false;
-    this.durationMs = GLOBE_FRAME_DURATION_MS;
+    this.pullMs = pullNeeded ? PULL_BACK_DURATION_MS : 0;
+    this.turnMs = turnNeeded ? turnDurationMs(turnAngle) : 0;
+    this.durationMs = this.pullMs + this.turnMs;
     this.restoringGlobal = false;
     this.conjunctionTracking = false;
     this.trackingInitialized = false;
@@ -206,12 +272,21 @@ export class CameraFly {
     const eased = easeInOutCubic(progress);
 
     if (this.motionMode === 'globe-orbit') {
-      const dir = new Vector3();
-      slerpDirection(this.fromDir, this.toDir, eased, dir);
-      const radius =
-        this.fromOrbitRadius + (this.toOrbitRadius - this.fromOrbitRadius) * eased;
-      camera.position.copy(dir.multiplyScalar(radius));
-      controls.target.lerpVectors(this.fromTarget, this.toTarget, eased);
+      const pose = globeFramePose(
+        this.fromDir,
+        this.toDir,
+        this.fromOrbitRadius,
+        this.toOrbitRadius,
+        this.pullMs,
+        this.turnMs,
+        elapsed,
+      );
+      camera.position.copy(pose.direction).multiplyScalar(pose.radius);
+      controls.target.set(0, 0, 0);
+      // OrbitControls is paused during the flight, so aim the camera here;
+      // otherwise it keeps its old heading and snaps at the end. Right above
+      // a pole "north up" is undefined, so keep the last heading there.
+      if (Math.abs(pose.direction.y) < POLE_LOOK_LIMIT) camera.lookAt(controls.target);
     } else {
       camera.position.lerpVectors(this.fromPos, this.toPos, eased);
       controls.target.lerpVectors(this.fromTarget, this.toTarget, eased);
