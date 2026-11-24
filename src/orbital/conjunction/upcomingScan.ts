@@ -2,8 +2,7 @@
  * Runs the 24-hour sweep: in a Web Worker when possible, otherwise in idle-time slices.
  */
 import type { OrbitLayer, TrackedObject } from '../../types';
-import type { ConjunctionRefreshListener } from './liveScan';
-import type { ConjunctionScanResult } from './settings';
+import type { ConjunctionRefreshListener, ConjunctionScanResult } from './settings';
 import { markForMeasurement } from '../../perfFlags';
 import {
   UPCOMING_HORIZON_MS,

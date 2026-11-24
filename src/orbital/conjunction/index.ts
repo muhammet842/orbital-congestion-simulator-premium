@@ -1,9 +1,8 @@
 /**
  * Close-approach (conjunction) detection for LEO traffic.
  *
- * Live scan: coarse spatial hash with DETECTION_RADIUS_KM, then fine refine
- * (LIVE_REFINE_*) so fast 5–12 km/s crossings are not skipped between ticks.
- * UI shows at most MAX_DISPLAY_ALERTS; more stay in state for filters.
+ * The 24-hour sweep (upcomingSweep / upcomingScan) finds the pairs; the UI
+ * shows at most MAX_DISPLAY_ALERTS, more stay in state for filters.
  *
  * VERIFY mode: click an alert → dedicated verificationTime clock (T− adaptive
  * to relative speed → CPA → T+15s). Does not rewrite the global sim clock.
@@ -15,20 +14,15 @@
  */
 export {
   THRESHOLD_KM,
-  MIN_DISTANCE_KM,
-  CHECK_INTERVAL_MS,
-  CHECK_WALL_INTERVAL_MS,
-  DETECTION_RADIUS_KM,
   MAX_DISPLAY_ALERTS,
   MAX_STORED_ALERTS,
   SUBSET,
   REFINE_WINDOW_MS,
   REFINE_STEP_MS,
-  LIVE_REFINE_WINDOW_MS,
-  LIVE_REFINE_STEP_MS,
 } from './settings';
 export type {
   ConjunctionScanResult,
+  ConjunctionRefreshListener,
 } from './settings';
 export {
   VERIFY_REWIND_MS,
@@ -60,11 +54,6 @@ export type {
   VerificationStatus,
 } from './verification';
 export {
-  findConjunctions,
-  getConjunctions,
-  invalidateConjunctionCache,
-} from './liveScan';
-export {
   SCREEN_MAX_PERIGEE_KM,
   isScreenable,
   countStaleScreeningExclusions,
@@ -90,9 +79,6 @@ export {
   refineCloseApproach,
   resolveConjunctionEvent,
 } from './refine';
-export {
-  findCandidatePairsWithinRadius,
-} from './spatialGrid';
 export {
   UPCOMING_HORIZON_MS,
   UPCOMING_SAMPLE_STEP_MS,
