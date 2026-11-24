@@ -35,11 +35,16 @@ describe('vercel.json redirect', () => {
   const matches = (pattern: string, host: string) => new RegExp(`^${pattern}$`).test(host);
 
   it.each(OLD_HOSTS)('answers %s with a 301 to the same path on the new address', (host) => {
-    const rule = redirects.find((r) => {
+    const rules = redirects.filter((r) => {
       const pattern = hostPattern(r);
       return pattern !== undefined && matches(pattern, host);
     });
-    expect(rule).toMatchObject({ source: '/:path*', destination: `${NEW_ORIGIN}/:path*`, statusCode: 301 });
+    // On Vercel `/:path*` does not match the home page itself (seen on production:
+    // every other path was redirected, `/` still answered 200), so `/` has its own rule.
+    expect(rules).toMatchObject([
+      { source: '/', destination: `${NEW_ORIGIN}/`, statusCode: 301 },
+      { source: '/:path*', destination: `${NEW_ORIGIN}/:path*`, statusCode: 301 },
+    ]);
   });
 
   it('limits every redirect to one host, never the new address or preview deployments', () => {
