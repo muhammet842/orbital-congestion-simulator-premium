@@ -3,7 +3,12 @@ import { escapeHtml } from './ui/escapeHtml';
 
 /** The site's address since v1.2.0. */
 export const NEW_ORIGIN = 'https://orbital-congestion.vercel.app';
-/** Earlier addresses that should send visitors to the new one. */
+/**
+ * Earlier addresses that should send visitors to the new one. The server
+ * answers them with a 301 (`redirects` in vercel.json, kept in step by
+ * movedNotice.test.ts), so search engines move the old address's standing
+ * to the new one; the in-page notice is only a fallback if that rule is lost.
+ */
 export const OLD_HOSTS = ['orbital-congestion-simulator-premiu.vercel.app'];
 /** Long enough to read the notice, short enough not to annoy. */
 export const MOVED_REDIRECT_MS = 6000;
