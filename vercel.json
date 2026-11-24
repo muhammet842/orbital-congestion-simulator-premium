@@ -1,15 +1,9 @@
 {
   "redirects": [
     {
-      "source": "/",
+      "source": "/:path(.*)",
       "has": [{ "type": "host", "value": "orbital-congestion-simulator-premiu\\.vercel\\.app" }],
-      "destination": "https://orbital-congestion.vercel.app/",
-      "statusCode": 301
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "orbital-congestion-simulator-premiu\\.vercel\\.app" }],
-      "destination": "https://orbital-congestion.vercel.app/:path*",
+      "destination": "https://orbital-congestion.vercel.app/:path",
       "statusCode": 301
     }
   ],
