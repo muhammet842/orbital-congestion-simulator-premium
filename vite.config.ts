@@ -1,6 +1,10 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, runnerImport, type Plugin } from 'vite';
 import launchesHandler from './api/launches.js';
+import type { PageFonts } from './src/satPages/render';
+import type * as SatSiteModule from './src/satPages/site';
 
 /**
  * Serves /api/launches under `vite dev` and `vite preview`, the way Vercel serves
@@ -15,9 +19,60 @@ function launchesApi(): Plugin {
   return { name: 'launches-api', configureServer: mount, configurePreviewServer: mount };
 }
 
+/**
+ * Writes one static page per satellite on the Radio panel's default list
+ * (dist/sat/<NORAD>/index.html), the list page, 404.html and sitemap.xml,
+ * from the catalogue in public/data/tle.json (see src/satPages/).
+ */
+function satellitePages(): Plugin {
+  let outDir = 'dist';
+  let publicDir = 'public';
+  const fonts: PageFonts = {};
+  const fontFiles: Array<[keyof PageFonts, RegExp]> = [
+    ['sans400', /ibm-plex-sans-latin-400-normal-[^/]*\.woff2$/],
+    ['sans600', /ibm-plex-sans-latin-600-normal-[^/]*\.woff2$/],
+    ['mono400', /ibm-plex-mono-latin-400-normal-[^/]*\.woff2$/],
+  ];
+  return {
+    name: 'satellite-pages',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+      publicDir = config.publicDir;
+    },
+    generateBundle(_options, bundle) {
+      for (const fileName of Object.keys(bundle)) {
+        for (const [key, pattern] of fontFiles) {
+          if (pattern.test(fileName)) fonts[key] = `/${fileName}`;
+        }
+      }
+    },
+    async closeBundle() {
+      // Only after a complete build (closeBundle also runs when it failed).
+      if (!existsSync(join(outDir, 'index.html'))) return;
+      // Loaded through Vite (not imported at the top) so the app's TypeScript,
+      // with its extensionless imports, never becomes part of loading this config.
+      const { module } = await runnerImport<typeof SatSiteModule>(
+        fileURLToPath(new URL('./src/satPages/site.ts', import.meta.url)),
+      );
+      const raw: unknown = JSON.parse(readFileSync(join(publicDir, 'data', 'tle.json'), 'utf8'));
+      const { files, satelliteCount, skippedCount } = module.buildSatSite(raw, fonts);
+      for (const [path, content] of files) {
+        const target = join(outDir, path);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, content);
+      }
+      console.log(
+        `satellite pages: ${satelliteCount} pages, list, 404 and sitemap written` +
+          ` (${skippedCount} objects with frequencies skipped: orbit no longer propagates)`,
+      );
+    },
+  };
+}
+
 export default defineConfig({
   base: './',
-  plugins: [launchesApi()],
+  plugins: [launchesApi(), satellitePages()],
   // satellite.js 7 bundles an optional WebAssembly runtime that this app never
   // uses; leave it out of the build (see src/vendor/satelliteWasmStub.ts).
   resolve: {
