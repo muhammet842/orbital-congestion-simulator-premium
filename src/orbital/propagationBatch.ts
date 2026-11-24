@@ -46,8 +46,3 @@ export function getPropagationResults(
   cachedResults = next;
   return next;
 }
-
-export function invalidatePropagationBatch(): void {
-  cachedTickMs = NaN;
-  cachedResults = [];
-}

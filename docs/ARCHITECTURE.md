@@ -69,14 +69,12 @@ Both workers can be turned off with the `?worker=off` address for measurements (
 **0. Which objects?** Those whose lowest point (perigee) is below 2,000 km, i.e. that reach low Earth orbit. Objects with TLEs older than 7 days, and objects sharing the same orbit data (docked modules, copies), are left out ([`screening.ts`](../src/orbital/conjunction/screening.ts)).
 
 1. **Sampling:** every **60 seconds**, the position and velocity of all these objects are computed with SGP4 (1,440 samples in 24 hours).
-2. **Spatial grid:** space is divided into cubes about 500 km on a side, and each object is put into its cube. Only objects in the same or neighbouring cubes are compared; distant pairs are never looked at ([`spatialGrid.ts`](../src/orbital/conjunction/spatialGrid.ts)).
+2. **Spatial grid:** space is divided into cubes about 500 km on a side, and each object is put into its cube. Only objects in the same or neighbouring cubes are compared; distant pairs are never looked at ([`upcomingSweep.ts`](../src/orbital/conjunction/upcomingSweep.ts)).
    - **Why about 500 km?** Two LEO objects can close on each other at up to about 16 km/s (head-on). In the 30 seconds on either side of a sample that is 480 km. So the net is 480 km + 8 km + a 10 km margin = **498 km** wide: no pair whose closest point falls before the next sample can slip through.
 3. **Linear closest approach:** for each pair caught in the net, the two objects are assumed to move in **straight lines** within that 60-second window, and their closest point of approach (CPA) is found with a simple formula. Over 30 seconds two nearby objects feel almost the same gravity, so this approximation is accurate to well under 1 km. The pair becomes a candidate if the closest point falls inside the window and is closer than **8 km** (3 km plus a 5 km margin).
 4. **SGP4 refinement:** for each candidate, the moment of closest approach is recomputed and corrected with SGP4 repeatedly until it is known to the millisecond. If the final distance is **more than 3 km**, the pair is dropped. Pairs flying together at almost the same velocity (relative speed under 0.05 km/s) are dropped too; they are flying in formation, not passing each other.
 
 Repeats of the same physical event are then merged, the results are sorted by time and shown in the left panel (5 at first, all of them with "Show more", at most 30 kept). The sweep reruns at most **every 5 minutes**, and at once when the user moves the clock more than 1 hour forwards or back. When the clock is more than **7 days** from the catalog date, no prediction is made (`PREDICTION_RANGE_DAYS`): that far out, positions are off by tens of kilometres.
-
-> **Note:** [`liveScan.ts`](../src/orbital/conjunction/liveScan.ts) is an older scan that only looks for pairs that are close right now. The app no longer uses it; only a debugging helper in development mode and its tests call it.
 
 ## 7. What the 3 km threshold means
 
@@ -95,7 +93,7 @@ Repeats of the same physical event are then merged, the results are sorted by ti
 | SGP4 | [`src/orbital/propagator.ts`](../src/orbital/propagator.ts), [`propagationBatch.ts`](../src/orbital/propagationBatch.ts) |
 | Position worker | [`src/workers/propagation.worker.ts`](../src/workers/propagation.worker.ts), [`PropagationWorkerBridge.ts`](../src/orbital/PropagationWorkerBridge.ts) |
 | Drawing | [`src/scene/SceneManager.ts`](../src/scene/SceneManager.ts), [`sceneFrame.ts`](../src/scene/sceneFrame.ts), [`OrbitalMeshes.ts`](../src/scene/OrbitalMeshes.ts), [`catalogPacing.ts`](../src/scene/catalogPacing.ts) |
-| Close-approach sweep | [`src/orbital/conjunction/`](../src/orbital/conjunction/) (`upcomingSweep.ts`, `upcomingScan.ts`, `spatialGrid.ts`, `screening.ts`, `settings.ts`), [`src/workers/conjunction.worker.ts`](../src/workers/conjunction.worker.ts) |
+| Close-approach sweep | [`src/orbital/conjunction/`](../src/orbital/conjunction/) (`upcomingSweep.ts`, `upcomingScan.ts`, `screening.ts`, `settings.ts`), [`src/workers/conjunction.worker.ts`](../src/workers/conjunction.worker.ts) |
 | Measurement flags | [`src/perfFlags.ts`](../src/perfFlags.ts) |
 
 ## References

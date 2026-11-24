@@ -51,14 +51,6 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
-/** Shortest signed azimuth delta in (−180, 180]. */
-export function signedAzimuthDeltaDeg(fromDeg: number, toDeg: number): number {
-  let d = wrap360(toDeg) - wrap360(fromDeg);
-  if (d > 180) d -= 360;
-  if (d <= -180) d += 360;
-  return d;
-}
-
 /** Az/el (degrees) → ENU unit vector (x=east, y=north, z=up). */
 export function azElToEnu(azimuthDeg: number, elevationDeg: number): Vec3 {
   const a = (wrap360(azimuthDeg) * Math.PI) / 180;

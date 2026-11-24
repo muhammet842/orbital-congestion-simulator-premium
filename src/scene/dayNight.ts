@@ -1,6 +1,3 @@
-/** Turkey uses permanent UTC+3 (no DST) — display helper only. */
-export const TURKEY_UTC_OFFSET_HOURS = 3;
-
 const SUN_DISTANCE = 15;
 
 export interface DayNightState {
@@ -117,23 +114,4 @@ export function getDayNightState(date: Date): DayNightState {
     sunDirection: sunScene,
     utcDecimalHours,
   };
-}
-
-export function getTurkeyDecimalHours(date: Date): number {
-  const shifted = date.getTime() + TURKEY_UTC_OFFSET_HOURS * 3_600_000;
-  const d = new Date(shifted);
-  return (
-    d.getUTCHours() +
-    d.getUTCMinutes() / 60 +
-    d.getUTCSeconds() / 3600 +
-    d.getUTCMilliseconds() / 3_600_000
-  );
-}
-
-export function formatTurkeyTime(date: Date): string {
-  const h = getTurkeyDecimalHours(date);
-  const hours = Math.floor(h);
-  const minutes = Math.floor((h - hours) * 60);
-  const seconds = Math.floor(((h - hours) * 60 - minutes) * 60);
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} TRT (UTC+3)`;
 }

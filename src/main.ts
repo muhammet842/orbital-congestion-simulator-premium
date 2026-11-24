@@ -13,7 +13,7 @@
 import './fonts';
 import './style.css';
 import { loadTleDataset, createTrackedObjects, computeStats } from './data/tleLoader';
-import { getState, initState } from './state/appState';
+import { initState } from './state/appState';
 import { SceneManager } from './scene/SceneManager';
 import { createLayout } from './ui/Layout';
 import { initLeftPanel } from './ui/LeftPanel';
@@ -23,7 +23,7 @@ import { initDeepLink } from './routing/deepLink';
 import { initKesslerPanel } from './ui/KesslerPanel';
 import { initRadioPanel } from './ui/RadioPanel';
 import { initHowToGuide } from './ui/HowToGuide';
-import { findConjunctions, setUpcomingConjunctionWorkerFactory } from './orbital/conjunction';
+import { setUpcomingConjunctionWorkerFactory } from './orbital/conjunction';
 import { BOOT_ERROR_MESSAGE_KEY, classifyBootError, hasWebGL } from './bootErrors';
 import { applyTranslations, t } from './i18n/i18n';
 import { escapeHtml } from './ui/escapeHtml';
@@ -106,11 +106,6 @@ async function main(): Promise<void> {
 
     // First-visit walkthrough + header "?" reopen control.
     initHowToGuide();
-
-    if (import.meta.env.DEV) {
-      (window as unknown as Record<string, unknown>).__debugConjunctions = (isoTime?: string) =>
-        findConjunctions(getState().objects, isoTime ? new Date(isoTime) : new Date());
-    }
   } catch (err) {
     // Developers get the raw error in the console; visitors get a plain explanation.
     console.error(err);
