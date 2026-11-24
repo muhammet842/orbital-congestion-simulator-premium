@@ -271,3 +271,29 @@ test.describe('Deep links', () => {
     await expect(page).toHaveURL(/object=25544/);
   });
 });
+
+test.describe('Satellite pages (built by the satellite-pages plugin)', () => {
+  test('a satellite page is plain HTML with its frequencies, and opens the 3D view', async ({ page }) => {
+    await page.route('**/_vercel/insights/**', (route) => route.fulfill({ status: 204 }));
+    const response = await page.goto('/sat/25544/');
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveTitle(/ISS \(ZARYA\) \(NORAD 25544\)/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('ISS (ZARYA)');
+    await expect(page.locator('table')).toContainText('145.800');
+    await expect(page.locator('canvas')).toHaveCount(0);
+
+    await page.getByRole('link', { name: 'Open in 3D' }).click();
+    await expect(page).toHaveURL(/\/\?object=25544$/);
+    await expect(page.locator('canvas')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('the list page links the satellite pages', async ({ page }) => {
+    await page.route('**/_vercel/insights/**', (route) => route.fulfill({ status: 204 }));
+    await page.goto('/sat/');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Satellites you can hear on VHF/UHF');
+    const links = page.locator('tbody a[href^="/sat/"]');
+    expect(await links.count()).toBeGreaterThan(300);
+    await page.getByRole('link', { name: 'ISS (ZARYA)', exact: true }).click();
+    await expect(page).toHaveURL(/\/sat\/25544\/$/);
+  });
+});

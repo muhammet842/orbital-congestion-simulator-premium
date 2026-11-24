@@ -70,8 +70,16 @@ export async function loadTleDataset(): Promise<TleDataset> {
   if (droppedCount > 0) {
     console.warn(`[tleLoader] Dropped ${droppedCount} invalid record(s):`, problems);
   }
-  // Docked modules share one published orbit: show each stack as one object.
-  const objects = mergeDockedStacks(filterKnownDeorbitedRecords(dataset.objects));
+  return prepareCatalog(dataset);
+}
+
+/**
+ * The catalogue the app works with: known re-entries dropped, and each docked
+ * stack shown as one object (docked modules share one published orbit).
+ * Shared by the app and the build-time satellite pages (src/satPages).
+ */
+export function prepareCatalog(dataset: TleDataset, asOf = new Date()): TleDataset {
+  const objects = mergeDockedStacks(filterKnownDeorbitedRecords(dataset.objects, asOf));
   return {
     ...dataset,
     objects,
@@ -96,7 +104,15 @@ export function tleAgeDays(satrec: TrackedObject['satrec'], referenceMs: number)
   return (referenceMs - epochMs) / 86_400_000;
 }
 
-export function createTrackedObjects(dataset: TleDataset, date = new Date()): TrackedObject[] {
+/**
+ * `warn` reports each skipped object (the console by default; the build-time
+ * satellite pages count them instead of printing one line each).
+ */
+export function createTrackedObjects(
+  dataset: TleDataset,
+  date = new Date(),
+  warn: (message: string, detail?: unknown) => void = console.warn,
+): TrackedObject[] {
   const tracked: TrackedObject[] = [];
   const fetchedAtMs = Date.parse(dataset.fetchedAt);
 
@@ -113,7 +129,7 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
       const satrec = twoline2satrec(enriched.line1, enriched.line2);
       // One SGP4 step to drop objects whose elements fail or have re-entered.
       if (!propagateState(satrec, date)) {
-        console.warn(`Skipping ${enriched.name}: propagation failed at ${date.toISOString()}`);
+        warn(`Skipping ${enriched.name}: propagation failed at ${date.toISOString()}`);
         continue;
       }
 
@@ -145,7 +161,7 @@ export function createTrackedObjects(dataset: TleDataset, date = new Date()): Tr
         ...(staleElements ? { staleElements } : {}),
       });
     } catch (err) {
-      console.warn(`Skipping invalid TLE for ${record.name}:`, err);
+      warn(`Skipping invalid TLE for ${record.name}:`, err);
     }
   }
 

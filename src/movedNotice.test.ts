@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import vercelJsonRaw from '../vercel.json?raw';
 import { setLang } from './i18n/i18n';
 import { MOVED_REDIRECT_MS, NEW_ORIGIN, OLD_HOSTS, movedTarget, showMovedNotice } from './movedNotice';
+import { SITE_ORIGIN } from './satPages/render';
 
 const OLD = 'orbital-congestion-simulator-premiu.vercel.app';
 const at = (hostname: string, pathname = '/', search = '', hash = '') => ({ hostname, pathname, search, hash });
@@ -20,6 +21,10 @@ describe('movedTarget', () => {
     expect(movedTarget(at('orbital-congestion.vercel.app'))).toBeNull();
     expect(movedTarget(at('orbital-congestion-simulator-premium-git-main-x.vercel.app'))).toBeNull();
     expect(movedTarget(at('localhost'))).toBeNull();
+  });
+
+  it('is the address the satellite pages and sitemap use', () => {
+    expect(SITE_ORIGIN).toBe(NEW_ORIGIN);
   });
 });
 

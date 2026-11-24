@@ -16,7 +16,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 
 ### Highlights
 
-- **A radio panel for amateur-radio operators** — filter the satellites you can actually receive by band (starting with *Easy · VHF/UHF*, the ~425 satellites a handheld radio or small Yagi can hear, out of ~5,900 with published frequencies), mode, and amateur-only. **Above my horizon now** lists what is up at your location (from your device, or typed-in coordinates) above an adjustable minimum elevation, with next-pass times. Each amateur satellite links to its recent SatNOGS observations. Export the list as CSV or share a link that carries your filters. Frequencies come from SatNOGS DB and AMSAT, and amateur channels carry an **AMATEUR** badge.
+- **A radio panel for amateur-radio operators** — filter the satellites you can actually receive by band (starting with *Easy · VHF/UHF*, the ~680 satellites a handheld radio or small Yagi can hear, out of ~12,500 with published frequencies in the November 2026 catalog), mode, and amateur-only. **Above my horizon now** lists what is up at your location (from your device, or typed-in coordinates) above an adjustable minimum elevation, with next-pass times. Each amateur satellite links to its recent SatNOGS observations. Export the list as CSV or share a link that carries your filters. Frequencies come from SatNOGS DB and AMSAT, and amateur channels carry an **AMATEUR** badge.
 - **Upcoming launches** — the next rocket launches (and any in flight) with rocket, pad, destination and a live countdown; pick one to mark its pad on the globe or jump to the ISS for resupply missions.
 - **Honest about accuracy** — close approaches are screening estimates from public TLEs, not operational conjunction assessments, and the app says so wherever they appear. Launches are schedules, not live tracking.
 - **Private by design** — no cookies, accounts, ads or third-party requests; only anonymous, cookieless visit counts. Fonts are self-hosted, and launch data is fetched by the site’s own server function.
@@ -40,6 +40,7 @@ Explore orbit layers (LEO, MEO, GEO, HEO), filter by congestion type, click any 
 - **Interactive how-to tour** — language gate + spotlight walkthrough (header `?`)
 - **i18n** — English, Turkish, German, Russian, Chinese
 - **Deep links** — `?object=<NORAD>` / `?event=<id>` / `?radio=<band>&mode=<mode>&amateur=1` (shareable radio filters)
+- **Satellite pages** — a plain HTML page per satellite on the Radio panel's *Easy · VHF/UHF* list (`/sat/<NORAD>/`) and a list page (`/sat/`), built daily with the catalog, so search engines and link previews can read the frequencies (see [Satellite pages](#satellite-pages))
 - **Automated TLE refresh** — daily GitHub Actions update (TLE + SATCAT country join + radio data), published without growing the repository
 
 ## Why it matters
@@ -100,6 +101,7 @@ CI (GitHub Actions): lint + build + unit tests on every push/PR; Playwright e2e 
 | `src/data/` | Catalog loading and validation, object metadata, radio frequencies |
 | `src/state/`, `src/routing/` | App state store and `?object` / `?event` deep links |
 | `src/i18n/` | Translations (en/tr/de/ru/zh) |
+| `src/satPages/` | The build-time satellite pages: which satellites get one, their HTML, the sitemap (written by a plugin in `vite.config.ts`) |
 | `src/styles/` | Styles, one file per part of the app; `src/style.css` lists them in cascade order. Tokens (colours, spacing, radii) are in `base.css` |
 | `api/` | One Vercel serverless function, `/api/launches`, behind the Upcoming Launches panel |
 | `src/workers/` | Web Workers for batch propagation and the 24 h close-approach sweep |
@@ -117,11 +119,20 @@ On phones the side panels open as drawers and the radio table switches to a stac
 
 In the radio table, the **AMATEUR** badge appears only where the source data says a channel is an amateur-radio service. Channels confirmed as other services (weather, navigation, broadband…) are dimmed and listed last. A channel with no badge and no dimming is simply **unclassified** by its source, which is not the same as not being amateur.
 
-The **Radio** button (📻) in the header opens the radio panel. It starts on **Easy · VHF/UHF** (about 425 satellites a simple handheld radio or small Yagi can hear); narrow it with a band chip such as **70 cm**, a mode such as **CW**, **Amateur only**, or a name / NORAD search. **Above my horizon now** lists what is up at your location, highest first, with next-pass times for the rest. Ticking it asks the browser for your location once (no tracking) or uses the one saved by the Spotter; if the device cannot locate itself, type latitude and longitude instead. **Min. elevation** (Any, 5°, 10°, 15°) hides satellites too low above the horizon to receive well. Each amateur satellite has a **SatNOGS** link to its recent observations (waterfalls and audio). Click a row to open that satellite, **Export CSV** to download the list, or **Copy link** to share the exact filters (e.g. `?radio=ham70cm&mode=fm&amateur=1`).
+The **Radio** button (📻) in the header opens the radio panel. It starts on **Easy · VHF/UHF** (about 680 satellites a simple handheld radio or small Yagi can hear in the November 2026 catalog); narrow it with a band chip such as **70 cm**, a mode such as **CW**, **Amateur only**, or a name / NORAD search. **Above my horizon now** lists what is up at your location, highest first, with next-pass times for the rest. Ticking it asks the browser for your location once (no tracking) or uses the one saved by the Spotter; if the device cannot locate itself, type latitude and longitude instead. **Min. elevation** (Any, 5°, 10°, 15°) hides satellites too low above the horizon to receive well. Each amateur satellite has a **SatNOGS** link to its recent observations (waterfalls and audio). Click a row to open that satellite, **Export CSV** to download the list, or **Copy link** to share the exact filters (e.g. `?radio=ham70cm&mode=fm&amateur=1`).
 
 In **Upcoming Launches**, click a launch to fly to its pad and mark it on the globe (click again to clear it). For missions to the International Space Station, **Show ISS** selects the station. Countdowns use real time, whatever time the globe is showing. When a webcast is known, **Watch** opens it in a new tab.
 
 Deep links: `?object=<NORAD>`, `?event=<id>` and `?radio=<band>` (with optional `mode`, `amateur=1` and `rq` search), for example `?radio=ham70cm&mode=fm&amateur=1`.
+
+## Satellite pages
+
+The 3D app draws everything with JavaScript, so search engines and link previews see an empty page. Every satellite on the Radio panel's default **Easy · VHF/UHF** list therefore also gets a plain HTML page, for example [`/sat/25544/`](https://orbital-congestion.vercel.app/sat/25544/) for the ISS, and [`/sat/`](https://orbital-congestion.vercel.app/sat/) lists them all.
+
+- **What a page shows:** the same radio table as the details panel (services, uplink, downlink, listen frequencies, modes, the AMATEUR badge, a source link per row, the SatNOGS observations link), an orbit summary (layer, inclination, period, perigee and apogee, the date of the orbital elements), country, operator and docked parts. **Open in 3D** opens the app with the satellite selected (`/?object=<NORAD>`); **Open in the Radio panel** shows whether it is above your horizon and when it passes next.
+- **Which satellites:** exactly the Radio panel's default list, in the same order (amateur satellites first). The pages are built with the app's own catalog code, and a test checks that both give the same list. A satellite whose orbit no longer propagates (it re-entered) has no page, and its old address answers 404.
+- **When:** at every build, from the catalog being deployed (`vite.config.ts`, plugin `satellite-pages`; code in `src/satPages/`). The site is rebuilt daily with fresh data, so the pages are too. `sitemap.xml` is generated at the same time and lists the home page, `/sat/` and every satellite page.
+- **What they are not:** English only; no live position and no pass times (those depend on your location, so the page sends you to the app). Nothing runs in the page except the visit counter described under [Privacy](#privacy).
 
 ## Data source
 
@@ -164,7 +175,7 @@ Objects can carry a `firstSeenAt` stamp when they first appear in an automated f
 
 ## Privacy
 
-- No cookies, accounts, ads or cross-site tracking. The live site counts visits anonymously with [Vercel Web Analytics](https://vercel.com/docs/analytics/privacy-policy): no cookies, anonymous (visitors are counted with a hash that resets every day, so nobody can be followed across days or sites), and served from the site’s own origin. It shows page views, referring sites, countries and device types; your Spotter or Radio-panel location is never sent. After the page loads, the app only talks to its own origin (fonts are self-hosted too). Launch data is fetched from The Space Devs by the site’s server function, so your browser never contacts them and nothing about you is sent.
+- No cookies, accounts, ads or cross-site tracking. The live site counts visits anonymously with [Vercel Web Analytics](https://vercel.com/docs/analytics/privacy-policy): no cookies, anonymous (visitors are counted with a hash that resets every day, so nobody can be followed across days or sites), and served from the site’s own origin. It shows page views, referring sites, countries and device types; your Spotter or Radio-panel location is never sent. The [satellite pages](#satellite-pages) load the same counter and nothing else. After the page loads, the app only talks to its own origin (fonts are self-hosted too). Launch data is fetched from The Space Devs by the site’s server function, so your browser never contacts them and nothing about you is sent.
 - Three small items are kept in your browser's local storage and never sent anywhere: your language, whether you have seen the tour, and — only if you use the Spotter or the Radio panel’s **Use my location** — your last observer location.
 - Location and device-motion permissions are requested only when you use the Spotter (or press **Use my location** in the Radio panel), and the browser asks you first. The Radio panel asks once; it never tracks you.
 
