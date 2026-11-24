@@ -44,11 +44,11 @@ describe('vercel.json redirect', () => {
       const pattern = hostPattern(r);
       return pattern !== undefined && matches(pattern, host);
     });
-    // On Vercel `/:path*` does not match the home page itself (seen on production:
-    // every other path was redirected, `/` still answered 200), so `/` has its own rule.
+    // Vercel matches redirect sources with path-to-regexp in strict mode, where
+    // `/:path*` matches no path ending in "/" (seen on production: `/`, `/sat/`
+    // and `/sat/25544/` answered 200). `/:path(.*)` matches every path, "/" included.
     expect(rules).toMatchObject([
-      { source: '/', destination: `${NEW_ORIGIN}/`, statusCode: 301 },
-      { source: '/:path*', destination: `${NEW_ORIGIN}/:path*`, statusCode: 301 },
+      { source: '/:path(.*)', destination: `${NEW_ORIGIN}/:path`, statusCode: 301 },
     ]);
   });
 
