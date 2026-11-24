@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "orbital-congestion-simulator-premiu\\.vercel\\.app" }],
+      "destination": "https://orbital-congestion.vercel.app/:path*",
+      "statusCode": 301
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import vercelJsonRaw from '../vercel.json?raw';
 import { setLang } from './i18n/i18n';
-import { MOVED_REDIRECT_MS, movedTarget, showMovedNotice } from './movedNotice';
+import { MOVED_REDIRECT_MS, NEW_ORIGIN, OLD_HOSTS, movedTarget, showMovedNotice } from './movedNotice';
 
 const OLD = 'orbital-congestion-simulator-premiu.vercel.app';
 const at = (hostname: string, pathname = '/', search = '', hash = '') => ({ hostname, pathname, search, hash });
@@ -19,6 +20,34 @@ describe('movedTarget', () => {
     expect(movedTarget(at('orbital-congestion.vercel.app'))).toBeNull();
     expect(movedTarget(at('orbital-congestion-simulator-premium-git-main-x.vercel.app'))).toBeNull();
     expect(movedTarget(at('localhost'))).toBeNull();
+  });
+});
+
+describe('vercel.json redirect', () => {
+  interface Redirect {
+    source: string;
+    has?: { type: string; value: string }[];
+    destination: string;
+    statusCode?: number;
+  }
+  const redirects = (JSON.parse(vercelJsonRaw) as { redirects?: Redirect[] }).redirects ?? [];
+  const hostPattern = (r: Redirect) => r.has?.find((h) => h.type === 'host')?.value;
+  const matches = (pattern: string, host: string) => new RegExp(`^${pattern}$`).test(host);
+
+  it.each(OLD_HOSTS)('answers %s with a 301 to the same path on the new address', (host) => {
+    const rule = redirects.find((r) => {
+      const pattern = hostPattern(r);
+      return pattern !== undefined && matches(pattern, host);
+    });
+    expect(rule).toMatchObject({ source: '/:path*', destination: `${NEW_ORIGIN}/:path*`, statusCode: 301 });
+  });
+
+  it('limits every redirect to one host, never the new address or preview deployments', () => {
+    const kept = [new URL(NEW_ORIGIN).host, 'orbital-congestion-simulator-premium-git-main-x.vercel.app'];
+    const patterns = redirects.map(hostPattern);
+    expect(patterns.every((p) => p !== undefined)).toBe(true);
+    const redirected = kept.filter((host) => patterns.some((p) => p !== undefined && matches(p, host)));
+    expect(redirected).toEqual([]);
   });
 });
 
