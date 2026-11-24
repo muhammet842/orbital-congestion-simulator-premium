@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PerspectiveCamera, Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { CameraFly, PULL_BACK_DURATION_MS, turnDurationMs } from './CameraFly';
+import { APPROACH_DURATION_MS, CameraFly, PULL_BACK_DURATION_MS, turnDurationMs } from './CameraFly';
+import { getConjunctionCameraPose } from '../orbital/visualConjunction';
 import { EARTH_RADIUS_KM } from '../types';
 
 /** The few OrbitControls members CameraFly touches. */
@@ -162,6 +163,139 @@ describe('CameraFly.frameSelectedOnGlobe', () => {
     expect(frameRadius(35_786)).toBeGreaterThan(10);
     fly.update(camera, controls, PULL_BACK_DURATION_MS);
     expect(camera.position.length()).toBeCloseTo(10, 6);
+  });
+});
+
+/** Camera looks exactly at the point OrbitControls orbits (no heading snap later). */
+function expectAimedAtTarget(camera: PerspectiveCamera, controls: OrbitControls): void {
+  const towardsTarget = controls.target.clone().sub(camera.position).normalize();
+  expect(viewDirection(camera).angleTo(towardsTarget)).toBeLessThan(1e-6);
+}
+
+describe('CameraFly.flyToGlobalView (leaving a close approach or a historical event)', () => {
+  /** A close-pair view: camera just above a pair over +x, looking at the pair. */
+  function closePairView(): { camera: PerspectiveCamera; controls: OrbitControls } {
+    const controls = fakeControls();
+    controls.target.set(1.08, 0.02, 0);
+    const camera = new PerspectiveCamera(38, 1, 0.00005, 1000);
+    camera.position.set(1.1, 0.03, 0.01);
+    camera.lookAt(controls.target);
+    return { camera, controls };
+  }
+
+  it('pulls back while the view recentres on Earth, then turns to the saved globe view', () => {
+    const fly = new CameraFly();
+    const saved = cameraAt(0, 0, 4.5);
+    const savedControls = fakeControls();
+    fly.captureGlobalView(saved, savedControls);
+
+    const { camera, controls } = closePairView();
+    const startDir = camera.position.clone().normalize();
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    fly.flyToGlobalView(camera, controls);
+    expect(fly.isActive()).toBe(true);
+
+    // Pull-back: straight out from Earth, the look-at point slides to Earth's centre.
+    fly.update(camera, controls, PULL_BACK_DURATION_MS / 2);
+    expect(camera.position.clone().normalize().angleTo(startDir)).toBeLessThan(1e-9);
+    expect(camera.position.length()).toBeGreaterThan(1.1);
+    expect(controls.target.length()).toBeLessThan(1.08);
+    expectAimedAtTarget(camera, controls);
+
+    fly.update(camera, controls, PULL_BACK_DURATION_MS);
+    expect(camera.position.length()).toBeCloseTo(4.5, 6);
+    expect(controls.target.length()).toBeCloseTo(0, 9);
+
+    // Turn: 90° from +x to the saved +z direction, at the saved distance.
+    const turnMs = turnDurationMs(startDir.angleTo(new Vector3(0, 0, 1)));
+    for (let i = 1; i <= 10; i += 1) {
+      fly.update(camera, controls, PULL_BACK_DURATION_MS + (turnMs * i) / 10);
+      expect(camera.position.length()).toBeCloseTo(4.5, 6);
+      expectAimedAtTarget(camera, controls);
+    }
+
+    expect(camera.position.x).toBeCloseTo(0, 6);
+    expect(camera.position.z).toBeCloseTo(4.5, 6);
+    expect(camera.fov).toBeCloseTo(45, 9);
+    expect(fly.isActive()).toBe(false);
+    expect(controls.enabled).toBe(true);
+  });
+
+  it('goes to the default view (0, 0, 4.5) when no globe view was saved', () => {
+    const fly = new CameraFly();
+    const { camera, controls } = closePairView();
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    fly.flyToGlobalView(camera, controls);
+    fly.update(camera, controls, 10_000);
+    expect(camera.position.distanceTo(new Vector3(0, 0, 4.5))).toBeLessThan(1e-6);
+    expect(controls.target.length()).toBeLessThan(1e-9);
+  });
+});
+
+describe('CameraFly.flyToConjunctionPair (opening a close approach or a historical event)', () => {
+  const posA = { x: -0.02, y: 0.3, z: -1.06 };
+  const posB = { x: -0.019, y: 0.301, z: -1.06 };
+  const sepKm = 7;
+
+  it('turns the pair towards the viewer from the globe view, then moves in to the pair', () => {
+    const fly = new CameraFly();
+    const controls = fakeControls(6);
+    const camera = cameraAt(0, 0, 4.5); // pair is on the far side (−z)
+    const pose = getConjunctionCameraPose(posA, posB, sepKm);
+    const pairDir = pose.target.clone().normalize();
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    fly.flyToConjunctionPair(camera, controls, posA, posB, sepKm);
+
+    // Already far enough out: no pull-back, it starts turning at once.
+    const turnMs = turnDurationMs(new Vector3(0, 0, 1).angleTo(pairDir));
+    for (let i = 1; i <= 10; i += 1) {
+      fly.update(camera, controls, (turnMs * i) / 10);
+      expect(camera.position.length()).toBeCloseTo(4.5, 6);
+      expect(controls.target.length()).toBeCloseTo(0, 9);
+      expectAimedAtTarget(camera, controls);
+    }
+    expect(camera.position.clone().normalize().angleTo(pairDir)).toBeLessThan(1e-6);
+
+    // Approach: moves in, the look-at point moves to the pair.
+    for (let i = 1; i <= 10; i += 1) {
+      fly.update(camera, controls, turnMs + (APPROACH_DURATION_MS * i) / 10);
+      expectAimedAtTarget(camera, controls);
+    }
+    expect(camera.position.distanceTo(pose.cameraPos)).toBeLessThan(1e-9);
+    expect(controls.target.distanceTo(pose.target)).toBeLessThan(1e-9);
+    expect(camera.fov).toBeCloseTo(pose.fov, 9);
+    expect(fly.isActive()).toBe(false);
+  });
+
+  it('follows the pair once it has arrived', () => {
+    const fly = new CameraFly();
+    const controls = fakeControls(6);
+    const camera = cameraAt(0, 0, 4.5);
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    fly.flyToConjunctionPair(camera, controls, posA, posB, sepKm);
+    fly.update(camera, controls, 10_000);
+
+    const before = camera.position.clone();
+    const moved = { x: posA.x + 0.01, y: posA.y, z: posA.z };
+    const movedB = { x: posB.x + 0.01, y: posB.y, z: posB.z };
+    fly.followConjunctionMidpoint(camera, controls, moved, movedB, sepKm, 500);
+    expect(camera.position.x).toBeGreaterThan(before.x);
+  });
+
+  it('from another close pair, first pulls back to the globe before turning', () => {
+    const fly = new CameraFly();
+    const controls = fakeControls(6);
+    controls.target.set(1.08, 0, 0);
+    const camera = new PerspectiveCamera(38, 1, 0.00005, 1000);
+    camera.position.set(1.1, 0, 0);
+    camera.lookAt(controls.target);
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    fly.flyToConjunctionPair(camera, controls, posA, posB, sepKm);
+
+    fly.update(camera, controls, PULL_BACK_DURATION_MS);
+    expect(camera.position.length()).toBeGreaterThan(2.5); // out at globe distance
+    expect(camera.position.clone().normalize().x).toBeCloseTo(1, 6); // not turned yet
+    expect(controls.target.length()).toBeCloseTo(0, 9);
   });
 });
 

@@ -57,11 +57,35 @@ export function getConjunctionViewDistance(separationScene: number): number {
   return Math.min(MAX_OPENING_VIEW_DISTANCE, raw);
 }
 
-/** Initial camera pose when entering verification (one-shot fly-in only). */
+const PAIR_VIEW_FOV_DEG = 38;
+/** A whole-pair frame leaves this much room around the pair (1.5 → the pair spans 2/3 of the view). */
+const WHOLE_PAIR_MARGIN = 1.5;
+/** A whole-pair frame looks at the pair from this far above the local horizon, so Earth's edge shows. */
+const WHOLE_PAIR_ELEVATION_DEG = 30;
+
+/**
+ * Camera distance at which both objects fit in the view, with a margin
+ * (vertical field of view, the narrower one on a landscape screen).
+ */
+export function wholePairViewDistance(separationScene: number, fovDeg = PAIR_VIEW_FOV_DEG): number {
+  const halfFov = (fovDeg * Math.PI) / 360;
+  return ((separationScene / 2) / Math.tan(halfFov)) * WHOLE_PAIR_MARGIN;
+}
+
+/**
+ * Initial camera pose when entering verification (one-shot fly-in only).
+ *
+ * `frameWholePair` (historical event replays): the objects can start
+ * thousands of km apart, far wider than the close-approach opening distance
+ * can show; looking straight down from there shows only blurred ground. With
+ * this option the camera moves back until both objects fit, and looks at them
+ * from the side and slightly above, so Earth's edge is in view.
+ */
 export function getConjunctionCameraPose(
   posA: { x: number; y: number; z: number },
   posB: { x: number; y: number; z: number },
   separationKm: number,
+  options: { frameWholePair?: boolean } = {},
 ): { cameraPos: Vector3; target: Vector3; fov: number } {
   const layout = getVisualConjunctionLayout(posA, posB, separationKm);
   const mid = layout.visualMid;
@@ -92,7 +116,24 @@ export function getConjunctionCameraPose(
   }
   view.normalize();
 
+  if (options.frameWholePair) {
+    const fitDistance = wholePairViewDistance(separationScene);
+    // Sideways, across the line joining the pair (so they never overlap),
+    // tilted up from the local horizon.
+    const side = new Vector3().crossVectors(radial, offsetDir);
+    if (fitDistance > viewDistance && side.lengthSq() > 1e-6) {
+      const elevation = (WHOLE_PAIR_ELEVATION_DEG * Math.PI) / 180;
+      const tilted = side
+        .normalize()
+        .multiplyScalar(Math.cos(elevation))
+        .addScaledVector(radial, Math.sin(elevation))
+        .normalize();
+      const cameraPos = mid.clone().addScaledVector(tilted, fitDistance);
+      return { cameraPos, target: mid.clone(), fov: PAIR_VIEW_FOV_DEG };
+    }
+  }
+
   const cameraPos = mid.clone().add(view.multiplyScalar(viewDistance));
 
-  return { cameraPos, target: mid.clone(), fov: 38 };
+  return { cameraPos, target: mid.clone(), fov: PAIR_VIEW_FOV_DEG };
 }

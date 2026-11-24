@@ -32,7 +32,7 @@ import { getDebrisUpdateStride, getPropagationResults } from '../orbital/propaga
 import { PropagationWorkerBridge } from '../orbital/PropagationWorkerBridge';
 import { eciToScene, getSubSatelliteScenePoints } from '../orbital/coordinates';
 import { propagateObject } from '../orbital/propagator';
-import { getVisualConjunctionLayout, PAIR_FOCUS_MAX_DISTANCE, PAIR_FOCUS_NEAR, PAIR_INSPECT_MIN_DISTANCE, GLOBE_CAMERA_NEAR } from '../orbital/visualConjunction';
+import { PAIR_FOCUS_MAX_DISTANCE, PAIR_FOCUS_NEAR, PAIR_INSPECT_MIN_DISTANCE, GLOBE_CAMERA_NEAR } from '../orbital/visualConjunction';
 import { CameraFly } from './CameraFly';
 import { ConjunctionVerification } from './ConjunctionVerification';
 import { CatalogPacer } from './catalogPacing';
@@ -409,12 +409,11 @@ export class SceneManager {
           const posA = eciToScene(propA.positionEci.x, propA.positionEci.y, propA.positionEci.z);
           const posB = eciToScene(propB.positionEci.x, propB.positionEci.y, propB.positionEci.z);
           const liveKm = distanceKm(propA.positionEci, propB.positionEci);
-          const layout = getVisualConjunctionLayout(posA, posB, liveKm);
 
           this.conjunctionVerification.update(selectedConjunction, objects, flyTime);
 
-          this.controls.target.copy(layout.visualMid);
-          this.controls.update();
+          // The fly-in moves the look-at point to the pair itself; setting it
+          // here first would snap the view before the move starts.
           this.cameraFly.flyToConjunctionPair(
             this.camera,
             this.controls,
@@ -555,7 +554,8 @@ export class SceneManager {
       }
 
       // One-time fly-in: lock onto the pair like close-approach verification
-      // (midpoint target + close orbit), not a globe-facing frame.
+      // (midpoint target + close orbit), not a globe-facing frame. The pair
+      // starts thousands of km apart, so frame both objects with Earth's edge.
       if (replayResult && !this._eventReplayStarted && !this.cameraFly.isActive()) {
         this._eventReplayStarted = true;
         const collisionScene = this.eventReplayVisuals.getCollisionScene();
@@ -567,15 +567,13 @@ export class SceneManager {
             posA.distanceTo(posB) * EARTH_RADIUS_KM,
             0.5,
           );
-          const layout = getVisualConjunctionLayout(posA, posB, sepKm);
-          this.controls.target.copy(layout.visualMid);
-          this.controls.update();
           this.cameraFly.flyToConjunctionPair(
             this.camera,
             this.controls,
             posA,
             posB,
             sepKm,
+            { frameWholePair: true },
           );
         }
       }
