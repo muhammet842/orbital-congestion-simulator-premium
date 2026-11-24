@@ -10,6 +10,6 @@
   "casesWithin1mm": 32,
   "casesWithin1mmInAfspcMode": 33,
   "casesStoppingWhereReferenceStops": 33,
-  "satelliteJs": "7.1.0 (twoline2satrec: opsmode i, WGS-72)",
+  "satelliteJs": "7.2.0 (twoline2satrec: opsmode i, WGS-72)",
   "reference": "Vallado et al. (2006), AIAA 2006-6753: MATLAB output tmatverDec2015.out (opsmode a, WGS-72), cross-checked with tforverf.out"
 }
