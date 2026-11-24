@@ -169,8 +169,9 @@ export class CameraFly {
     posA: { x: number; y: number; z: number },
     posB: { x: number; y: number; z: number },
     separationKm: number,
+    options: { frameWholePair?: boolean } = {},
   ): void {
-    const pose = getConjunctionCameraPose(posA, posB, separationKm);
+    const pose = getConjunctionCameraPose(posA, posB, separationKm, options);
     const altitudeKm = (pose.target.length() - 1) * EARTH_RADIUS_KM;
     this.begin(camera, controls, {
       turnDir: pose.target.clone().normalize(),

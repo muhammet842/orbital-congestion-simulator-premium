@@ -554,7 +554,8 @@ export class SceneManager {
       }
 
       // One-time fly-in: lock onto the pair like close-approach verification
-      // (midpoint target + close orbit), not a globe-facing frame.
+      // (midpoint target + close orbit), not a globe-facing frame. The pair
+      // starts thousands of km apart, so frame both objects with Earth's edge.
       if (replayResult && !this._eventReplayStarted && !this.cameraFly.isActive()) {
         this._eventReplayStarted = true;
         const collisionScene = this.eventReplayVisuals.getCollisionScene();
@@ -572,6 +573,7 @@ export class SceneManager {
             posA,
             posB,
             sepKm,
+            { frameWholePair: true },
           );
         }
       }
