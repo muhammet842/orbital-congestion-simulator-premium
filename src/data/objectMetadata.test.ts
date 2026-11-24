@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { enrichRecord, inferMetadata, isTurkishSatellite } from './objectMetadata';
+import { enrichRecord, inferMetadata } from './objectMetadata';
 
 describe('inferMetadata', () => {
   it('prioritizes the featured NORAD ID override above name matching', () => {
@@ -46,21 +46,6 @@ describe('inferMetadata', () => {
       country: 'International 🌍',
       owner: 'Space Agency Consortium',
     });
-  });
-});
-
-describe('isTurkishSatellite', () => {
-  it('recognizes the Turkish flag label', () => {
-    expect(isTurkishSatellite('Türkiye 🇹🇷')).toBe(true);
-  });
-
-  it('recognizes the English spelling', () => {
-    expect(isTurkishSatellite('Turkey')).toBe(true);
-  });
-
-  it('rejects other countries', () => {
-    expect(isTurkishSatellite('USA 🇺🇸')).toBe(false);
-    expect(isTurkishSatellite('')).toBe(false);
   });
 });
 

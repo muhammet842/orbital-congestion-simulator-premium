@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createSkyViewStabilizer,
-  pitchDeltaToPixels,
-} from './skyViewStabilizer';
+import { createSkyViewStabilizer } from './skyViewStabilizer';
 
 describe('createSkyViewStabilizer', () => {
   it('keeps display pitch fixed under ±2° oscillation (still phone noise)', () => {
@@ -130,10 +127,5 @@ describe('createSkyViewStabilizer', () => {
       expect(stab.isFrozen()).toBe(false);
       expect(out.pitchDeg).toBeGreaterThan(20);
     }
-  });
-
-  it('pitchDeltaToPixels matches sky projection scale', () => {
-    expect(pitchDeltaToPixels(1, 280, 60)).toBeCloseTo(280 / 60, 5);
-    expect(Math.abs(pitchDeltaToPixels(2, 280, 60))).toBeGreaterThan(8);
   });
 });

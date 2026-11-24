@@ -3,17 +3,9 @@ import {
   DEFAULT_FOV_DEG,
   horizonYForPitch,
   projectAzElToCanvas,
-  signedAzimuthDeltaDeg,
   skyAngularDistanceDeg,
   skyFovCenterDistanceDeg,
 } from './skyProjection';
-
-describe('signedAzimuthDeltaDeg', () => {
-  it('wraps across 0/360', () => {
-    expect(signedAzimuthDeltaDeg(350, 10)).toBeCloseTo(20, 5);
-    expect(signedAzimuthDeltaDeg(10, 350)).toBeCloseTo(-20, 5);
-  });
-});
 
 describe('projectAzElToCanvas', () => {
   const size = 300;

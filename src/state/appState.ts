@@ -22,7 +22,7 @@ import {
   hasUpcomingConjunctionScanCompleted,
   normalizeConjunctionAlert,
 } from '../orbital/conjunction';
-import type { AppStats, ConjunctionEvent, ObjectCategory, OrbitLayer, TimeMode, TimeState, TrackedObject } from '../types';
+import type { AppStats, ConjunctionEvent, ObjectCategory, OrbitLayer, TimeState, TrackedObject } from '../types';
 import { isRecentlyLaunched } from '../data/newLaunches';
 
 /** How far before the collision to start the replay (ms). */
@@ -325,10 +325,6 @@ export function matchesSearchQuery(obj: TrackedObject, searchQuery: string): boo
 }
 
 let sortedAllIndices: number[] = [];
-
-export function getSortedObjectIndices(): number[] {
-  return sortedAllIndices;
-}
 
 /** Indices for the sidebar list (same filters as the globe, A–Z order). */
 export function getListIndices(): number[] {
@@ -758,8 +754,4 @@ export function isVerificationPlaying(): boolean {
 
 export function getVerificationTimeState(): VerificationTimeState | null {
   return state.verificationTime;
-}
-
-export function getTimeModeLabel(mode: TimeMode): string {
-  return mode === 'live' ? 'LIVE' : 'Historical';
 }

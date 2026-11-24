@@ -148,10 +148,6 @@ export function inferMetadata(
   return { country: 'Unknown 🌐', owner: 'Unknown operator' };
 }
 
-export function isTurkishSatellite(country: string): boolean {
-  return country.includes('Türkiye') || country.includes('Turkey');
-}
-
 /** "Norway 🇳🇴" -> "norway": compare countries without flags or spacing. */
 function countryKey(country: string): string {
   return country.replace(/[^\p{L}\s]/gu, '').trim().toLowerCase();

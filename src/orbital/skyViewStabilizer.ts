@@ -260,12 +260,3 @@ export function createSkyViewStabilizer(
 
   return { getCenter, isFrozen, update, snapTo, setHoldFrozen, reset };
 }
-
-/** Horizon Y shift in pixels for a pitch delta (for tests / diagnostics). */
-export function pitchDeltaToPixels(
-  pitchDeltaDeg: number,
-  canvasHeight: number,
-  fovDeg: number,
-): number {
-  return pitchDeltaDeg * (canvasHeight / fovDeg);
-}
