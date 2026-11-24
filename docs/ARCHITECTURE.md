@@ -31,9 +31,9 @@ The browser downloads `tle.json` ([`src/data/tleLoader.ts`](../src/data/tleLoade
 
 **SGP4** is the orbit model NORAD developed for use with TLEs (Hoots and Roehrich, 1980; today's version Vallado et al., 2006). It takes a TLE and a time and gives the object's position and velocity at that time. It accounts for the Earth's flattening, atmospheric drag and the Moon's and Sun's gravity with simplified formulas.
 
-- The app uses satellite.js 7.1.0. This library was verified to agree with the published reference results within 1 mm ([SGP4 verification](../research/sgp4-verify/README.md)).
+- The app uses satellite.js 7.2.0. This library was verified to agree with the published reference results within 1 mm ([SGP4 verification](../research/sgp4-verify/README.md)).
 - The output is the position in kilometres and the velocity in km/s in an Earth-centred frame (SGP4's TEME frame; called "ECI" in the code) ([`propagateObject`](../src/orbital/propagator.ts)). Altitude, latitude and longitude are computed too.
-- **Cost:** about 2.12 µs per object on the test computer; **about 59 ms for 28,000 objects** (median 59.42 ms) ([performance measurement](../research/perf/README.md)). A frame on a 60 Hz display has 16.7 ms, so this work cannot share a thread with the drawing (section 5).
+- **Cost:** about 2.12 µs per object on the test computer; **about 59 ms for 28,000 objects** (median 59.42 ms) ([performance measurement](../research/perf/README.md)). Measured with satellite.js 7.1.0; 7.2.0 has not been measured, and the test computer is no longer available to repeat it. A frame on a 60 Hz display has 16.7 ms, so this work cannot share a thread with the drawing (section 5).
 
 ## 4. Position → dot on the screen
 

@@ -1,6 +1,6 @@
 # SGP4 verification (Vallado test set)
 
-**Question:** does the SGP4 library the app uses (satellite.js 7.1.0) give the same results as the published reference implementation of SGP4?
+**Question:** does the SGP4 library the app uses (satellite.js 7.2.0) give the same results as the published reference implementation of SGP4?
 
 **Why it matters:** every position, close approach and pass prediction in the app is computed with this library. If the library had a bug, every other measurement would be wrong too.
 
@@ -72,7 +72,7 @@ Error codes (Vallado et al. and satellite.js): **1** mean elements invalid (ecce
 
 - This verification shows that satellite.js **implements SGP4 correctly**; it does not show **how well SGP4 predicts reality**. That question is the subject of the [`../tle-age/`](../tle-age/README.md) measurement.
 - The test cases deliberately include SGP4's hard edge cases (resonant orbits, re-entry, deep space); ordinary satellites are easier.
-- What is verified is the app's satellite.js version (7.1.0). If the version changes, `npm test` repeats these checks and fails on any drift.
+- What is verified is the app's satellite.js version (7.2.0). The verification was first run with 7.1.0 and repeated after the update to 7.2.0: every result file came out identical. If the version changes, `npm test` repeats these checks and fails on any drift.
 
 ## Code layout
 
@@ -86,4 +86,4 @@ Error codes (Vallado et al. and satellite.js): **1** mean elements invalid (ecce
 
 - Vallado, D. A., Crawford, P., Hujsak, R. and Kelso, T. S. (2006). *Revisiting Spacetrack Report #3.* AIAA 2006-6753.
 - Hoots, F. R. and Roehrich, R. L. (1980). *Spacetrack Report No. 3: Models for Propagation of NORAD Element Sets.*
-- satellite.js 7.1.0: https://github.com/shashwatak/satellite-js
+- satellite.js 7.2.0: https://github.com/shashwatak/satellite-js

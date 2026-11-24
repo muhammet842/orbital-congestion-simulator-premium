@@ -58,6 +58,10 @@ async function main() {
   await writeFile(join(OUT, 'summary.csv'), `${[header.join(','), ...summary.map((r) => header.map((h) => r[h]).join(','))].join('\n')}\n`);
   await writeFile(join(OUT, 'points.csv'), `case,norad_id,minutes,position_diff_mm,velocity_diff_mm_s\n${points.join('\n')}\n`);
 
+  // The version actually installed, so the record cannot fall behind a dependency update.
+  const { version: satelliteJsVersion } = JSON.parse(
+    await readFile(join(HERE, '..', '..', 'node_modules', 'satellite.js', 'package.json'), 'utf8'),
+  );
   const agreement = referenceAgreement(matlab, fortran);
   const totals = {
     cases: cases.length,
@@ -68,7 +72,7 @@ async function main() {
     casesWithin1mm: summary.filter((r) => Number(r.max_position_diff_mm) < 1).length,
     casesWithin1mmInAfspcMode: summary.filter((r) => Number(r.max_position_diff_mm_afspc_mode) < 1).length,
     casesStoppingWhereReferenceStops: summary.filter((r) => r.stops_where_reference_stops === 'yes').length,
-    satelliteJs: '7.1.0 (twoline2satrec: opsmode i, WGS-72)',
+    satelliteJs: `${satelliteJsVersion} (twoline2satrec: opsmode i, WGS-72)`,
     reference: 'Vallado et al. (2006), AIAA 2006-6753: MATLAB output tmatverDec2015.out (opsmode a, WGS-72), cross-checked with tforverf.out',
   };
   await writeFile(join(OUT, 'totals.json'), `${JSON.stringify(totals, null, 2)}\n`);
