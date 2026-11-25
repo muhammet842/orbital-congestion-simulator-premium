@@ -38,9 +38,9 @@ The `data` branch keeps only the latest snapshot, so each day's catalog is also 
 
 ## Satellite pages
 
-`/sat/<NORAD>/`, `/sat/`, `404.html` and `sitemap.xml` are written into `dist/` at the end of every `vite build` by the `satellite-pages` plugin in `vite.config.ts` (code in `src/satPages/`). They are built from whatever `public/data/tle.json` holds at that moment: the pulled snapshot on Vercel, the fresh fetch in the TLE refresh workflow, the old seed locally and in CI (so local builds have fewer pages).
+`/sat/<NORAD>/`, `/sat/`, `404.html`, `llms.txt` and `sitemap.xml` are written into `dist/` at the end of every `vite build` by the `satellite-pages` plugin in `vite.config.ts` (code in `src/satPages/`). They are built from whatever `public/data/tle.json` holds at that moment: the pulled snapshot on Vercel, the fresh fetch in the TLE refresh workflow, the old seed locally and in CI (so local builds have fewer pages).
 
-- The build log shows one line: `satellite pages: N pages, list, 404 and sitemap written (M objects with frequencies skipped: orbit no longer propagates)`. N should be the size of the Radio panel's default list on the live site.
+- The build log shows one line: `satellite pages: N pages, list, 404, llms.txt and sitemap written (M objects with frequencies skipped: orbit no longer propagates)`. N should be the size of the Radio panel's default list on the live site.
 - `sitemap.xml` is generated, not kept in `public/`. Don't add one there: Vite copies `public/` into `dist/`.
 - **vercel.json:** the single-page-app rewrite excludes `/sat/` as well as `/api/`, so an address with no page (a satellite that re-entered, or a typo) answers 404 with `404.html` instead of opening the app.
 - **Check after a deploy:** `curl -I https://orbital-congestion.vercel.app/sat/25544/` → 200, `/sat/1/` → 404, and `/sitemap.xml` lists the pages.

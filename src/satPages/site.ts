@@ -5,6 +5,7 @@
 import { buildSatPageCatalog } from './catalog';
 import {
   renderListPage,
+  renderLlmsTxt,
   renderNotFoundPage,
   renderSatPage,
   renderSitemap,
@@ -31,6 +32,7 @@ export function buildSatSite(raw: unknown, fonts: PageFonts, asOf = new Date()):
   }
   files.set(`${SAT_LIST_PATH.slice(1)}index.html`, renderListPage(entries, ctx));
   files.set('404.html', renderNotFoundPage(ctx));
+  files.set('llms.txt', renderLlmsTxt(entries, fetchedAt));
   files.set(
     'sitemap.xml',
     renderSitemap(['/', SAT_LIST_PATH, ...entries.map((e) => satPagePath(e.noradId))], fetchedAt),

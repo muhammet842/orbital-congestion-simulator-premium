@@ -29,10 +29,33 @@
     <title>Orbital Congestion Simulator</title>
   </head>
   <body>
+    <!--
+      What a reader that runs no JavaScript sees (search engines, AI tools, link
+      previews): what the site is, and the satellite pages that work without it.
+      Styled as the loading screen; src/main.ts replaces it as soon as the app starts.
+    -->
     <div id="app">
-      <noscript>
-        <p>The 3D view needs JavaScript and WebGL. The <a href="/sat/">list of satellites you can hear on VHF/UHF</a>, with their radio frequencies, works without them.</p>
-      </noscript>
+      <div class="loading-screen boot-intro">
+        <span class="loading-mark" aria-hidden="true">
+          <span class="loading-mark__core"></span>
+          <span class="loading-mark__orbit"><span class="loading-mark__sat"></span></span>
+        </span>
+        <h1 class="loading-brand">Orbital Congestion Simulator</h1>
+        <p class="boot-intro__text">
+          A real-time 3D view of Earth’s orbital traffic: about 28,000 satellites, debris
+          fragments and rocket bodies propagated from daily CelesTrak data, close-approach
+          screening, upcoming launches, historical collisions, and a radio panel with the
+          published frequencies of the satellites you can hear.
+        </p>
+        <p class="boot-intro__text">
+          <a href="/sat/">Satellites you can hear on VHF/UHF, with their radio frequencies</a>
+          (one page per satellite, no JavaScript needed)
+        </p>
+        <p class="loading-message">Loading the 3D view…</p>
+        <noscript>
+          <p class="boot-intro__text">The 3D view needs JavaScript and WebGL; the satellite pages above work without them.</p>
+        </noscript>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

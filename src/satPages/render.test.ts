@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SatPageEntry } from './catalog';
+import indexHtml from '../../index.html?raw';
 import {
   renderListPage,
+  renderLlmsTxt,
   renderNotFoundPage,
   renderSatPage,
   renderSitemap,
@@ -135,6 +137,39 @@ describe('renderNotFoundPage', () => {
     const html = renderNotFoundPage(ctx);
     expect(html).toContain('<meta name="robots" content="noindex">');
     expect(html).not.toContain('rel="canonical"');
+  });
+});
+
+describe('renderLlmsTxt', () => {
+  const txt = renderLlmsTxt(
+    [entry(), entry({ noradId: 11111, name: 'WX [SAT]\nTWO', amateur: false, category: 'active' })],
+    ctx.fetchedAt,
+  );
+
+  it('follows the llms.txt layout: title, summary, then link sections', () => {
+    expect(txt.startsWith('# Orbital Congestion Simulator\n\n> ')).toBe(true);
+    expect(txt).toContain('Data as of 2026-11-23 13:06 UTC');
+    expect(txt).toContain(`- [Satellites you can hear on VHF/UHF](${SITE_ORIGIN}/sat/): all 2 satellites`);
+  });
+
+  it('lists amateur satellites in the main section and the rest under Optional', () => {
+    const [main, optional] = txt.split('## Optional');
+    expect(main).toContain(`(${SITE_ORIGIN}/sat/99999/): Amateur radio satellite, receive 436.795, 137.1 MHz`);
+    expect(main).not.toContain('/sat/11111/');
+    expect(optional).toContain(`(${SITE_ORIGIN}/sat/11111/)`);
+  });
+
+  it('keeps names from breaking the Markdown links', () => {
+    expect(txt).toContain('- [WX SAT TWO (NORAD 11111)]');
+  });
+});
+
+describe('index.html', () => {
+  it('tells readers that run no JavaScript what the site is, and links the satellite pages', () => {
+    const app = indexHtml.slice(indexHtml.indexOf('<div id="app">'), indexHtml.indexOf('<script type="module"'));
+    expect(app).toContain('<h1 class="loading-brand">Orbital Congestion Simulator</h1>');
+    expect(app).toMatch(/real-time 3D view of Earth’s orbital traffic/);
+    expect(app).toContain('<a href="/sat/">');
   });
 });
 

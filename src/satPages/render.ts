@@ -286,3 +286,45 @@ export function renderSitemap(paths: readonly string[], lastmod: string): string
     .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
+
+/** Text for a Markdown link label: no brackets or line breaks that would end it early. */
+function linkLabel(value: string): string {
+  return value.replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function llmsLine(entry: SatPageEntry): string {
+  const freqs = entry.listFrequenciesMHz.slice(0, 4).map(formatMHz).join(', ');
+  return `- [${linkLabel(entry.name)} (NORAD ${entry.noradId})](${SITE_ORIGIN}${satPagePath(entry.noradId)}): ${linkLabel(kindLabel(entry))}, receive ${freqs} MHz`;
+}
+
+/**
+ * /llms.txt (llmstxt.org): what the site is, for AI tools that read pages
+ * without running JavaScript, and where the readable pages are.
+ */
+export function renderLlmsTxt(entries: readonly SatPageEntry[], fetchedAt: string): string {
+  const amateur = entries.filter((e) => e.amateur);
+  const other = entries.filter((e) => !e.amateur);
+  return `# ${SITE_NAME}
+
+> A real-time 3D view of Earth's orbital traffic: about 28,000 satellites, debris fragments and rocket bodies propagated with SGP4 from daily CelesTrak data, close-approach screening, upcoming launches, historical collisions, and the published radio frequencies of the satellites you can hear. The 3D app needs JavaScript and WebGL; the satellite pages listed here are plain HTML.
+
+Data as of ${formatDateUtc(fetchedAt)}, refreshed daily. Frequencies come from the SatNOGS DB (CC BY-SA 4.0), the AMSAT list and official constellation plans; every page links each channel to its source. They are a reference, not an operating authorization. Positions are SGP4 predictions from public orbital elements, not live tracking.
+
+## Satellite radio frequencies
+
+- [Satellites you can hear on VHF/UHF](${SITE_ORIGIN}${SAT_LIST_PATH}): all ${entries.length} satellites with receive frequencies between 30 and 500 MHz, amateur satellites first
+
+## Amateur radio satellites
+
+${amateur.map(llmsLine).join('\n')}
+
+## App and source
+
+- [3D app](${SITE_ORIGIN}/): open a satellite with \`/?object=<NORAD>\`, the Radio panel with \`/?radio=easy&rq=<name or NORAD>\`
+- [Source code and documentation](https://github.com/muhammet842/orbital-congestion-simulator-premium): MIT license; how the data is built and its limits
+
+## Optional
+
+${other.map(llmsLine).join('\n')}
+`;
+}

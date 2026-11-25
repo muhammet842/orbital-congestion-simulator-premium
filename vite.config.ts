@@ -63,7 +63,7 @@ function satellitePages(): Plugin {
         writeFileSync(target, content);
       }
       console.log(
-        `satellite pages: ${satelliteCount} pages, list, 404 and sitemap written` +
+        `satellite pages: ${satelliteCount} pages, list, 404, llms.txt and sitemap written` +
           ` (${skippedCount} objects with frequencies skipped: orbit no longer propagates)`,
       );
     },
