@@ -6,12 +6,20 @@ const raw = JSON.parse(tleRaw) as { fetchedAt: string };
 const site = buildSatSite(raw, {}, new Date(raw.fetchedAt));
 
 describe('buildSatSite', () => {
-  it('writes one page per satellite plus the list, 404 and sitemap', () => {
+  it('writes one page per satellite plus the list, 404, llms.txt and sitemap', () => {
     const satPages = [...site.files.keys()].filter((p) => /^sat\/\d+\/index\.html$/.test(p));
     expect(satPages).toHaveLength(site.satelliteCount);
     expect(site.files.has('sat/index.html')).toBe(true);
     expect(site.files.has('404.html')).toBe(true);
-    expect(site.files.size).toBe(site.satelliteCount + 3);
+    expect(site.files.has('llms.txt')).toBe(true);
+    expect(site.files.size).toBe(site.satelliteCount + 4);
+  });
+
+  it('links every satellite page from llms.txt exactly once', () => {
+    const llms = site.files.get('llms.txt') ?? '';
+    const links = llms.match(/\(https:\/\/orbital-congestion\.vercel\.app\/sat\/\d+\/\)/g) ?? [];
+    expect(links).toHaveLength(site.satelliteCount);
+    expect(new Set(links).size).toBe(site.satelliteCount);
   });
 
   it('puts the home page, the list and every satellite page in the sitemap', () => {
